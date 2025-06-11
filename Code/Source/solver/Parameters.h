@@ -1123,6 +1123,8 @@ class DomainParameters : public ParameterLists
     Parameter<double> G_Ks;
     Parameter<double> G_to;
 
+    Parameter<double> V_init;    // Initial voltage state for the ep domain.
+
     Parameter<double> tau_fi;
     Parameter<double> tau_si;
 

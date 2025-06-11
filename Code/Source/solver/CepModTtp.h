@@ -114,6 +114,9 @@ class CepModTtp
       /// Maximal epicardial I_Ks conductance [nS/pF]
       Vector<double> G_Ks = {0.392, 0.392, 0.098};
 
+      // Voltage Initial
+      double V_init = -85.23; // Initial voltage state for the epicardial domain 
+
 //     G_Ks for spiral wave breakup (epi)
 //      double G_Ks(3) = (/0.441, 0.392_RKIND, 0.098_RKIND/)
 
@@ -403,9 +406,9 @@ class CepModTtp
     void getj(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
         Array<double>& JAC, const double Ksac);
 
-    void init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg);
+    void init(const int imyo, const int nX, const int nG, const double V_init, Vector<double>& X, Vector<double>& Xg);
 
-    void init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
+    void init(const int imyo, const int nX, const int nG, const double V_init, Vector<double>& X, Vector<double>& Xg,
         Vector<double>& X0, Vector<double>& Xg0);
 
     void integ_cn2(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,

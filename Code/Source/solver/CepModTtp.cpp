@@ -471,7 +471,7 @@ void CepModTtp::getj(const int i, const int nX, const int nG, const Vector<doubl
   JAC(6,6) = -(k2*Ca_ss + k4);
 }
 
-void CepModTtp::init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg )
+void CepModTtp::init(const int imyo, const int nX, const int nG, const double V_init, Vector<double>& X, Vector<double>& Xg )
 {
   switch (imyo) {
 
@@ -552,14 +552,39 @@ void CepModTtp::init(const int imyo, const int nX, const int nG, Vector<double>&
       Xg(10) =  0.999998;   // s      (dimensionless)
       Xg(11) =  2.347E-8;   // r      (dimensionless)
     break;
+
+    // IC adjustments 
+    case 4: 
+    // Initialize state variables
+      X(0)   =  V_init;     // V      (units: mV)
+      X(1)   =  138.52;     // K_i    (units: mM)
+      X(2)   =  10.132;     // Na_i   (units: mM)
+      X(3)   =  1.53E-4;    // Ca_i   (units: mM)
+      X(4)   =  4.2E-4;     // Ca_ss  (units: mM)
+      X(5)   =  4.272;      // Ca_sr  (units: mM)
+      X(6)   =  0.8978;     // R'     (dimensionless)
+      //     Initialize gating variables
+      Xg(0)  =  1.65E-2;    // x_r1   (dimensionless)
+      Xg(1)  =  0.4730;     // x_r2   (dimensionless)
+      Xg(2)  =  1.74E-2;    // x_s    (dimensionless)
+      Xg(3)  =  1.65E-3;    // m      (dimensionless)
+      Xg(4)  =  0.7490;     // h      (dimensionless)
+      Xg(5)  =  0.6788;     // j      (dimensionless)
+      Xg(6)  =  3.288E-5;   // d      (dimensionless)
+      Xg(7)  =  0.7026;     // f      (dimensionless)
+      Xg(8)  =  0.9526;     // f_2    (dimensionless)
+      Xg(9)  =  0.9942;     // f_cass (dimensionless)
+      Xg(10) =  0.999998;   // s      (dimensionless)
+      Xg(11) =  2.347E-8;   // r      (dimensionless)
+    break;
   }
 
 }
 
-void CepModTtp::init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg, 
+void CepModTtp::init(const int imyo, const int nX, const int nG, const double V_init, Vector<double>& X, Vector<double>& Xg, 
     Vector<double>& X0, Vector<double>& Xg0)
 {
-  init(imyo, nX, nG, X, Xg);
+  init(imyo, nX, nG, V_init, X, Xg);
 
   if (X0.size() != 0) {
     X = X0;

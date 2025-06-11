@@ -975,7 +975,10 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
       lDmn.cep.imyo = 2;
     } else if (std::set<std::string>{"myo", "mid-myo", "myocardium"}.count(myocardial_zone)) {
       lDmn.cep.imyo = 3;
-    } else {
+    } else if  (std::set<std::string>{"init_test"}.count(myocardial_zone)) {
+      lDmn.cep.imyo = 4;
+    } 
+    else {
       throw std::runtime_error("Unknown myocardial zone type '" + myocardial_zone + "'.");
     }
   }
@@ -987,6 +990,8 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
   if (domain_params->G_Ks.defined())  { cep_mod.ttp.G_Ks[lDmn.cep.imyo - 1] = domain_params->G_Ks.value(); }
   if (domain_params->G_to.defined())  { cep_mod.ttp.G_to[lDmn.cep.imyo - 1] = domain_params->G_to.value(); }
   if (domain_params->G_CaL.defined()) { cep_mod.ttp.G_CaL = domain_params->G_CaL.value(); }
+
+  if (domain_params->V_init.defined()) {cep_mod.ttp.V_init = domain_params->V_init.value(); }
 
   // Set Bo parameters.
   //
