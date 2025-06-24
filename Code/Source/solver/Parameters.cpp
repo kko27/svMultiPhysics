@@ -1584,7 +1584,6 @@ DomainParameters::DomainParameters()
   set_parameter("G_Ks", 0.392, !required, G_Ks);
   set_parameter("G_to", 0.294, !required, G_to);
 
-  set_parameter("V_init", -85.0, !required, V_init);
 
   set_parameter("tau_fi", 0.110, !required, tau_fi);
   set_parameter("tau_si", 1.88750, !required, tau_si);

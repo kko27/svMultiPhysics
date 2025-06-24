@@ -46,13 +46,46 @@ T& make_ref(T&& x) { return x; }
 ///
 /// The classes defined here duplicate the data structures in the Fortran TPPMOD module defined 
 /// in CEPMOD_TTP.f and PARAMS_TPP.f files. 
+
+class TenTusscherPanfilovState {
+      public:
+            double V; 
+            double K_i;
+            double Na_i;
+            double Ca_i;
+            double Ca_ss;
+            double Ca_sr;
+            double R_bar;
+            double x_r1; 
+            double x_r2;
+            double x_s;
+            double m;
+            double h;
+            double j;
+            double d;
+            double f;
+            double f2;
+            double fcass;
+            double s; 
+            double r; 
+}; 
+
+namespace TenTusscherPanfilovDefaults {
+    extern const TenTusscherPanfilovState epicardium_state;
+    extern const TenTusscherPanfilovState endocardium_state;
+    extern const TenTusscherPanfilovState midmyocardium_state;
+}
+
+
 class CepModTtp
 {
+  private: 
+      TenTusscherPanfilovState initial_state; 
   public:
     CepModTtp();
     ~CepModTtp();
 
-
+    
 //--------------------------------------------------------------------
 //
 //     Constants for TenTusscher-Panfilov Ventricular Myocyte Model.
@@ -114,8 +147,6 @@ class CepModTtp
       /// Maximal epicardial I_Ks conductance [nS/pF]
       Vector<double> G_Ks = {0.392, 0.392, 0.098};
 
-      // Voltage Initial
-      double V_init = -85.23; // Initial voltage state for the epicardial domain 
 
 //     G_Ks for spiral wave breakup (epi)
 //      double G_Ks(3) = (/0.441, 0.392_RKIND, 0.098_RKIND/)
@@ -406,9 +437,9 @@ class CepModTtp
     void getj(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
         Array<double>& JAC, const double Ksac);
 
-    void init(const int imyo, const int nX, const int nG, const double V_init, Vector<double>& X, Vector<double>& Xg);
+    void init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg);
 
-    void init(const int imyo, const int nX, const int nG, const double V_init, Vector<double>& X, Vector<double>& Xg,
+    void init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
         Vector<double>& X0, Vector<double>& Xg0);
 
     void integ_cn2(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
@@ -424,7 +455,9 @@ class CepModTtp
     void update_g(const int i, const double dt, const int n, const int nG, const Vector<double>& X, 
         Vector<double>& Xg);
 
+    // Helper methods for Vector conversion
+    void copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const;
+
 };
 
 #endif
-
