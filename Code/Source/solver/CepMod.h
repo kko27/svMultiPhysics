@@ -192,6 +192,10 @@ class cepModelType
 
     /// @brief  Time integration options
     odeType odes;
+
+    /// @brief per-domain TTP state initializations 
+    TenTusscherPanfilovState ttp_initial_state;
+    bool ttp_user_initial_state = false;
 };
 
 /// @brief Cardiac electromechanics model type

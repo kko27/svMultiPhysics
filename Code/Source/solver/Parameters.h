@@ -1152,6 +1152,85 @@ class FiberReinforcementStressParameters : public ParameterLists
     bool value_set = false;
 };
 
+/// @brief The GatingVariablesParameters class stores parameters for the
+/// 'Gating_variables' XML element under Initial_conditions.
+class GatingVariablesParameters : public ParameterLists
+{
+  public:
+    GatingVariablesParameters();
+
+    static const std::string xml_element_name_;
+    
+    bool defined() const { return value_set; };
+    void print_parameters();
+    void set_values(tinyxml2::XMLElement* xml_elem);
+    
+    // Rectifier current gating variables
+    Parameter<double> x_r1_rectifier;
+    Parameter<double> x_r2_rectifier;
+    Parameter<double> x_s_rectifier;
+    
+    // Fast sodium current gating variables
+    Parameter<double> m_fast_Na;
+    Parameter<double> h_fast_Na;
+    Parameter<double> j_fast_Na;
+    
+    // Slow inward current gating variables
+    Parameter<double> d_slow_in;
+    Parameter<double> f_slow_in;
+    Parameter<double> f2_slow_in;
+    Parameter<double> fcass_slow_in;
+    
+    // Transient outward current gating variables
+    Parameter<double> s_out;
+    Parameter<double> r_out;
+    
+    bool value_set = false;
+};
+
+/// @brief The InitialStatesParameters class stores parameters for the
+/// 'Initial_States' XML element under Initial_conditions.
+class InitialStatesParameters : public ParameterLists
+{
+  public:
+    InitialStatesParameters();
+
+    static const std::string xml_element_name_;
+    
+    bool defined() const { return value_set; };
+    void print_parameters();
+    void set_values(tinyxml2::XMLElement* xml_elem);
+    
+    Parameter<double> V;
+    Parameter<double> K_i;
+    Parameter<double> Na_i;
+    Parameter<double> Ca_i;
+    Parameter<double> Ca_ss;
+    Parameter<double> Ca_sr;
+    Parameter<double> R_bar;
+    
+    bool value_set = false;
+};
+
+/// @brief The InitialConditionsParameters class stores parameters for the
+/// 'Initial_conditions' XML element under Domain.
+class InitialConditionsParameters : public ParameterLists
+{
+  public:
+    InitialConditionsParameters();
+
+    static const std::string xml_element_name_;
+    
+    bool defined() const { return value_set; };
+    void print_parameters();
+    void set_values(tinyxml2::XMLElement* xml_elem);
+    
+    InitialStatesParameters initial_states;
+    GatingVariablesParameters gating_variables;
+    
+    bool value_set = false;
+};
+
 /// @brief The DomainParameters class stores parameters for the XML
 /// 'Domain' element to specify properties for solving equations.
 ///
@@ -1181,6 +1260,7 @@ class DomainParameters : public ParameterLists
     StimulusParameters stimulus;
     FluidViscosityParameters fluid_viscosity;
     SolidViscosityParameters solid_viscosity;
+    InitialConditionsParameters initial_conditions;
 
     // Attributes.
     Parameter<std::string> id;

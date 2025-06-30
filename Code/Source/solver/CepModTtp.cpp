@@ -32,6 +32,7 @@
 
 #include "mat_fun.h"
 #include <math.h>
+#include <iostream>
 
 CepModTtp::CepModTtp()
 {
@@ -537,32 +538,34 @@ void CepModTtp::getj(const int i, const int nX, const int nG, const Vector<doubl
   JAC(6,6) = -(k2*Ca_ss + k4);
 }
 
-void CepModTtp::init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg )
+void CepModTtp::init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg, const TenTusscherPanfilovState* user_state)
 {
-  switch (imyo) {
-
-    // epi
-    case 1:
-      initial_state = TenTusscherPanfilovDefaults::epicardium_state;
-      break; 
-
-    // endo
-    case 2:
-      initial_state = TenTusscherPanfilovDefaults::endocardium_state;
-      break; 
-
-    // mid-myo
-    case 3:
-      initial_state = TenTusscherPanfilovDefaults::midmyocardium_state;
-      break; 
-
-    default:
-      throw std::invalid_argument("Invalid imyo value: must be 1 (epi), 2 (endo), or 3 (mid-myo)");
-    
+  if (user_state) {
+    initial_state = *user_state;
+  } else {
+    switch (imyo) {
+      // epi
+      case 1:
+        initial_state = TenTusscherPanfilovDefaults::epicardium_state;
+        break;
+      // endo
+      case 2:
+        initial_state = TenTusscherPanfilovDefaults::endocardium_state;
+        break;
+      // mid-myo 
+      case 3:
+        initial_state = TenTusscherPanfilovDefaults::midmyocardium_state;
+        break;
+      default:
+        throw std::invalid_argument("Invalid imyo value: must be 1 (epi), 2 (endo), or 3 (mid-myo)");
     }
-    // copy to vectors X and Xg
-    copyStateToVectors(X, Xg);
-
+  }
+  // // Debug print
+  // std::cout << "[CepModTtp::init] V: " << initial_state.V
+  //           << ", K_i: " << initial_state.K_i
+  //           << ", x_r1: " << initial_state.x_r1
+  //           << ", m: " << initial_state.m << std::endl;
+  copyStateToVectors(X, Xg);
 }
 
 void CepModTtp::init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg, 
@@ -852,4 +855,30 @@ void CepModTtp::copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const
   Xg(10) = initial_state.s;
   Xg(11) = initial_state.r;
   }
+// consider deleting (if not used)
+void CepModTtp::populateInitialStateFromMembers()
+{
+  // Populate initial_state from individual member variables
+  // This is called when user-defined initial conditions are provided
+  initial_state.V = V;
+  initial_state.K_i = K_i;
+  initial_state.Na_i = Na_i;
+  initial_state.Ca_i = Ca_i;
+  initial_state.Ca_ss = Ca_ss;
+  initial_state.Ca_sr = Ca_sr;
+  initial_state.R_bar = R_bar;
+  
+  initial_state.x_r1 = xr1;
+  initial_state.x_r2 = xr2;
+  initial_state.x_s = xs;
+  initial_state.m = m;
+  initial_state.h = h;
+  initial_state.j = j;
+  initial_state.d = d;
+  initial_state.f = f;
+  initial_state.f2 = f2;
+  initial_state.fcass = fcass;
+  initial_state.s = s;
+  initial_state.r = r;
+}
 

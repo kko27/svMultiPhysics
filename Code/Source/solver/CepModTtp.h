@@ -428,6 +428,9 @@ class CepModTtp
       double I_xfer_Cai, I_xfer_Cass;
       double k_casr_sr, k1_casr, O_Casr, O_Cass, O_Rbar;
 
+//    Flag for user-defined initial conditions
+      bool user_initial_conditions_defined = false;
+
     void actv_strn(const double c_Ca, const double I4f, const double dt, double& gf);
     void actv_strs(const double c_Ca, const double dt, double& Tact, double& epsX);
 
@@ -437,7 +440,7 @@ class CepModTtp
     void getj(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
         Array<double>& JAC, const double Ksac);
 
-    void init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg);
+    void init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg, const TenTusscherPanfilovState* user_state = nullptr);
 
     void init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
         Vector<double>& X0, Vector<double>& Xg0);
@@ -457,6 +460,9 @@ class CepModTtp
 
     // Helper methods for Vector conversion
     void copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const;
+    
+    // Helper method to populate initial_state from individual member variables
+    void populateInitialStateFromMembers();
 
 };
 

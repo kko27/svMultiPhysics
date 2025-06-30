@@ -158,7 +158,11 @@ void cep_init_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doubl
     break;
 
     case ElectrophysiologyModelType::TTP:
-      cep_mod.ttp.init(cep.imyo, nX, nG, X, Xg);
+      if (cep.ttp_user_initial_state) {
+        cep_mod.ttp.init(cep.imyo, nX, nG, X, Xg, &cep.ttp_initial_state);
+      } else {
+        cep_mod.ttp.init(cep.imyo, nX, nG, X, Xg, nullptr);
+      }
     break;
   }
 }

@@ -1003,8 +1003,6 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
       lDmn.cep.imyo = 2;
     } else if (std::set<std::string>{"myo", "mid-myo", "myocardium"}.count(myocardial_zone)) {
       lDmn.cep.imyo = 3;
-    } else if  (std::set<std::string>{"init_test"}.count(myocardial_zone)) {
-      lDmn.cep.imyo = 4;
     } 
     else {
       throw std::runtime_error("Unknown myocardial zone type '" + myocardial_zone + "'.");
@@ -1042,6 +1040,45 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
       } else {
         lDmn.cep.Istim.CL = simulation->nTs * simulation->com_mod.dt; 
       }
+    }
+  }
+
+  if (domain_params->initial_conditions.defined()) {
+
+    auto& initial_conditions_params = domain_params->initial_conditions;
+    if (initial_conditions_params.initial_states.defined()) {
+      auto& initial_states_params = initial_conditions_params.initial_states;
+      bool any_set = false;
+      if (initial_states_params.V.defined()) { lDmn.cep.ttp_initial_state.V = initial_states_params.V.value(); any_set = true; }
+      if (initial_states_params.K_i.defined()) { lDmn.cep.ttp_initial_state.K_i = initial_states_params.K_i.value(); any_set = true; }
+      if (initial_states_params.Na_i.defined()) { lDmn.cep.ttp_initial_state.Na_i = initial_states_params.Na_i.value(); any_set = true; }
+      if (initial_states_params.Ca_i.defined()) { lDmn.cep.ttp_initial_state.Ca_i = initial_states_params.Ca_i.value(); any_set = true; }
+      if (initial_states_params.Ca_ss.defined()) { lDmn.cep.ttp_initial_state.Ca_ss = initial_states_params.Ca_ss.value(); any_set = true; }
+      if (initial_states_params.Ca_sr.defined()) { lDmn.cep.ttp_initial_state.Ca_sr = initial_states_params.Ca_sr.value(); any_set = true; }
+      if (initial_states_params.R_bar.defined()) { lDmn.cep.ttp_initial_state.R_bar = initial_states_params.R_bar.value(); any_set = true; }
+      lDmn.cep.ttp_user_initial_state = any_set;
+    }
+
+    if (initial_conditions_params.gating_variables.defined()) {
+      auto& gating_variables_params = initial_conditions_params.gating_variables;
+      bool any_set = false;
+      // Rectifier current gating variables
+      if (gating_variables_params.x_r1_rectifier.defined()) { lDmn.cep.ttp_initial_state.x_r1 = gating_variables_params.x_r1_rectifier.value(); any_set = true; }
+      if (gating_variables_params.x_r2_rectifier.defined()) { lDmn.cep.ttp_initial_state.x_r2 = gating_variables_params.x_r2_rectifier.value(); any_set = true; }
+      if (gating_variables_params.x_s_rectifier.defined()) { lDmn.cep.ttp_initial_state.x_s = gating_variables_params.x_s_rectifier.value(); any_set = true; }
+      // Fast sodium current gating variables
+      if (gating_variables_params.m_fast_Na.defined()) { lDmn.cep.ttp_initial_state.m = gating_variables_params.m_fast_Na.value(); any_set = true; }
+      if (gating_variables_params.h_fast_Na.defined()) { lDmn.cep.ttp_initial_state.h = gating_variables_params.h_fast_Na.value(); any_set = true; }
+      if (gating_variables_params.j_fast_Na.defined()) { lDmn.cep.ttp_initial_state.j = gating_variables_params.j_fast_Na.value(); any_set = true; }
+      // Slow inward current gating variables
+      if (gating_variables_params.d_slow_in.defined()) { lDmn.cep.ttp_initial_state.d = gating_variables_params.d_slow_in.value(); any_set = true; }
+      if (gating_variables_params.f_slow_in.defined()) { lDmn.cep.ttp_initial_state.f = gating_variables_params.f_slow_in.value(); any_set = true; }
+      if (gating_variables_params.f2_slow_in.defined()) { lDmn.cep.ttp_initial_state.f2 = gating_variables_params.f2_slow_in.value(); any_set = true; }
+      if (gating_variables_params.fcass_slow_in.defined()) { lDmn.cep.ttp_initial_state.fcass = gating_variables_params.fcass_slow_in.value(); any_set = true; }
+      // Transient outward current gating variables
+      if (gating_variables_params.s_out.defined()) { lDmn.cep.ttp_initial_state.s = gating_variables_params.s_out.value(); any_set = true; }
+      if (gating_variables_params.r_out.defined()) { lDmn.cep.ttp_initial_state.r = gating_variables_params.r_out.value(); any_set = true; }
+      if (any_set) lDmn.cep.ttp_user_initial_state = true;
     }
   }
 
