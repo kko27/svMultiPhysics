@@ -196,6 +196,9 @@ class cepModelType
     /// @brief per-domain TTP state initializations 
     TenTusscherPanfilovState ttp_initial_state;
     bool ttp_user_initial_state = false;
+
+    /// @brief per-domain TTP model parameters
+    CepModTtp ttp;
 };
 
 /// @brief Cardiac electromechanics model type

@@ -159,9 +159,9 @@ void cep_init_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doubl
 
     case ElectrophysiologyModelType::TTP:
       if (cep.ttp_user_initial_state) {
-        cep_mod.ttp.init(cep.imyo, nX, nG, X, Xg, &cep.ttp_initial_state);
+        cep.ttp.init(cep.imyo, nX, nG, X, Xg, &cep.ttp_initial_state);
       } else {
-        cep_mod.ttp.init(cep.imyo, nX, nG, X, Xg, nullptr);
+        cep.ttp.init(cep.imyo, nX, nG, X, Xg, nullptr);
       }
     break;
   }
@@ -611,14 +611,14 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             } else {
               Istim = 0.0;
             }
-            cep_mod.ttp.integ_fe(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, RPAR);
+            cep.ttp.integ_fe(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, RPAR);
 
             // Electromechanics excitation-activation
             if (cem.aStress) {
               double epsX;
-              cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              cep.ttp.actv_strs(X(3), cep.dt, yl, epsX);
             } else if (cem.aStrain) {
-              cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
+              cep.ttp.actv_strn(X(3), I4f, cep.dt, yl);
             }
           }
         } break;
@@ -633,14 +633,14 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
               Istim = 0.0;
             }
 
-            cep_mod.ttp.integ_rk(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, RPAR);
+            cep.ttp.integ_rk(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, RPAR);
 
             // Electromechanics excitation-activation
             if (cem.aStress) {
               double epsX;
-              cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              cep.ttp.actv_strs(X(3), cep.dt, yl, epsX);
             } else if (cem.aStrain) {
-              cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
+              cep.ttp.actv_strn(X(3), I4f, cep.dt, yl);
             }
           }
         } break;
@@ -655,14 +655,14 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
               Istim = 0.0;
             }
 
-            cep_mod.ttp.integ_cn2(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, IPAR, RPAR);
+            cep.ttp.integ_cn2(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, IPAR, RPAR);
 
             // Electromechanics excitation-activation
             if (cem.aStress) {
               double epsX;
-              cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              cep.ttp.actv_strs(X(3), cep.dt, yl, epsX);
             } else if (cem.aStrain) {
-              cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
+              cep.ttp.actv_strn(X(3), I4f, cep.dt, yl);
             }
           }
         } break;
