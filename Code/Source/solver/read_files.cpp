@@ -2041,9 +2041,9 @@ void read_fourier_coeff_values_file(const std::string& file_name, bfType& lBf)
       values.push_back(value);
     }
 
-    for (int i = 0; i < lBc.gt.d; i++) { 
-    lBc.gt.r(i,j) = values[i];
-    lBc.gt.i(i,j) = values[i + lBc.gt.d];
+    for (int i = 0; i < lBf.bt.d; i++) { 
+    lBf.bt.r(i,j) = values[i];
+    lBf.bt.i(i,j) = values[i + lBf.bt.d];
     }
 
     j += 1;

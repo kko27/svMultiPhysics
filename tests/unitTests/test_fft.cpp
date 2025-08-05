@@ -1,6 +1,6 @@
 #include "fft.h"
 #include "ComMod.h"
-#include <gtest/gtest.h>
+#include "test_common.h"
 #include <cmath>
 
 class FFTTest : public ::testing::Test {
@@ -9,37 +9,36 @@ protected:
     void TearDown() override {}
 };
 
-TEST_F(FFTTest, LinearRamp) {
-    // Example: 1D signal, linear ramp: y = 2*t + 1
-    // t: 0, 1, 2, 3
-    // y: 1, 3, 5, 7
-    std::vector<std::vector<double>> temporal_values = {
-        {0.0, 1.0},
-        {1.0, 3.0},
-        {2.0, 5.0},
-        {3.0, 7.0}
-    };
-    int np = temporal_values.size();
+TEST_F(FFTTest, SinCosLinearCombination) {
+    int N = 100;
+    double x_start = 0.0;
+    double x_end = 10.0;
 
+    std::vector<std::vector<double>> temporal_values;
+    temporal_values.reserve(N);
+
+    double step = (x_end - x_start) / (N - 1);
+    for (int i = 0; i < N; ++i) {
+        double t = x_start + i * step;
+        double y = std::sin(t) + std::cos(t) + 0.1 * t;
+        temporal_values.push_back({t, y});
+    }
     fcType gt;
-    gt.d = 1; // 1D signal
-    gt.n = 2; // Compute 2 Fourier coefficients
+    gt.d = 1;
+    gt.n = 16;
     gt.qi.resize(gt.d);
     gt.qs.resize(gt.d);
     gt.r.resize(gt.d, gt.n);
     gt.i.resize(gt.d, gt.n);
 
-    fft(np, temporal_values, gt);
+    fft(N, temporal_values, gt);
 
-    // For a linear ramp y = 2*t + 1, the DC component (n=0) should be the mean value
-    // Over t in [0,3]: mean = (1+3+5+7)/4 = 4
-    // The slope is 2, so qs should be 2
-    ASSERT_NEAR(gt.qi[0], 1.0, 1e-10) << "gt.qi[0] should be 1.0 (intercept)";
-    ASSERT_NEAR(gt.qs[0], 2.0, 1e-10) << "gt.qs[0] should be 2.0 (slope)";
-    // The DC Fourier coefficient (real part, n=0) should be close to 0 (since the ramp is removed)
-    ASSERT_NEAR(gt.r(0,0), 0.0, 1e-10) << "gt.r(0,0) should be ~0 after ramp removal";
-    // The imaginary part should be zero for real signals
-    ASSERT_NEAR(gt.i(0,0), 0.0, 1e-10) << "gt.i(0,0) should be 0";
+    ASSERT_NEAR(gt.qs[0], -0.13830, 1e-2) << "Expected slope ~-0.13830";
+    // Check the first three Fourier coefficients
+    ASSERT_NEAR(gt.r(0, 0), 0.32094, 1e-2) << "Expected first real coefficient to be close to 0.32094";
+    ASSERT_NEAR(gt.i(0, 0), 0.0, 1e-2) << "Expected first imaginary coefficient to be close to 0.0";
+    ASSERT_NEAR(gt.r(0, 1), 0.42759, 1e-2) << "Expected second real coefficient to be close to 0.42759";
+    ASSERT_NEAR(gt.i(0, 1), 1.25295, 1e-2) << "Expected second imaginary coefficient to be close to 1.25295";
+    ASSERT_NEAR(gt.r(0, 2), -0.44685, 1e-2) << "Expected third real coefficient to be close to -0.44685";
+    ASSERT_NEAR(gt.i(0, 2), -0.65403, 1e-2) << "Expected third imaginary coefficient to be close to -0.65403";
 }
-
-// main() is provided by gtest 
