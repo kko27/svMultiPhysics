@@ -31,9 +31,20 @@
 #include "celec_mech.h"
 using namespace std; 
 #include <algorithm> 
+#include "mat_fun.h"
+#include "utils.h"
+#include <math.h>
+
+celec_mech::celec_mech()
+{
+}
+
+celec_mech::~celec_mech()
+{
+}
 
  void celec_mech::land_model(const Vector<double>& Y, Vector<double>& dY, const double Cai, 
-                    const double lambda, const double dlambda_dt, double& T, double& Ta, double& Tp){
+                    const double nominal_lambda, const double dlambda_dt, double& T, double& Ta, double& Tp){
 
     // Land 2016 Model Parameters (Local variables for now)
     double perm50 = 0.35;
@@ -63,15 +74,15 @@ using namespace std;
     double A = (0.25 * TOT_A) / ((1-dr)*wfrac + dr) * (dr/0.25);
 
     // State Variables 
-    double XS = std::max(0.0, Y(1));
-    double XW = std::max(0.0, Y(2));
-    double TRPN = std::max(0.0, Y(3)); 
-    double TmBlocked = Y(4);
-    double ZETAS = Y(5);
-    double ZETAW = Y(6); 
+    double XS = std::max(0.0, Y(0));
+    double XW = std::max(0.0, Y(1));
+    double TRPN = std::max(0.0, Y(2)); 
+    double TmBlocked = Y(3);
+    double ZETAS = Y(4);
+    double ZETAW = Y(5); 
 
     // Cross-bridging Model 
-    double lambda = std::min(1.2, lambda); 
+    double lambda = std::min(1.2, nominal_lambda); 
     double LFac = std::max(0.0, 1 + beta_0 * (lambda + std::min(0.87,lambda) - 1.87)); 
     double XU   = (1 - TmBlocked) - XW - XS;
     double xb_ws = k_ws * XW;
@@ -88,19 +99,19 @@ using namespace std;
     double gamma_rate_w  = gamma_wu * std::abs(ZETAW);
     double xb_wu_gamma = gamma_rate_w * XW;  
 
-    dY(1)  = xb_ws - xb_su - xb_su_gamma;
-    dY(2)  = xb_uw - xb_wu - xb_ws - xb_wu_gamma;
+    dY(0)  = xb_ws - xb_su - xb_su_gamma;
+    dY(1)  = xb_uw - xb_wu - xb_ws - xb_wu_gamma;
     ca50 = ca50 + beta_1*min(0.2,lambda - 1);
-    dY(3)  = koff * (pow((Cai/ca50), TRPN_n) * (1-TRPN) - TRPN); 
+    dY(2)  = koff * (pow((Cai/ca50), TRPN_n) * (1-TRPN) - TRPN);
 
     double XSSS = dr * 0.5;
     double XWSS = (1-dr) * wfrac * 0.5;
     double ktm_block = ktm_unblock * pow(perm50, nperm) *  0.5 / (0.5 - XSSS - XWSS);
-    dY(4)  = ktm_block * min(100.0, pow(TRPN, -(nperm/2))) * XU  - ktm_unblock * pow(TRPN, (nperm/2)) *  TmBlocked;
+    dY(3)  = ktm_block * min(100.0, pow(TRPN, -(nperm/2))) * XU  - ktm_unblock * pow(TRPN, (nperm/2)) *  TmBlocked;
 
     // Velocity Dependence
-    dY(5) = A * dlambda_dt - cds * ZETAS;
-    dY(6) = A * dlambda_dt - cdw * ZETAW;
+    dY(4) = A * dlambda_dt - cds * ZETAS;
+    dY(5) = A * dlambda_dt - cdw * ZETAW;
 
     // Passive Model
     double par_k = 7;
@@ -109,7 +120,7 @@ using namespace std;
     double eta_s = 20;
     double a = 2.1;
 
-    double Cd = Y(7);
+    double Cd = Y(6);
     double C = lambda - 1;
     double eta; 
 
@@ -119,7 +130,7 @@ using namespace std;
         {eta = eta_l;}
 
     double dCd_dt = par_k * (C - Cd)/eta; 
-    dY(7) = dCd_dt;
+    dY(6) = dCd_dt;
 
     double Fd = eta * dCd_dt;
     double F1 = (exp( b * C) - 1);
@@ -130,27 +141,27 @@ using namespace std;
     T = Ta + Tp;
 }
 
-void celec_mech::integ_rk(const int imyo, const int nY, Vector<double>& Y, double& T,  double& Ta, double& Tp, 
-    const double dt, const double Cai, const double lambda, const double dlambda_dt)
+void celec_mech::integ_rk(const int nY, Vector<double>& Y, double& T,  double& Ta, double& Tp, 
+    const double dt, const double Cai, const double nominal_lambda, const double dlambda_dt)
 {
   double dt6 = dt / 6.0;
   Vector<double> frk1(nY), frk2(nY), frk3(nY), frk4(nY);
 
   // RK4: 1st pass
   auto Yrk = Y;
-  land_model(Yrk, frk1, Cai, lambda, dlambda_dt, T, Ta, Tp); 
+  land_model(Yrk, frk1, Cai, nominal_lambda, dlambda_dt, T, Ta, Tp); 
 
   // RK4: 2nd pass
   Yrk = Y + 0.5*dt*frk1;
-  land_model(Yrk, frk2, Cai, lambda, dlambda_dt, T, Ta, Tp); 
+  land_model(Yrk, frk2, Cai, nominal_lambda, dlambda_dt, T, Ta, Tp); 
 
   // RK4: 3rd pass
   Yrk = Y + 0.5*dt*frk2;
-  land_model(Yrk, frk3, Cai, lambda, dlambda_dt, T, Ta, Tp);
-  
+  land_model(Yrk, frk3, Cai, nominal_lambda, dlambda_dt, T, Ta, Tp);
+
   // RK4: 4th pass
   Yrk = Y + dt*frk3;
-  land_model(Yrk, frk4, Cai, lambda, dlambda_dt, T, Ta, Tp);
+  land_model(Yrk, frk4, Cai, nominal_lambda, dlambda_dt, T, Ta, Tp);
 
   Y = Y + dt6 * (frk1 + 2.0*(frk2 + frk3) + frk4);
 }

@@ -164,6 +164,8 @@ set(CSRCS
   SimulationLogger.h
   VtkData.h VtkData.cpp
 
+  celec_mech.h celec_mech.cpp
+
   all_fun.h all_fun.cpp
   baf_ini.h baf_ini.cpp
   bf.h bf.cpp

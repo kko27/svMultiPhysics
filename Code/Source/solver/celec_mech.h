@@ -34,11 +34,13 @@
 
 class celec_mech {
 public:
-    void land_model(const Vector<double>& Y, Vector<double>& dY, const double Cai, const double lambda, 
+    celec_mech(); 
+    ~celec_mech();
+    void land_model(const Vector<double>& Y, Vector<double>& dY, const double Cai, const double nominal_lambda, 
         const double dlambda_dt, double& T,  double& Ta, double& Tp);
 
-    void integ_rk(const int imyo, const int nY, Vector<double>& Y, double& T,  double& Ta, double& Tp, 
-    const double dt, const double Cai, const double lambda, const double dlambda_dt);
+    void integ_rk(const int nY, Vector<double>& Y, double& T,  double& Ta, double& Tp, 
+    const double dt, const double Cai, const double nominal_lambda, const double dlambda_dt);
 };
 
 #endif
