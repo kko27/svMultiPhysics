@@ -69,27 +69,32 @@ TEST_F(EMTest, SingleMyocyteContraction) {
     Vector<double> Y = Y0;
     double F = 0.0, Ta = 0.0, Tp = 0.0;
     double T; 
-    int const nsteps = 1000; 
-    double t = 0.0;
-    double dt = (M_PI/5)/nsteps; 
+    int const nsteps = 1001; 
+    double t = 0.0; 
+    double tCai = 0.0; 
+    double dt = 1.0; 
+    double dtCai = (M_PI/5); 
 
-    std::vector<double> Factual = {1.2594e-04, 6.5044e-04, 0.0018, 0.0047, 0.0126,
-        0.0271, 0.0467, 0.0675, 0.0855, 0.0980, 0.1039, 0.1028, 0.0947,
-        0.0802, 0.0611, 0.0407, 0.0232, 0.0119, 0.0059, 0.0027};
+    std::vector<double> Factual = {7.0601e-04, 0.004155, 0.002316, 0.002557, 0.005096, 0.012981, 0.027499,
+        0.047117, 0.067922, 0.085835, 0.098221, 0.103934, 0.102656,
+        0.094444, 0.079856, 0.060638, 0.040262, 0.022969, 0.011724,
+        0.005796, 0.002701};
 
     for (size_t step = 0; step < nsteps; ++step) {
-        double Cai = (1/(2.5)) * sin(5*t) + 1/6;
+        double Cai = (1.0/2.5) * sin(5*tCai/1000.0) + 1.0/6;
         // if dlambda_dt or lambda vary, you can compute them here; use constants for now
         double lambda = 1.0;
         double dlambda_dt = 0.0;
         mech.integ_rk(nY, Y, T, Ta, Tp, dt, Cai, lambda, dlambda_dt);
         t += dt;
+        tCai += dtCai;
         if (step % 50 == 0) {
             // print out
-            std::cout << "Step " << step << ": Y(0) = " << Y(0) << ", Factual = " << Factual[step / 50] << std::endl;
-            // std::cout << "Step " << step << ": Y(1) = " << Y(1) << std::endl;
-            // std::cout << "t = " << t << std::endl;
-            // ASSERT_NEAR(Y(0), Factual[step / 50], 1e-2) << "Failed at step " << step;
+            // std::cout << "time " << t << std::endl;
+            // std::cout << "tCai: " << tCai << std::endl;
+            // std::cout << "Step " << step << ": Y(0) = " << Y(0) << std::endl;
+            // std::cout << "Factual = " << Factual[step / 50] << std::endl;
+            ASSERT_NEAR(Y(0), Factual[step / 50], 1e-3) << "Failed at step " << step;
         }
     }
 }
