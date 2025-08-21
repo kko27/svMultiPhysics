@@ -1928,10 +1928,9 @@ void read_fourier_coeff_values_file(const std::string& file_name, bcType& lBc)
       values.push_back(value);
     }
 
-    int num_vals = values.size();
-    for (int i = 0; i < values.size(); i++) {
-      lBc.gt.r(i,j) = values[i]; 
-      lBc.gt.i(i,j) = values[i+num_vals];
+    for (int i = 0; i < lBc.gt.d; i++) { 
+      lBc.gt.r(i,j) = values[i];
+      lBc.gt.i(i,j) = values[i + lBc.gt.d];
     }
 
     j += 1;
@@ -1997,10 +1996,9 @@ void read_fourier_coeff_values_file(const std::string& file_name, bfType& lBf)
       values.push_back(value);
     }
 
-    int num_vals = values.size();
-    for (int i = 0; i < values.size(); i++) {
-      lBf.bt.r(i,j) = values[i]; 
-      lBf.bt.i(i,j) = values[i+num_vals];
+    for (int i = 0; i < lBf.bt.d; i++) { 
+      lBf.bt.r(i,j) = values[i];
+      lBf.bt.i(i,j) = values[i + lBf.bt.d];
     }
 
     j += 1;
