@@ -10,19 +10,24 @@ protected:
 };
 
 TEST_F(FFTTest, SinCosLinearCombination) {
-    int N = 100;
-    double x_start = 0.0;
-    double x_end = 10.0;
+    // Creates a temporal values function: f(t) = sin(t) + cos(t) + 0.1*t 
+    // Test finds the interpolated fourier coefficients of this function using fft.cpp
+    int N = 100;            // 100 timesteps
+    double x_start = 0.0;   // start time
+    double x_end = 10.0;    // end time 
 
     std::vector<std::vector<double>> temporal_values;
     temporal_values.reserve(N);
 
+    // Create the temporal values
     double step = (x_end - x_start) / (N - 1);
     for (int i = 0; i < N; ++i) {
         double t = x_start + i * step;
         double y = std::sin(t) + std::cos(t) + 0.1 * t;
         temporal_values.push_back({t, y});
     }
+
+    // Initialize the Fourier coefficients data 
     fcType gt;
     gt.d = 1;
     gt.n = 16;
@@ -31,10 +36,12 @@ TEST_F(FFTTest, SinCosLinearCombination) {
     gt.r.resize(gt.d, gt.n);
     gt.i.resize(gt.d, gt.n);
 
+    // Compute the Fourier coefficients
     fft(N, temporal_values, gt);
 
+    // Check the slope (first Fourier coefficient)
     ASSERT_NEAR(gt.qs[0], -0.13830, 1e-2) << "Expected slope ~-0.13830";
-    // Check the first three Fourier coefficients
+    // Check the real and imaginary components of the first three Fourier coefficients
     ASSERT_NEAR(gt.r(0, 0), 0.32094, 1e-2) << "Expected first real coefficient to be close to 0.32094";
     ASSERT_NEAR(gt.i(0, 0), 0.0, 1e-2) << "Expected first imaginary coefficient to be close to 0.0";
     ASSERT_NEAR(gt.r(0, 1), 0.42759, 1e-2) << "Expected second real coefficient to be close to 0.42759";
