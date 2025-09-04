@@ -28,7 +28,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- #include "fft.h"
+#include "fft.h"
 #include "ComMod.h"
 #include "../test_common.h"
 #include <cmath>
@@ -39,7 +39,7 @@ protected:
     
     void TearDown() override {}
 
-    // Helper method to create temporal values for f(t) = sin(t) + cos(t) + 0.1*t
+    // Generate temporal values for function f(t) = sin(t) + cos(t) + 0.1*t
     void CreateTemporalValues(int N, double x_start, double x_end, 
                              std::vector<std::vector<double>>& temporal_values) {
         temporal_values.clear();
@@ -52,8 +52,7 @@ protected:
             temporal_values.push_back({t, y});
         }
     }
-
-    // Helper method to initialize Fourier coefficients data structure
+    
     void InitializeFourierCoefficients(fcType& gt, int d = 1, int n = 16) {
         gt.d = d;
         gt.n = n;
@@ -72,11 +71,10 @@ TEST_F(FFTTest, SinCosLinearCombination) {
     double x_end = 10.0;    // end time 
     std::vector<std::vector<double>> temporal_values;
     
-    // Create the temporal values using helper method
     CreateTemporalValues(N, x_start, x_end, temporal_values);
     
-    // Initialize the Fourier coefficients data using helper method
     fcType gt;
+    // Apply interpolation to 1 dimensional data with n = 16 Fourier modes
     InitializeFourierCoefficients(gt, 1, 16);
     
     // Compute the Fourier coefficients

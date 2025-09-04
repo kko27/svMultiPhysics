@@ -89,7 +89,7 @@
    <Add_BC name="lumen_inlet" > 
       <Type> Dir </Type> 
       <Time_dependence> Unsteady </Time_dependence> 
-     <Fourier_coefficients_file_path> lumen_inlet.fcs </Fourier_coefficients_file_path> 
+      <Fourier_coefficients_file_path> lumen_inlet.fcs </Fourier_coefficients_file_path> 
       <Profile> Parabolic </Profile> 
       <Impose_flux> true </Impose_flux> 
    </Add_BC> 
