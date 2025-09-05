@@ -105,10 +105,10 @@ def write_fourier_coeff_file(filename, result, d, n):
         for k in range(n):
             real_parts = ' '.join(f"{result['r'][j][k]}" for j in range(d))
             imag_parts = ' '.join(f"{result['i'][j][k]}" for j in range(d))
-            # format the output to be 6 decimal places in scientific notation
+            # format the output to be 16 decimal places in scientific notation
             # also add 4 spaces between real and imaginary parts
-            real_parts = ' '.join(f"{float(part):.6e}" for part in real_parts.split())
-            imag_parts = ' '.join(f"{float(part):.6e}" for part in imag_parts.split())
+            real_parts = ' '.join(f"{float(part):.16e}" for part in real_parts.split())
+            imag_parts = ' '.join(f"{float(part):.16e}" for part in imag_parts.split())
             f.write(f"{real_parts}    {imag_parts}\n")
     return -1 
 
