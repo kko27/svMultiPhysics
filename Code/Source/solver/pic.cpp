@@ -152,7 +152,7 @@ void picc(Simulation* simulation)
       }
     }
 
-  } else {
+  } else {// CEP is updated here too? (Yes the Yn variable is updated here)
     for (int a = 0; a < tnNo; a++) {
       for (int i = 0; i < e-s+1; i++) {
         // eqn 94 of Bazilevs 2007 // here, -R contains the acceleration update (obtained from Newton solve))?
@@ -198,7 +198,7 @@ void picc(Simulation* simulation)
   if (eq.phys == Equation_CEP) {
     int s = eq.s;
     for (int a = 0; a < tnNo; a++) {
-      Xion(0,a) = Yn(s,a);
+      Xion(0,a) = Yn(s,a);      // action potential 
     }
   }
 
@@ -685,7 +685,7 @@ void picp(Simulation* simulation)
     }
 
     // eqn 86 of Bazilevs 2007
-    Yn.set_rows(s,e, Yo.rows(s,e));
+    Yn.set_rows(s,e, Yo.rows(s,e));   // next iteration velocity = old velocity 
 
     if (com_mod.dFlag) {
 

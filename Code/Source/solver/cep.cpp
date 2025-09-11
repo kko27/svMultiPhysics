@@ -286,8 +286,8 @@ void cep_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, con
 
   double T1 = eq.af * eq.gam * dt;
   double amd = eq.am / T1;
-  double wl = w * T1;
-  double Diso = dmn.cep.Diso;
+  double wl = w * T1;           // integration weight 
+  double Diso = dmn.cep.Diso;   // isotropic diffusion coefficient 
   #ifdef debug_cep_3d 
   dmsg << "T1: " << T1;
   dmsg << "amd: " << amd;
@@ -385,7 +385,7 @@ void cep_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, con
     D(2,1) = D(2,1) + Dani(i)*fl(2,i)*fl(1,i);
     D(2,2) = D(2,2) + Dani(i)*fl(2,i)*fl(2,i);
   }
-
+  // Residual and Stiffness Matrix Assembly 
   i = eq.s;
   double Vd = 0.0;
   Vx = 0.0;
@@ -438,8 +438,8 @@ void construct_cep(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
   auto& cDmn = com_mod.cDmn;
 
   int insd = nsd;
-  const int eNoN = lM.eNoN;
-  int nFn  = lM.nFn;
+  const int eNoN = lM.eNoN; // lM: local Mesh, eNoN: number of nodes per element 
+  int nFn  = lM.nFn;      // number of fiber directions per element 
 
   if (lM.lFib) insd = 1;
   if (nFn == 0) nFn = 1;
@@ -454,9 +454,9 @@ void construct_cep(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
   // CEP: dof = 1
   Vector<int> ptr(eNoN); 
-  Array<double> xl(nsd,eNoN), al(tDof,eNoN), yl(tDof,eNoN), dl(tDof,eNoN), 
-      fN(nsd,nFn), Nx(insd,eNoN), lR(dof,eNoN);
-  Array3<double> lK(dof*dof,eNoN,eNoN);
+  Array<double> xl(nsd,eNoN), al(tDof,eNoN), yl(tDof,eNoN), dl(tDof,eNoN), // fN: fiber directions, 
+      fN(nsd,nFn), Nx(insd,eNoN), lR(dof,eNoN); // al: acceleration, yl: velocity, dl: displacement, lR: local residual
+  Array3<double> lK(dof*dof,eNoN,eNoN);   // local stiffness matrix 
   Vector<double>  N(eNoN); 
   
   // ECG computation
@@ -470,15 +470,15 @@ void construct_cep(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
   // Loop over all elements of mesh
   for (int e = 0; e < lM.nEl; e++) {
-    cDmn = all_fun::domain(com_mod, lM, cEq, e);
+    cDmn = all_fun::domain(com_mod, lM, cEq, e);  // identify domain of current element 
     auto cPhys = eq.dmn[cDmn].phys;
-    if (cPhys != EquationType::phys_CEP) {
+    if (cPhys != EquationType::phys_CEP) {        // only process elements in CEP domain
       continue;
     }
 
     // Update shape functions for NURBS
     //if (lM.eType .EQ. eType_NRB) CALL NRBNNX(lM, e)
-
+    // extract nodal coordinates, its values of acceleration, velocity, displacement, fiber directions
     // Create local copies
     fN = 0.0;
 
@@ -514,13 +514,13 @@ void construct_cep(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
     for (int g = 0; g < lM.nG; g++) {
       if (g == 0 || !lM.lShpF) {
         auto Nx_g = lM.Nx.slice(g);
-        nn::gnn(eNoN, nsd, insd, Nx_g, xl, Nx, Jac, ksix);
+        nn::gnn(eNoN, nsd, insd, Nx_g, xl, Nx, Jac, ksix);  // Nx: shape function derivatives at gauss point + Jacobian computation
         if (utils::is_zero(Jac)) {
           throw std::runtime_error("[construct_cep] Jacobian for element " + std::to_string(e) + " is < 0.");
         }
       }
 
-      double w = lM.w(g) * Jac;
+      double w = lM.w(g) * Jac;     // integration weight w 
       N = lM.N.col(g);
 
       #ifdef debug_construct_cep 
@@ -532,7 +532,7 @@ void construct_cep(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
       dmsg << "Jac: " << Jac;
       dmsg << "lM.w(g): " << lM.w(g);
       #endif
-
+      // element level integration 
       if (insd == 3) {
         cep_3d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, fN, lR, lK);
 
@@ -582,7 +582,7 @@ void construct_cep(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
     } 
 
     // Assembly
-    eq.linear_algebra->assemble(com_mod, eNoN, ptr, lK, lR);
+    eq.linear_algebra->assemble(com_mod, eNoN, ptr, lK, lR);  // assemble local stiffness matrix and residual
   }
 
   // Communications among processors for ECG leads computation

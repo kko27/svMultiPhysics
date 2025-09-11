@@ -258,7 +258,7 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
         dmsg << "nG: " << nG ;
         #endif
 
-        auto Xl = Xion.rows(0,nX-1,Ac);
+        auto Xl = Xion.rows(0,nX-1,Ac); // extract column vector of ionic state variables per node
 
         // [NOTE] nG can be 0.
         Vector<double> Xgl;
@@ -340,7 +340,7 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
   }
 
   for (int Ac = 0; Ac < tnNo; Ac++) {
-    Yo(iDof,Ac) = Xion(0,Ac);
+    Yo(iDof,Ac) = Xion(0,Ac);   // copy back to global solution vector (action potential only)
   }
 }
 
@@ -373,7 +373,8 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
   }
 
   // Total time steps
-  int nt = static_cast<int>(dt/cep.dt);
+  int nt = static_cast<int>(dt/cep.dt); // for pure EP simulations, cep.dt = dt, so nt = 1
+  // but if coupled with mechanics, cep.dt can be smaller than dt (which comes from com_mod.dt) 
 
   // External stimulus duration
   int icl = static_cast<int>(fmax(floor(t1/cep.Istim.CL),0.0));
