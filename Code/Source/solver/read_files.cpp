@@ -1144,6 +1144,15 @@ void read_cep_equation(CepMod* cep_mod, Simulation* simulation, EquationParamete
     cep_mod->ecgleads.pseudo_ECG.resize(cep_mod->ecgleads.num_leads);
     std::fill(cep_mod->ecgleads.pseudo_ECG.begin(), cep_mod->ecgleads.pseudo_ECG.end(), 0.);
   }
+
+  if (eq_params->em_coupling.defined()) {
+    auto& em_coupling_params = eq_params->em_coupling;
+    if (em_coupling_params.EM_Coupled.value()) {
+      cep_mod->cem.cpld = true;
+      cep_mod->cem.aStress = em_coupling_params.EM_Active_stress.value();
+      cep_mod->cem.aStrain = em_coupling_params.EM_Active_strain.value();
+    }
+  }
 }
 
 //--------------------------------

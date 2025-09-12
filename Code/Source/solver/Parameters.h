@@ -1122,6 +1122,24 @@ class ECGLeadsParameters : public ParameterLists
     bool value_set = false;
 };
 
+class EMCouplingParameters : public ParameterLists
+{
+  public: 
+    EMCouplingParameters();
+
+    static const std::string xml_element_name_;
+
+    bool defined() const { return value_set; };
+    // void print_parameters();
+    void set_values(tinyxml2::XMLElement* xml_elem);
+
+    Parameter<bool> EM_Coupled; 
+    Parameter<bool> EM_Active_stress; 
+    Parameter<bool> EM_Active_strain;
+
+    bool value_set = false;
+};
+
 /// @brief The FiberReinforcementStressParameters class stores fiber
 /// reinforcement stress parameters for the 'Fiber_reinforcement_stress` 
 /// XML element.
@@ -1379,6 +1397,8 @@ class EquationParameters : public ParameterLists
     SolidViscosityParameters solid_viscosity;
 
     ECGLeadsParameters ecg_leads;
+
+    EMCouplingParameters em_coupling;
 };
 
 /// @brief The GeneralSimulationParameters class stores paramaters for the

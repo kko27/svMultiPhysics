@@ -1876,6 +1876,38 @@ void ECGLeadsParameters::print_parameters()
 }
 
 //////////////////////////////////////////////////////////
+//                 ElectromechanicalParameters          //
+//////////////////////////////////////////////////////////
+
+/// @brief Define the XML element name for ECG leads parameters.
+const std::string EMCouplingParameters::xml_element_name_ = "EMCoupling";
+
+EMCouplingParameters::EMCouplingParameters()
+{
+  // A parameter that must be defined.
+  bool required = true;
+
+  set_parameter("EM_Coupled", false, !required, EM_Coupled);
+  set_parameter("EM_Active_stress", false, !required, EM_Active_stress);
+  set_parameter("EM_Active_strain", false, !required, EM_Active_strain);
+}
+
+void EMCouplingParameters::set_values(tinyxml2::XMLElement* xml_elem)
+{
+  std::string error_msg = "Unknown " + xml_element_name_ + " XML element '";
+
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
+  std::function<void(const std::string&, const std::string&)> ftpr =
+      std::bind( &EMCouplingParameters::set_parameter_value, *this, _1, _2);
+
+  xml_util_set_parameters(ftpr, xml_elem, error_msg);
+
+  value_set = true;
+}
+
+//////////////////////////////////////////////////////////
 //                  ContactParameters                   //
 //////////////////////////////////////////////////////////
 
@@ -2088,7 +2120,11 @@ void EquationParameters::set_values(tinyxml2::XMLElement* eq_elem)
     } else if (name == ECGLeadsParameters::xml_element_name_) {
       ecg_leads.set_values(item);
 
-    } else if (name == VariableWallPropsParameters::xml_element_name_) {
+    } else if (name == EMCouplingParameters::xml_element_name_) {
+      em_coupling.set_values(item);
+    }
+    
+    else if (name == VariableWallPropsParameters::xml_element_name_) {
       variable_wall_properties.set_values(item);
 
     } else if (item->GetText() != nullptr) {
