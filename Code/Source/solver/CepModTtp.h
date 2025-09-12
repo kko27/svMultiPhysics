@@ -458,11 +458,10 @@ class CepModTtp
     void update_g(const int i, const double dt, const int n, const int nG, const Vector<double>& X, 
         Vector<double>& Xg);
 
-    // Helper methods for Vector conversion
     void copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const;
     
-    // Helper method to populate initial_state from individual member variables
-    void populateInitialStateFromMembers();
+//     // Helper method to populate initial_state from individual member variables
+//     void populateInitialStateFromMembers();
 
 };
 

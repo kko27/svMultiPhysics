@@ -1,6 +1,12 @@
-# TTP Model User-Defined Initial Conditions Override
+# Spiral Wave for TTP Model 
 
-This document explains how to use the user-defined initial conditions override system for the Ten-tusscher-Panfilov (TTP) cardiac electrophysiology model in svMultiPhysics.
+Another approach to spiral wave initialization is to 'rig' the simulation domain such that there are 4 sub-domains which are all initialized to different sets of ionic and gating variable states. More details are provided in this reference. A visualization of this simulation case is shown below
+
+<p align="center">
+   <img src="./SpiralWave.jpg" width="600">
+</p>
+
+Initial conditions for the Ten-tusscher-Panfilov (TTP) EP model to be specified in the solver.xml to override the default variables that are hard-coded inside the solver. 
 
 ## Overview
 
@@ -21,7 +27,6 @@ The user-defined initial conditions override system allows users to specify cust
 <Domain id="1">
     <Electrophysiology_model> TTP </Electrophysiology_model>
     <Myocardial_zone> epicardium </Myocardial_zone>
-    
     <!-- User-defined initial conditions - these override the default epicardium values -->
     <Initial_conditions>
         <Initial_States>
@@ -65,7 +70,6 @@ The user-defined initial conditions override system allows users to specify cust
 <Domain id="1">
     <Electrophysiology_model> TTP </Electrophysiology_model>
     <Myocardial_zone> epicardium </Myocardial_zone>
-    
     <!-- Partial override - only specified values override defaults -->
     <Initial_conditions>
         <Initial_States>
@@ -90,7 +94,6 @@ The user-defined initial conditions override system allows users to specify cust
 <Domain id="1">
     <Electrophysiology_model> TTP </Electrophysiology_model>
     <Myocardial_zone> epicardium </Myocardial_zone>
-    
     <!-- No Initial_conditions specified - uses epicardium defaults -->
 </Domain>
 ```
@@ -128,38 +131,6 @@ The user-defined initial conditions override system allows users to specify cust
 - `s` - Transient outward activation gate [-]
 - `r` - Transient outward inactivation gate [-]
 
-## Default Values by Myocardial Zone
-
-### Epicardium (imyo = 1)
-- `V`: -85.23 mV
-- `K_i`: 138.3 mM
-- `Na_i`: 10.0 mM
-- `Ca_i`: 0.0002 mM
-- `Ca_ss`: 0.0002 mM
-- `Ca_sr`: 0.2 mM
-- `R_bar`: 0.0
-- Gating variables: Specific values for epicardium
-
-### Endocardium (imyo = 2)
-- `V`: -85.23 mV
-- `K_i`: 138.3 mM
-- `Na_i`: 10.0 mM
-- `Ca_i`: 0.0002 mM
-- `Ca_ss`: 0.0002 mM
-- `Ca_sr`: 0.2 mM
-- `R_bar`: 0.0
-- Gating variables: Specific values for endocardium
-
-### Mid-myocardium (imyo = 3)
-- `V`: -85.23 mV
-- `K_i`: 138.3 mM
-- `Na_i`: 10.0 mM
-- `Ca_i`: 0.0002 mM
-- `Ca_ss`: 0.0002 mM
-- `Ca_sr`: 0.2 mM
-- `R_bar`: 0.0
-- Gating variables: Specific values for mid-myocardium
-
 ## Implementation Details
 
 ### Key Changes Made
@@ -195,72 +166,3 @@ void CepModTtp::init(...) {
     }
 }
 ```
-
-## Advantages
-
-1. **Simple Integration**: Works seamlessly with existing XML structure
-2. **Flexible Override**: Can override all or just some initial conditions
-3. **No External Files**: All configuration is contained in the XML file
-4. **Backward Compatible**: Existing simulations without initial conditions work unchanged
-5. **Clear Logic**: Easy to understand when overrides are active
-
-## Usage Scenarios
-
-### Scenario 1: Custom Initial Conditions
-```xml
-<!-- Use custom initial conditions for research
-<Initial_conditions>
-    <Initial_States>
-        <V>-80.0</V>
-        <K_i>140.0</K_i>
-        <!-- ... other custom values ... -->
-    </Initial_States>
-</Initial_conditions>
-```
-
-### Scenario 2: Continuation from Previous State
-```xml
-<!-- Continue simulation from specific state
-<Initial_conditions>
-    <Initial_States>
-        <V>-45.2</V>
-        <K_i>135.8</K_i>
-        <!-- ... values from previous simulation end ... -->
-    </Initial_States>
-</Initial_conditions>
-```
-
-### Scenario 3: Parameter Study
-```xml
-<!-- Study effect of specific initial conditions
-<Initial_conditions>
-    <Initial_States>
-        <V>-85.0</V>
-        <Ca_i>0.0003</Ca_i>
-        <!-- Vary Ca_i while keeping other values constant -->
-    </Initial_States>
-</Initial_conditions>
-```
-
-## Best Practices
-
-1. **Document Values**: Keep track of what initial conditions you're using
-2. **Validate Physiologically**: Ensure values are within reasonable ranges
-3. **Test Thoroughly**: Verify that your custom initial conditions work correctly
-4. **Use Meaningful Names**: Name your XML files to reflect the initial conditions used
-5. **Version Control**: Track changes to initial conditions in version control
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Simulation Instability**: Check that initial conditions are physiologically reasonable
-2. **Unexpected Behavior**: Verify that the correct myocardial zone is specified
-3. **Parameter Conflicts**: Ensure no conflicting parameters are set elsewhere
-
-### Debug Tips
-
-1. **Print Values**: Add debug output to verify loaded initial conditions
-2. **Compare with Defaults**: Check against known good default values
-3. **Start Simple**: Test with values close to defaults first
-4. **Check XML Syntax**: Ensure XML is properly formatted 

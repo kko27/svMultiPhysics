@@ -841,7 +841,6 @@ void CepModTtp::update_g(const int i, const double dt, const int n, const int nG
 
 void CepModTtp::copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const
   {
-  // Copy state variables to vector X and Xg 
   X(0) = initial_state.V; 
   X(1) = initial_state.K_i;
   X(2) = initial_state.Na_i;
@@ -863,30 +862,30 @@ void CepModTtp::copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const
   Xg(10) = initial_state.s;
   Xg(11) = initial_state.r;
   }
-// consider deleting (if not used)
-void CepModTtp::populateInitialStateFromMembers()
-{
-  // Populate initial_state from individual member variables
-  // This is called when user-defined initial conditions are provided
-  initial_state.V = V;
-  initial_state.K_i = K_i;
-  initial_state.Na_i = Na_i;
-  initial_state.Ca_i = Ca_i;
-  initial_state.Ca_ss = Ca_ss;
-  initial_state.Ca_sr = Ca_sr;
-  initial_state.R_bar = R_bar;
+// // consider deleting (if not used)
+// void CepModTtp::populateInitialStateFromMembers()
+// {
+//   // Populate initial_state from individual member variables
+//   // This is called when user-defined initial conditions are provided
+//   initial_state.V = V;
+//   initial_state.K_i = K_i;
+//   initial_state.Na_i = Na_i;
+//   initial_state.Ca_i = Ca_i;
+//   initial_state.Ca_ss = Ca_ss;
+//   initial_state.Ca_sr = Ca_sr;
+//   initial_state.R_bar = R_bar;
   
-  initial_state.x_r1 = xr1;
-  initial_state.x_r2 = xr2;
-  initial_state.x_s = xs;
-  initial_state.m = m;
-  initial_state.h = h;
-  initial_state.j = j;
-  initial_state.d = d;
-  initial_state.f = f;
-  initial_state.f2 = f2;
-  initial_state.fcass = fcass;
-  initial_state.s = s;
-  initial_state.r = r;
-}
+//   initial_state.x_r1 = xr1;
+//   initial_state.x_r2 = xr2;
+//   initial_state.x_s = xs;
+//   initial_state.m = m;
+//   initial_state.h = h;
+//   initial_state.j = j;
+//   initial_state.d = d;
+//   initial_state.f = f;
+//   initial_state.f2 = f2;
+//   initial_state.fcass = fcass;
+//   initial_state.s = s;
+//   initial_state.r = r;
+// }
 
