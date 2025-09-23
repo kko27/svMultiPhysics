@@ -1070,6 +1070,8 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
         auto oGrp = eq.output[iOut].grp;
         outNames[cOut] = eq.output[iOut].name;
         Vector<double> tmpVe;
+        Vector<double> tmpVStretch(msh.nNo);
+        Vector<double> tmpVRate(msh.nNo);
 
         switch (oGrp) {
           case OutputNameType::outGrp_NA:
@@ -1193,6 +1195,28 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
             }
             for (int a = 0; a < msh.nNo; a++) {
               d[iM].x(is,a) = tmpV(0,a);
+            }
+            tmpV.resize(consts::maxNSD, msh.nNo);
+          break;
+
+          case OutputNameType::outGrp_I4f:
+            tmpV.resize(1,msh.nNo);
+            if (msh.nFn != 0) {
+              post::fib_strech(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate);
+            }
+            for (int a = 0; a < msh.nNo; a++) {
+              d[iM].x(is,a) = tmpVStretch(a);
+            }
+            tmpV.resize(consts::maxNSD, msh.nNo);
+          break;
+
+          case OutputNameType::outGrp_I4fRate:
+            tmpV.resize(1,msh.nNo);
+            if (msh.nFn != 0) {
+              post::fib_strech(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate);
+            }
+            for (int a = 0; a < msh.nNo; a++) {
+              d[iM].x(is,a) = tmpVRate(a);
             }
             tmpV.resize(consts::maxNSD, msh.nNo);
           break;

@@ -38,6 +38,8 @@
 #include <optional>
 #include <functional>
 
+#include "celec_mech.h"
+
 template <class T>
 T& make_ref(T&& x) { return x; }
 
@@ -394,8 +396,15 @@ class CepModTtp
       double I_xfer_Cai, I_xfer_Cass;
       double k_casr_sr, k1_casr, O_Casr, O_Cass, O_Rbar;
 
+//     Land model state variables
+      Vector<double> Y_land;  // Land model state variables (7 components)
+      celec_mech land_model_obj;  // Land model object
+
     void actv_strn(const double c_Ca, const double I4f, const double dt, double& gf);
     void actv_strs(const double c_Ca, const double dt, double& Tact, double& epsX);
+    
+    // Land model integration
+    void actv_strs_land(const double c_Ca, const double I4f, const double I4fRate, const double dt, double& Tact);
 
     void getf(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
         Vector<double>& dX, const double I_stim, const double K_sac, Vector<double>& RPAR);

@@ -49,7 +49,7 @@ void cep_init_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doubl
 void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Array<double>& Dg);
 
 void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<double>& X, Vector<double>& Xg,
-    const double t1, double& yl, const double I4f, const double dt);
+    const double t1, double& yl, const double I4f, const double I4fRate, const double dt);
 
 };
 

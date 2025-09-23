@@ -366,6 +366,8 @@ enum class OutputNameType
   outGrp_fS = 523,
   outGrp_C = 524, 
   outGrp_I1 = 525,
+  outGrp_I4f = 526,
+  outGrp_I4fRate = 527,
 
   out_velocity = 599,
   out_pressure = 598, 
@@ -393,8 +395,10 @@ enum class OutputNameType
   out_divergence = 576, 
   out_viscosity = 575,
   out_fibStrn = 574,
-  out_CGstrain = 573,
-  out_CGInv1 = 572
+  out_fibStretch = 573,
+  out_fibStretchRate = 572,
+  out_CGstrain = 571,
+  out_CGInv1 = 570
 };
 
 /// @brief Simulation output file types. 

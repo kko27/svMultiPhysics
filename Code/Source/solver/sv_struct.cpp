@@ -171,6 +171,7 @@ void b_struct_3d(const ComMod& com_mod, const int eNoN, const double w, const Ve
     NxFi(2,a) = Nx(0,a)*Fi(0,2) + Nx(1,a)*Fi(1,2) + Nx(2,a)*Fi(2,2);
   }
   // Compute N.F^-1, used for Nanson' formula da.n = J*dA*N.F^-1
+  // Note to self: transforms reference normal vector to current configuration
   nFi(0) = nV(0)*Fi(0,0) + nV(1)*Fi(1,0) + nV(2)*Fi(2,0);
   nFi(1) = nV(0)*Fi(0,1) + nV(1)*Fi(1,1) + nV(2)*Fi(2,1);
   nFi(2) = nV(0)*Fi(0,2) + nV(1)*Fi(1,2) + nV(2)*Fi(2,2);

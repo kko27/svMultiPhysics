@@ -357,6 +357,14 @@ void txt(Simulation* simulation, const bool init_write)
           }
         break;
 
+        case OutputNameType::outGrp_I4f:
+          post::all_post(simulation, tmpV, com_mod.Yn, com_mod.Dn, oGrp, iEq);
+        break;
+
+        case OutputNameType::outGrp_I4fRate:
+          post::all_post(simulation, tmpV, com_mod.Yn, com_mod.Dn, oGrp, iEq);
+        break;
+
         default:
           throw std::runtime_error("Undefined output '" + std::to_string(static_cast<int>(oGrp)) + "'");
       } 

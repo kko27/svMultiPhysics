@@ -31,10 +31,27 @@
 #include "CepModTtp.h"
 
 #include "mat_fun.h"
+#include "celec_mech.h"
 #include <math.h>
+#include <cmath>
 
 CepModTtp::CepModTtp()
 {
+  // Initialize Land model state variables (7 components)
+  Y_land.resize(7);
+  Y_land = 0.0;
+  
+  // Initialize Land model state variables to reasonable values
+  // Based on Land 2016 model, these are typical initial values
+  Y_land(0) = 0.0;   // XS - strongly bound cross-bridges
+  Y_land(1) = 0.0;   // XW - weakly bound cross-bridges  
+  Y_land(2) = 0.0;   // TRPN - troponin bound to calcium
+  Y_land(3) = 0.0;   // TmBlocked - tropomyosin blocked state
+  Y_land(4) = 0.0;   // ZETAS - strongly bound cross-bridge distortion
+  Y_land(5) = 0.0;   // ZETAW - weakly bound cross-bridge distortion
+  Y_land(6) = 0.0;   // Cd - passive model state
+  
+  std::cout << "[CepModTtp] Land model initialized with " << Y_land.size() << " state variables" << std::endl;
 }
 
 CepModTtp::~CepModTtp()
@@ -66,6 +83,73 @@ void CepModTtp::actv_strs(const double c_Ca, const double dt, double& Tact, doub
   epsX = eps_0 + (eps_i - eps_0)*epsX;
   double nr  = Tact + epsX*dt*eta_T*(c_Ca - Ca_rest);
   Tact = nr / (1.0 + epsX*dt);
+}
+
+/// @brief Compute active stress using Land model
+void CepModTtp::actv_strs_land(const double c_Ca, const double I4f, const double I4fRate, const double dt, double& Tact)
+{
+  // Debug output for first few calls
+  static int call_count = 0;
+  if (call_count < 10) {
+    std::cout << "[actv_strs_land] Call " << call_count << ": c_Ca=" << c_Ca 
+              << ", I4f=" << I4f << ", I4fRate=" << I4fRate << ", dt=" << dt << std::endl;
+    call_count++;
+  }
+  
+  // Safety checks to prevent NaN
+  if (std::isnan(c_Ca) || std::isnan(I4f) || std::isnan(I4fRate) || std::isnan(dt)) {
+    std::cout << "[actv_strs_land] NaN detected in inputs: c_Ca=" << c_Ca 
+              << ", I4f=" << I4f << ", I4fRate=" << I4fRate << ", dt=" << dt << std::endl;
+    Tact = 0.0;
+    return;
+  }
+  
+  // Check for invalid I4f (should be positive)
+  if (I4f <= 0.0) {
+    std::cout << "[actv_strs_land] Invalid I4f: " << I4f << std::endl;
+    Tact = 0.0;
+    return;
+  }
+  
+  // Convert I4f to lambda (fiber stretch ratio)
+  double lambda = sqrt(I4f);
+  
+  // Check for invalid lambda
+  if (std::isnan(lambda) || lambda <= 0.0) {
+    Tact = 0.0;
+    return;
+  }
+  
+  // Convert I4fRate to dlambda/dt (fiber stretch rate)
+  double dlambda_dt = I4fRate / (2.0 * lambda);
+  
+  // Check for invalid dlambda_dt
+  if (std::isnan(dlambda_dt)) {
+    Tact = 0.0;
+    return;
+  }
+  
+  // Variables for Land model outputs
+  double T, Ta, Tp;
+  
+  // Integrate Land model using RK4
+  land_model_obj.integ_rk(7, Y_land, T, Ta, Tp, dt, c_Ca, lambda, dlambda_dt);
+  
+  // Debug output for Land model results
+  if (call_count < 10) {
+    std::cout << "[actv_strs_land] Land model output: T=" << T 
+              << ", Ta=" << Ta << ", Tp=" << Tp << std::endl;
+  }
+  
+  // Check for NaN in Land model output
+  if (std::isnan(Ta)) {
+    std::cout << "[actv_strs_land] NaN in Land model output: Ta=" << Ta << std::endl;
+    Tact = 0.0;
+    return;
+  }
+  
+  // Return active tension (Ta) as the active stress
+  Tact = Ta;
 }
 
 /// @brief Compute currents and time derivatives of state variables

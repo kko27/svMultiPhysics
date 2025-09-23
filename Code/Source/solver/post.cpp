@@ -100,6 +100,32 @@ void all_post(Simulation* simulation, Array<double>& res, const Array<double>& l
          res(0,Ac) = tmpV(0,a);
        }
 
+     } else if (outGrp == OutputNameType::outGrp_I4f) {
+       Array<double> tmpV(1,msh.nNo); 
+       Vector<double> tmpVStretch(msh.nNo);
+       Vector<double> tmpVRate(msh.nNo);
+       if (msh.nFn != 0) {
+         post::fib_strech(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate);
+       }
+       res = 0.0;
+       for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
+         int Ac = msh.gN(a);
+         res(0,Ac) = tmpVStretch(a);
+       }
+
+     } else if (outGrp == OutputNameType::outGrp_I4fRate) {
+       Array<double> tmpV(1,msh.nNo); 
+       Vector<double> tmpVStretch(msh.nNo);
+       Vector<double> tmpVRate(msh.nNo);
+       if (msh.nFn != 0) {
+         post::fib_strech(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate);
+       }
+       res = 0.0;
+       for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
+         int Ac = msh.gN(a);
+         res(0,Ac) = tmpVRate(a);
+       }
+
      } else {
        post(simulation, msh, tmpV, lY, lD, outGrp, iEq);
        for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
@@ -756,9 +782,9 @@ void fib_dir_post(Simulation* simulation, const mshType& lM, const int nFn, Arra
   }
 }
 
-/// @brief Compute fiber stretch based on 4th invariant: I_{4,f}
+/// @brief Compute fiber stretch based on 4th invariant: I_{4,f} and fiber stretch rate
 //
-void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const Array<double>& lD, Vector<double>& res)
+void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const Array<double>& lD, const Array<double>& lY, Vector<double>& res, Vector<double>& resRate)
 {
   using namespace consts;
 
@@ -781,14 +807,19 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
 
   Vector<double> sA(tnNo); 
   Vector<double> sF(tnNo); 
+  Vector<double> sFRate(tnNo); 
   Array<double> xl(nsd,eNoN); 
   Array<double> dl(tDof,eNoN);
+  Array<double> yl(tDof,eNoN); 
   Array<double> Nx(nsd,eNoN); 
   Vector<double> N(eNoN);
 
   for (int e = 0; e < lM.nEl; e++) {
     int cDmn  = all_fun::domain(com_mod, lM, iEq, e);
     auto cPhys = eq.dmn[cDmn].phys;
+    if (cPhys != EquationType::phys_struct && cPhys != EquationType::phys_ustruct) {
+      continue; 
+    } 
     if (lM.eType == ElementType::NRB) {
       //CALL NRBNNX(lM, e)
     }
@@ -797,19 +828,27 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
       int Ac = lM.IEN(a,e);
       xl.set_col(a, com_mod.x.col(Ac));
       dl.set_col(a, lD.col(Ac));
+      for (int i = 0; i < tDof; i++) {
+        yl(i,a) = lY(i,Ac);
+      }
     }
 
     for (int g = 0; g < lM.nG; g++) {
       double Jac = 0.0;
       Array<double> F(nsd,nsd);
+      Array<double> vx(nsd,nsd);
+      Array<double> VxF(nsd,nsd);
+      Array<double> ksix(nsd,nsd);
+
       if (g == 0 || !lM.lShpF) {
-        auto Nx = lM.Nx.slice(g);
-        nn::gnn(eNoN, nsd, nsd, Nx, xl, Nx, Jac, F);
+        auto Nxi = lM.Nx.slice(g);
+        nn::gnn(eNoN, nsd, nsd, Nxi, xl, Nx, Jac, ksix);
       }
 
       double w = lM.w(g)*Jac;
       auto N = lM.N.col(g);
       F = mat_fun::mat_id(nsd);
+
 
       for (int a = 0; a < eNoN; a++) { 
         if (nsd == 3) {
@@ -822,34 +861,104 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
           F(2,0) = F(2,0) + Nx(0,a)*dl(k,a);
           F(2,1) = F(2,1) + Nx(1,a)*dl(k,a);
           F(2,2) = F(2,2) + Nx(2,a)*dl(k,a);
+
+          vx(0,0) = vx(0,0) + Nx(0,a)*yl(i,a);
+          vx(0,1) = vx(0,1) + Nx(1,a)*yl(i,a);
+          vx(0,2) = vx(0,2) + Nx(2,a)*yl(i,a);
+          vx(1,0) = vx(1,0) + Nx(0,a)*yl(j,a);
+          vx(1,1) = vx(1,1) + Nx(1,a)*yl(j,a);
+          vx(1,2) = vx(1,2) + Nx(2,a)*yl(j,a);
+          vx(2,0) = vx(2,0) + Nx(0,a)*yl(k,a);
+          vx(2,1) = vx(2,1) + Nx(1,a)*yl(k,a);
+          vx(2,2) = vx(2,2) + Nx(2,a)*yl(k,a);
+
+          VxF(0,0) = vx(0,0)*F(0,0) + vx(0,1)*F(1,0) + vx(0,2)*F(2,0);
+          VxF(0,1) = vx(0,0)*F(0,1) + vx(0,1)*F(1,1) + vx(0,2)*F(2,1);
+          VxF(0,2) = vx(0,0)*F(0,2) + vx(0,1)*F(1,2) + vx(0,2)*F(2,2);
+          VxF(1,0) = vx(1,0)*F(0,0) + vx(1,1)*F(1,0) + vx(1,2)*F(2,0);
+          VxF(1,1) = vx(1,0)*F(0,1) + vx(1,1)*F(1,1) + vx(1,2)*F(2,1);
+          VxF(1,2) = vx(1,0)*F(0,2) + vx(1,1)*F(1,2) + vx(1,2)*F(2,2);
+          VxF(2,0) = vx(2,0)*F(0,0) + vx(2,1)*F(1,0) + vx(2,2)*F(2,0);
+          VxF(2,1) = vx(2,0)*F(0,1) + vx(2,1)*F(1,1) + vx(2,2)*F(2,1);
+          VxF(2,2) = vx(2,0)*F(0,2) + vx(2,1)*F(1,2) + vx(2,2)*F(2,2);
+          
         } else {
           F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
           F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
           F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
           F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
+
+          vx(0,0) = vx(0,0) + Nx(0,a)*yl(i,a);
+          vx(0,1) = vx(0,1) + Nx(1,a)*yl(i,a);
+          vx(1,0) = vx(1,0) + Nx(0,a)*yl(j,a);
+          vx(1,1) = vx(1,1) + Nx(1,a)*yl(j,a);
+
+          VxF(0,0) = vx(0,0)*F(0,0) + vx(0,1)*F(1,0);
+          VxF(0,1) = vx(0,0)*F(0,1) + vx(0,1)*F(1,1);
+          VxF(1,0) = vx(1,0)*F(0,0) + vx(1,1)*F(1,0);
+          VxF(1,1) = vx(1,0)*F(0,1) + vx(1,1)*F(1,1);
         }
       }
 
       auto fl = mat_fun::mat_mul(F, lM.fN.rows(0,nsd-1,e));
       double I4f = utils::norm(fl);
 
+      // Compute fiber stretch rate: f^T (dC/dt) f where dC/dt = (VxF)^T F + F^T (VxF)
+      Array<double> VxF_T = mat_fun::transpose(VxF);
+      Array<double> F_T = mat_fun::transpose(F);
+      
+      // Compute (VxF)^T F
+      Array<double> VxF_T_F = mat_fun::mat_mul(VxF_T, F);
+      
+      // Compute F^T (VxF)
+      Array<double> F_T_VxF = mat_fun::mat_mul(F_T, VxF);
+      
+      // Add the two terms to get dC/dt
+      Array<double> dC_dt(nsd, nsd);
+      for (int i = 0; i < nsd; i++) {
+        for (int j = 0; j < nsd; j++) {
+          dC_dt(i,j) = VxF_T_F(i,j) + F_T_VxF(i,j);
+        }
+      }
+      
+      // Get fiber direction in reference configuration
+      auto fN = lM.fN.rows(0,nsd-1,e);  // Fiber direction in reference config
+      
+      // Compute fiber stretch rate: f^T (dC/dt) f
+      double I4fRate = 0.0;
+      for (int i = 0; i < nsd; i++) {
+        for (int j = 0; j < nsd; j++) {
+          I4fRate += fN(i) * dC_dt(i,j) * fN(j);
+        }
+      }
+
+      // print out I4fRate for debugging (only for first gauss point of first element)
+      if (e == 0 && g == 0) {
+        std::cout << "I4fRate: " << I4fRate << std::endl;
+      }
+
       for (int a = 0; a < eNoN; a++) { 
         int Ac = lM.IEN(a,e);
         sA(Ac) = sA(Ac) + w*N(a);
         sF(Ac) = sF(Ac) + w*N(a)*I4f;
+        sFRate(Ac) = sFRate(Ac) + w*N(a)*I4fRate;
+        
       }
     }
   }
 
   all_fun::commu(com_mod, sF);
+  all_fun::commu(com_mod, sFRate);
   all_fun::commu(com_mod, sA);
 
   res = 0.0;
+  resRate = 0.0;
 
   for (int a = 0; a < lM.nNo; a++) {
     int Ac = lM.gN(a);
     if (!utils::is_zero(sA(Ac))) {
       res(a) = res(a) + sF(Ac) / sA(Ac);
+      resRate(a) = resRate(a) + sFRate(Ac) / sA(Ac);
     }
   }
 

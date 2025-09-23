@@ -196,6 +196,7 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
   int nXion = cep_mod.nXion;
 
   Vector<double> I4f(tnNo);
+  Vector<double> I4fRate(tnNo);
 
   #ifdef debug_cep_integ
   dmsg << "cem.cpld: " << cem.cpld;
@@ -210,10 +211,12 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
 
       if (msh.nFn != 0) {
         Vector<double> sA(msh.nNo);
-        post::fib_strech(simulation, iEq, msh, Dg, sA);
+        Vector<double> sFRate(msh.nNo);
+        post::fib_strech(simulation, iEq, msh, Dg, Yo, sA, sFRate);
         for (int a = 0; a < msh.nNo; a++) {
           int Ac = msh.gN(a);
           I4f(Ac) = sA(a);
+          I4fRate(Ac) = sFRate(a);
         }
       }
     }
@@ -274,7 +277,7 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
           yl = cem.Ya(Ac);
         }
 
-        cep_integ_l(cep_mod, dmn.cep, nX, nG, Xl, Xgl, time-dt, yl, I4f(Ac), dt);
+        cep_integ_l(cep_mod, dmn.cep, nX, nG, Xl, Xgl, time-dt, yl, I4f(Ac), I4fRate(Ac), dt);
 
         sA(Ac) = sA(Ac) + 1.0;
         for (int i = 0; i < nX; i++) {
@@ -323,7 +326,7 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
         yl = cem.Ya(Ac);
       }
 
-      cep_integ_l(cep_mod, eq.dmn[0].cep, nX, nG, Xl, Xgl, time-dt, yl, I4f(Ac), dt);
+      cep_integ_l(cep_mod, eq.dmn[0].cep, nX, nG, Xl, Xgl, time-dt, yl, I4f(Ac), I4fRate(Ac), dt);
 
       for (int i = 0; i < nX; i++) {
         Xion(i,Ac) = Xl(i);
@@ -352,7 +355,7 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
 // mechanics. The equations are integrated at domain nodes.
 //
 void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<double>& X, Vector<double>& Xg, 
-    const double t1, double& yl, const double I4f, const double dt)
+    const double t1, double& yl, const double I4f, const double I4fRate, const double dt)
 {
   using namespace consts;
 
@@ -613,7 +616,8 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             // Electromechanics excitation-activation
             if (cem.aStress) {
               double epsX;
-              cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              // Use Land model for active stress calculation
+              cep_mod.ttp.actv_strs_land(X(3), I4f, I4fRate, cep.dt, yl);
             } else if (cem.aStrain) {
               cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
             }
@@ -635,7 +639,8 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             // Electromechanics excitation-activation
             if (cem.aStress) {
               double epsX;
-              cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              // Use Land model for active stress calculation
+              cep_mod.ttp.actv_strs_land(X(3), I4f, I4fRate, cep.dt, yl);
             } else if (cem.aStrain) {
               cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
             }
@@ -657,7 +662,8 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             // Electromechanics excitation-activation
             if (cem.aStress) {
               double epsX;
-              cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              // Use Land model for active stress calculation
+              cep_mod.ttp.actv_strs_land(X(3), I4f, I4fRate, cep.dt, yl);
             } else if (cem.aStrain) {
               cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
             }
