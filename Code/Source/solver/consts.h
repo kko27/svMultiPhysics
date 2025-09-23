@@ -370,12 +370,8 @@ enum class OutputNameType
   out_divergence = 576, 
   out_viscosity = 575,
   out_fibStrn = 574,
-  out_fibStretch = 573,
-  out_fibStretchRate = 572,
-  out_activeTension = 571,
-  out_CGstrain = 570,
-  out_CGInv1 = 569,
-  out_calcium = 568
+  out_CGstrain = 573,
+  out_CGInv1 = 572
 };
 
 /// @brief Simulation output file types. 

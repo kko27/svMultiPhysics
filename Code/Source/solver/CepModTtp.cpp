@@ -5,16 +5,31 @@
 
 #include "mat_fun.h"
 #include "celec_mech.h"
+#include "celec_mech.h"
 #include <math.h>
 #include <cmath>
 
 // Uncomment to enable verbose Land-model debug output
 // #define debug_land_actv
+#include <cmath>
 
 CepModTtp::CepModTtp()
 {
-  // Land model state variables are now stored per-node in CepMod.Y_land
-  // No need to initialize here - done in cep_init
+  // Initialize Land model state variables (7 components)
+  Y_land.resize(7);
+  Y_land = 0.0;
+  
+  // Initialize Land model state variables to reasonable values
+  // Based on Land 2016 model, these are typical initial values
+  Y_land(0) = 0.0;   // XS - strongly bound cross-bridges
+  Y_land(1) = 0.0;   // XW - weakly bound cross-bridges  
+  Y_land(2) = 0.0;   // TRPN - troponin bound to calcium
+  Y_land(3) = 0.0;   // TmBlocked - tropomyosin blocked state
+  Y_land(4) = 0.0;   // ZETAS - strongly bound cross-bridge distortion
+  Y_land(5) = 0.0;   // ZETAW - weakly bound cross-bridge distortion
+  Y_land(6) = 0.0;   // Cd - passive model state
+  
+  std::cout << "[CepModTtp] Land model initialized with " << Y_land.size() << " state variables" << std::endl;
 }
 
 CepModTtp::~CepModTtp()

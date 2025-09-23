@@ -564,7 +564,8 @@ SetEquationPropertiesMapType set_equation_props = {
       OutputNameType::out_cauchy, OutputNameType::out_strain, OutputNameType::out_jacobian,
       OutputNameType::out_defGrad, OutputNameType::out_integ, OutputNameType::out_fibDir,
       OutputNameType::out_fibAlign, OutputNameType::out_fibStretch, OutputNameType::out_fibStretchRate,
-      OutputNameType::out_activeTension, OutputNameType::out_velocity, OutputNameType::out_acceleration
+      OutputNameType::out_activeTension, OutputNameType::out_fibStretch, OutputNameType::out_fibStretchRate,
+      OutputNameType::out_velocity, OutputNameType::out_acceleration
     };
   }
 

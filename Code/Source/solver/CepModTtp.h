@@ -13,6 +13,8 @@
 
 #include "celec_mech.h"
 
+#include "celec_mech.h"
+
 template <class T>
 T& make_ref(T&& x) { return x; }
 
@@ -372,6 +374,10 @@ class CepModTtp
 //     Land model object
       celec_mech land_model_obj;  // Land model object
 
+//     Land model state variables
+      Vector<double> Y_land;  // Land model state variables (7 components)
+      celec_mech land_model_obj;  // Land model object
+
     void actv_strn(const double c_Ca, const double I4f, const double dt, double& gf);
     void actv_strs(const double c_Ca, const double dt, double& Tact, double& epsX);
     
@@ -379,6 +385,9 @@ class CepModTtp
     // Lambda_old and lambda_new are computed in fib_strech function
     // Uses Regazzoni & Quarteroni (2020) stabilization: Ka*(lambda_new - lambda_old)
     void actv_strs_land(Vector<double>& Y_land_node, const double c_Ca, const double lambda_old, const double lambda_new, const double dlambda_dt, const double dt, double& Ta_out, double& Ka_out);
+    
+    // Land model integration
+    void actv_strs_land(const double c_Ca, const double I4f, const double I4fRate, const double dt, double& Tact);
 
     void getf(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
         Vector<double>& dX, const double I_stim, const double K_sac, Vector<double>& RPAR);
