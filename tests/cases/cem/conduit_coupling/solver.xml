@@ -11,7 +11,7 @@
 
   <Save_results_to_VTK_format> true </Save_results_to_VTK_format> 
   <Name_prefix_of_saved_VTK_files> result </Name_prefix_of_saved_VTK_files> 
-  <Increment_in_saving_VTK_files> 10 </Increment_in_saving_VTK_files> 
+  <Increment_in_saving_VTK_files> 5 </Increment_in_saving_VTK_files> 
   <Start_saving_after_time_step> 1 </Start_saving_after_time_step> 
 
   <Increment_in_saving_restart_files> 5000 </Increment_in_saving_restart_files> 
@@ -120,26 +120,31 @@
    <Add_BC name="start" > 
       <Type> Dirichlet </Type> 
       <Value> 0.0 </Value>
+      <Impose_on_state_variable_integral> true </Impose_on_state_variable_integral>
+      <Zero_out_perimeter> false </Zero_out_perimeter>
+      <Effective_direction> (0, 0, 1) </Effective_direction>
    </Add_BC> 
 
    <Add_BC name="end" > 
       <Type> Dirichlet </Type> 
       <Value> 0.0 </Value>
+      <Impose_on_state_variable_integral> true </Impose_on_state_variable_integral>
+      <Zero_out_perimeter> false </Zero_out_perimeter>
+      <Effective_direction> (0, 0, 1) </Effective_direction>
    </Add_BC> 
 
-   <!-- <Add_BC name = "epi" >
+   <Add_BC name = "epi" >
       <Type> Robin </Type>
       <Stiffness> 1e4 </Stiffness>
       <Damping> 500 </Damping>
-   </Add_BC> -->
+   </Add_BC>
 
    <LS type="GMRES" >
       <Linear_algebra type="fsils" >
          <Preconditioner> fsils </Preconditioner>
       </Linear_algebra>
-      <Tolerance> 1e-4 </Tolerance>
-      <Max_iterations> 100 </Max_iterations> 
-      <Krylov_space_dimension> 50 </Krylov_space_dimension>
+      <Tolerance> 1e-9 </Tolerance>
+      <Max_iterations> 400 </Max_iterations> 
    </LS>
 
    <Output type="Spatial" >
@@ -148,6 +153,8 @@
       <Jacobian> true </Jacobian>
       <Stress> true </Stress>
       <Strain> true </Strain>
+      <Fiber_stretch> true </Fiber_stretch>
+      <Fiber_stretch_rate> true </Fiber_stretch_rate>
    </Output>
 
 </Add_equation>

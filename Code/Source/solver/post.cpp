@@ -814,12 +814,14 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
   Array<double> Nx(nsd,eNoN); 
   Vector<double> N(eNoN);
 
+  int processed_elements = 0;
   for (int e = 0; e < lM.nEl; e++) {
     int cDmn  = all_fun::domain(com_mod, lM, iEq, e);
     auto cPhys = eq.dmn[cDmn].phys;
     if (cPhys != EquationType::phys_struct && cPhys != EquationType::phys_ustruct) {
       continue; 
-    } 
+    }
+    processed_elements++; 
     if (lM.eType == ElementType::NRB) {
       //CALL NRBNNX(lM, e)
     }
@@ -932,11 +934,7 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
         }
       }
 
-      // print out I4fRate for debugging (only for first gauss point of first element)
-      if (e == 0 && g == 0) {
-        std::cout << "I4fRate: " << I4fRate << std::endl;
-      }
-
+      
       for (int a = 0; a < eNoN; a++) { 
         int Ac = lM.IEN(a,e);
         sA(Ac) = sA(Ac) + w*N(a);
@@ -950,7 +948,6 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
   all_fun::commu(com_mod, sF);
   all_fun::commu(com_mod, sFRate);
   all_fun::commu(com_mod, sA);
-
   res = 0.0;
   resRate = 0.0;
 
