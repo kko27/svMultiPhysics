@@ -50,6 +50,9 @@ void fib_dir_post(Simulation* simulation, const mshType& lM, const int nFn, Arra
 
 void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const Array<double>& lD, const Array<double>& lY, Vector<double>& res, Vector<double>& resRate);
 
+void active_tension(Simulation* simulation, const int iEq, const mshType& lM, const Array<double>& lD, const Array<double>& lY, 
+    const Vector<double>& I4f, const Vector<double>& I4fRate, Vector<double>& res);
+
 void post(Simulation* simulation, const mshType& lM, Array<double>& res, const Array<double>& lY, const Array<double>& lD, 
     consts::OutputNameType outGrp, const int iEq);
 

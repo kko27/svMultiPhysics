@@ -1072,6 +1072,7 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
         Vector<double> tmpVe;
         Vector<double> tmpVStretch(msh.nNo);
         Vector<double> tmpVRate(msh.nNo);
+        Vector<double> tmpActiveTension(msh.nNo);
 
         switch (oGrp) {
           case OutputNameType::outGrp_NA:
@@ -1217,6 +1218,18 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
             }
             for (int a = 0; a < msh.nNo; a++) {
               d[iM].x(is,a) = tmpVRate(a);
+            }
+            tmpV.resize(consts::maxNSD, msh.nNo);
+          break;
+
+          case OutputNameType::outGrp_ActiveTension:
+            tmpV.resize(1,msh.nNo);
+            if (msh.nFn != 0) {
+              post::fib_strech(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate);
+              post::active_tension(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate, tmpActiveTension);
+            }
+            for (int a = 0; a < msh.nNo; a++) {
+              d[iM].x(is,a) = tmpActiveTension(a);
             }
             tmpV.resize(consts::maxNSD, msh.nNo);
           break;

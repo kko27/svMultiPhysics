@@ -31,6 +31,7 @@
 #include "post.h"
 
 #include "all_fun.h"
+#include "celec_mech.h"
 #include "fluid.h"
 #include "fs.h"
 #include "initialize.h"
@@ -124,6 +125,21 @@ void all_post(Simulation* simulation, Array<double>& res, const Array<double>& l
        for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
          int Ac = msh.gN(a);
          res(0,Ac) = tmpVRate(a);
+       }
+
+     } else if (outGrp == OutputNameType::outGrp_ActiveTension) {
+       Array<double> tmpV(1,msh.nNo); 
+       Vector<double> tmpVStretch(msh.nNo);
+       Vector<double> tmpVRate(msh.nNo);
+       Vector<double> tmpActiveTension(msh.nNo);
+       if (msh.nFn != 0) {
+         post::fib_strech(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate);
+         post::active_tension(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate, tmpActiveTension);
+       }
+       res = 0.0;
+       for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
+         int Ac = msh.gN(a);
+         res(0,Ac) = tmpActiveTension(a);
        }
 
      } else {
@@ -959,6 +975,184 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
     }
   }
 
+}
+
+/// @brief Compute active tension based on calcium concentration and fiber stretch
+//
+void active_tension(Simulation* simulation, const int iEq, const mshType& lM, const Array<double>& lD, const Array<double>& lY, 
+    const Vector<double>& I4f, const Vector<double>& I4fRate, Vector<double>& res)
+{
+  using namespace consts;
+
+  auto& com_mod = simulation->com_mod;
+  auto& cm = com_mod.cm;
+  auto& cm_mod = simulation->cm_mod;
+  auto& eq = com_mod.eq[iEq];
+
+  int nsd = com_mod.nsd;
+  int tnNo = com_mod.tnNo;
+  int tDof = com_mod.tDof;
+
+  // [NOTE] Setting global variable 'dof'.
+  com_mod.dof = eq.dof;
+
+  int eNoN = lM.eNoN;
+  int i = eq.s;
+  int j = i + 1;
+  int k = j + 1;
+
+  Vector<double> sA(tnNo); 
+  Vector<double> sF(tnNo); 
+  Array<double> xl(nsd,eNoN); 
+  Array<double> dl(tDof,eNoN);
+  Array<double> yl(tDof,eNoN); 
+  Array<double> Nx(nsd,eNoN); 
+  Vector<double> N(eNoN);
+
+  int processed_elements = 0;
+  for (int e = 0; e < lM.nEl; e++) {
+    int cDmn  = all_fun::domain(com_mod, lM, iEq, e);
+    auto cPhys = eq.dmn[cDmn].phys;
+    if (cPhys != EquationType::phys_struct && cPhys != EquationType::phys_ustruct) {
+      continue; 
+    }
+    processed_elements++; 
+    if (lM.eType == ElementType::NRB) {
+      //CALL NRBNNX(lM, e)
+    }
+
+    for (int a = 0; a < eNoN; a++) { 
+      int Ac = lM.IEN(a,e);
+      xl.set_col(a, com_mod.x.col(Ac));
+      dl.set_col(a, lD.col(Ac));
+      for (int i = 0; i < tDof; i++) {
+        yl(i,a) = lY(i,Ac);
+      }
+    }
+
+    for (int g = 0; g < lM.nG; g++) {
+      double Jac = 0.0;
+      Array<double> F(nsd,nsd);
+      Array<double> ksix(nsd,nsd);
+
+      if (g == 0 || !lM.lShpF) {
+        auto Nxi = lM.Nx.slice(g);
+        nn::gnn(eNoN, nsd, nsd, Nxi, xl, Nx, Jac, ksix);
+      }
+
+      double w = lM.w(g)*Jac;
+      auto N = lM.N.col(g);
+      F = mat_fun::mat_id(nsd);
+
+      for (int a = 0; a < eNoN; a++) { 
+        if (nsd == 3) {
+          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
+          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
+          F(0,2) = F(0,2) + Nx(2,a)*dl(i,a);
+          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
+          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
+          F(1,2) = F(1,2) + Nx(2,a)*dl(j,a);
+          F(2,0) = F(2,0) + Nx(0,a)*dl(k,a);
+          F(2,1) = F(2,1) + Nx(1,a)*dl(k,a);
+          F(2,2) = F(2,2) + Nx(2,a)*dl(k,a);
+        } else {
+          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
+          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
+          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
+          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
+        }
+      }
+
+      // Get fiber direction in reference configuration
+      auto fN = lM.fN.rows(0,nsd-1,e);  // Fiber direction in reference config
+      
+      // Compute fiber stretch: I4f = f^T C f where C = F^T F
+      auto C = mat_fun::mat_mul(mat_fun::transpose(F), F);
+      double I4f_gauss = 0.0;
+      for (int i = 0; i < nsd; i++) {
+        for (int j = 0; j < nsd; j++) {
+          I4f_gauss += fN(i) * C(i,j) * fN(j);
+        }
+      }
+      
+      // Compute fiber stretch rate: I4fRate = f^T (dC/dt) f
+      // For now, we'll use the nodal values as approximation
+      double I4fRate_gauss = 0.0;
+      for (int a = 0; a < eNoN; a++) {
+        int Ac = lM.IEN(a,e);
+        I4fRate_gauss += N(a) * I4fRate(Ac);
+      }
+      
+      // Convert I4f to lambda and I4fRate to dlambda/dt
+      double lambda = (I4f_gauss > 0.0) ? sqrt(I4f_gauss) : 1.0;
+      double dlambda_dt = (I4f_gauss > 0.0) ? I4fRate_gauss / (2.0 * lambda) : 0.0;
+      
+      // Get calcium concentration from electrophysiology
+      // For TTP model, calcium is typically in DOF 3 (index 3)
+      double c_Ca = 0.0;
+      for (int a = 0; a < eNoN; a++) {
+        int Ac = lM.IEN(a,e);
+        c_Ca += N(a) * lY(3, Ac);  // Calcium concentration from TTP model
+      }
+      
+      // Use Land model for active tension calculation
+      double Tact = 0.0;
+      
+      // Create Land model object
+      celec_mech land_model_obj;
+      
+      // Initialize Land model state variables (7 variables)
+      Vector<double> Y_land(7);
+      Y_land = 0.0;  // Initialize to zero
+      
+      // Land model outputs
+      double T, Ta, Tp;
+      
+      // Integrate Land model using RK4
+      land_model_obj.integ_rk(7, Y_land, T, Ta, Tp, com_mod.dt, c_Ca*1000.0, lambda, dlambda_dt);
+      
+      // Debug output to monitor Land model
+      // static int debug_count = 0;
+      // if (debug_count < 5) {
+      //   std::cout << "[active_tension] Land model: c_Ca=" << c_Ca 
+      //             << ", lambda=" << lambda << ", dlambda_dt=" << dlambda_dt << std::endl;
+      //   std::cout << "[active_tension] Land model (raw): T=" << T << ", Ta=" << Ta << ", Tp=" << Tp << std::endl;
+      //   debug_count++;
+      // }
+      T = Ta + Tp;
+      
+      // Check for NaN in Land model output
+      if (std::isnan(Ta)) {
+        Tact = 0.0;
+      } else {
+        // Additional safety limits for Land model
+        double max_land_stress = 50.0;  // kPa - Conservative limit
+        if (std::abs(Ta) > max_land_stress) {
+          Ta = (Ta > 0) ? max_land_stress : -max_land_stress;
+        }
+        
+        // Convert kPa to dyne/cm²: 1 kPa = 1e4 dyne/cm²
+        Tact = Ta * 1e4;
+      }
+      
+      for (int a = 0; a < eNoN; a++) { 
+        int Ac = lM.IEN(a,e);
+        sA(Ac) = sA(Ac) + w*N(a);
+        sF(Ac) = sF(Ac) + w*N(a)*Tact;
+      }
+    }
+  }
+
+  all_fun::commu(com_mod, sF);
+  all_fun::commu(com_mod, sA);
+  res = 0.0;
+
+  for (int a = 0; a < lM.nNo; a++) {
+    int Ac = lM.gN(a);
+    if (!utils::is_zero(sA(Ac))) {
+      res(a) = res(a) + sF(Ac) / sA(Ac);
+    }
+  }
 }
 
 void post(Simulation* simulation, const mshType& lM, Array<double>& res, const Array<double>& lY, const Array<double>& lD, 

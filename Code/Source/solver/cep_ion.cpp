@@ -217,7 +217,7 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
     }
     
     if (structEq == -1) {
-      // std::cout << "[cep_integ] No structural equation found, initializing I4f to 1.0" << std::endl;
+      std::cout << "[cep_integ] No structural equation found, initializing I4f to 1.0" << std::endl;
       for (int Ac = 0; Ac < tnNo; Ac++) {
         I4f(Ac) = 1.0;
         I4fRate(Ac) = 0.0;
@@ -225,8 +225,6 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
     } else {
       for (int iM = 0; iM < com_mod.nMsh; iM++) {
         auto& msh = com_mod.msh[iM];
-        // std::cout << "[cep_integ] Mesh " << iM << ": nFn=" << msh.nFn << ", nNo=" << msh.nNo << std::endl;
-
         if (msh.nFn != 0) {
           Vector<double> sA(msh.nNo);
           Vector<double> sFRate(msh.nNo);
@@ -236,24 +234,6 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
           I4f(Ac) = sA(a);
           I4fRate(Ac) = sFRate(a);
         }
-        
-        // Debug: show fiber stretch statistics
-        // double min_I4f = 1e10, max_I4f = -1e10, avg_I4f = 0.0;
-        // double min_I4fRate = 1e10, max_I4fRate = -1e10, avg_I4fRate = 0.0;
-        // for (int a = 0; a < msh.nNo; a++) {
-        //   int Ac = msh.gN(a);
-        //   min_I4f = std::min(min_I4f, I4f(Ac));
-        //   max_I4f = std::max(max_I4f, I4f(Ac));
-        //   avg_I4f += I4f(Ac);
-        //   min_I4fRate = std::min(min_I4fRate, I4fRate(Ac));
-        //   max_I4fRate = std::max(max_I4fRate, I4fRate(Ac));
-        //   avg_I4fRate += I4fRate(Ac);
-        // }
-        // avg_I4f /= msh.nNo;
-        // avg_I4fRate /= msh.nNo;
-        // std::cout << "[cep_integ] Fiber stretch stats: I4f=[" << min_I4f << ", " << avg_I4f << ", " << max_I4f 
-        //           << "], I4fRate=[" << min_I4fRate << ", " << avg_I4fRate << ", " << max_I4fRate << "]" << std::endl;
-          // std::cout << "[cep_integ] Fiber stretch calculated for mesh " << iM << std::endl;
         } else {
           std::cout << "[cep_integ] No fibers defined for mesh " << iM << std::endl;
         }
@@ -276,14 +256,6 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
         }
       }
     }
-  } else {
-    std::cout << "[cep_integ] Electromechanical coupling disabled (cem.cpld=false)" << std::endl;
-    // Initialize I4f to undeformed state (λ = 1, so I4f = λ² = 1)
-    for (int Ac = 0; Ac < tnNo; Ac++) {
-      I4f(Ac) = 1.0;
-      I4fRate(Ac) = 0.0;
-    }
-    std::cout << "[cep_integ] Initialized I4f to 1.0 (undeformed state)" << std::endl;
   }
 
   //  Ignore first pass as Xion is already initialized

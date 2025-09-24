@@ -51,7 +51,6 @@ CepModTtp::CepModTtp()
   Y_land(5) = 0.0;   // ZETAW - weakly bound cross-bridge distortion (resting = 0)
   Y_land(6) = 0.0;   // Cd - passive model state (resting = 0)
   
-  std::cout << "[CepModTtp] Land model initialized with " << Y_land.size() << " state variables" << std::endl;
 }
 
 CepModTtp::~CepModTtp()
@@ -130,43 +129,19 @@ void CepModTtp::actv_strs_land(const double c_Ca, const double I4f, const double
   // Integrate Land model using RK4
   land_model_obj.integ_rk(7, Y_land, T, Ta, Tp, dt, c_Ca*1000.0, lambda, dlambda_dt);
   
-  // // Debug output for first few calls
-  // static int call_count = 0;
-  // if (call_count < 5) {
-  //   std::cout << "[actv_strs_land] Call " << call_count << ": c_Ca=" << c_Ca 
-  //             << ", I4f=" << I4f << ", I4fRate=" << I4fRate << std::endl;
-  //   std::cout << "[actv_strs_land] Land model: T=" << T << ", Ta=" << Ta << ", Tp=" << Tp << std::endl;
-  //   call_count++;
-  // }
-  
   // Check for NaN in Land model output
   if (std::isnan(Ta)) {
     std::cout << "[actv_strs_land] NaN in Land model output: Ta=" << Ta << std::endl;
     Tact = 0.0;
     return;
   }
-  
-  // Check for unrealistic values and apply safety limits
-  // After scaling: 100 kPa = 1e6 dyne/cm², 1000 kPa = 1e7 dyne/cm²
-  if (std::abs(Ta) > 1000.0) {  // 1000 kPa = 1e7 dyne/cm² after scaling
-    std::cout << "[actv_strs_land] WARNING: Very large active stress: Ta=" << Ta << " kPa, limiting to 1000 kPa" << std::endl;
-    Ta = (Ta > 0) ? 1000.0 : -1000.0;
-  }
-  
-  // Additional safety: limit to reasonable range for cardiac tissue
-  // Typical active stress in cardiac tissue is 10-100 kPa
-  if (std::abs(Ta) > 10000.0) {  // 10000 kPa = 1e8 dyne/cm² after scaling
-    std::cout << "[actv_strs_land] WARNING: Extremely large active stress: Ta=" << Ta << " kPa, setting to 0" << std::endl;
-    Ta = 0.0;
-  }
-  
   // Convert Land model output to appropriate units for structural solver
   // Land model outputs tension in kPa, need to convert to dyne/cm² for consistency
-  // 1 kPa = 1e4 dyne/cm²
-  double scale_factor = 1e4;  // Convert kPa to dyne/cm²
+  // // 1 kPa = 1e4 dyne/cm²
+  // double scale_factor = 1e4;  // Convert kPa to dyne/cm²
   
   // Return active tension (Ta) as the active stress
-  Tact = Ta * scale_factor;
+  Tact = Ta;
 }
 
 /// @brief Compute currents and time derivatives of state variables
