@@ -315,6 +315,12 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
 
         cep_integ_l(cep_mod, dmn.cep, nX, nG, Xl, Xgl, time-dt, yl, I4f(Ac), I4fRate(Ac), dt);
 
+        // Debug: Print active tension for node 0
+        if (Ac == 0) {
+          std::cout << "[cep_integ] Node 0: c_Ca=" << Xl(3) << ", I4f=" << I4f(Ac) << ", I4fRate=" << I4fRate(Ac) 
+                    << ", ActiveTension=" << yl << " dyne/cm²" << std::endl;
+        }
+
         sA(Ac) = sA(Ac) + 1.0;
         for (int i = 0; i < nX; i++) {
           sF(i,Ac) += Xl(i);
@@ -363,6 +369,14 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
       }
 
       cep_integ_l(cep_mod, eq.dmn[0].cep, nX, nG, Xl, Xgl, time-dt, yl, I4f(Ac), I4fRate(Ac), dt);
+
+      // Debug: Print active tension for node 0
+      static int node0_debug_count_else = 0;
+      if (Ac == 0 && node0_debug_count_else < 5) {
+        std::cout << "[cep_integ] Node 0 (else): c_Ca=" << Xl(3) << ", I4f=" << I4f(Ac) << ", I4fRate=" << I4fRate(Ac) 
+                  << ", ActiveTension=" << yl << " dyne/cm²" << std::endl;
+        node0_debug_count_else++;
+      }
 
       for (int i = 0; i < nX; i++) {
         Xion(i,Ac) = Xl(i);
@@ -654,6 +668,7 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
               double epsX;
               // Use Land model for active stress calculation
               cep_mod.ttp.actv_strs_land(X(3), I4f, I4fRate, cep.dt, yl);
+              
             } else if (cem.aStrain) {
               cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
             }
@@ -676,7 +691,9 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             if (cem.aStress) {
               double epsX;
               // Use Land model for active stress calculation
-              cep_mod.ttp.actv_strs_land(X(3), I4f, I4fRate, cep.dt, yl);
+              // cep_mod.ttp.actv_strs_land(X(3), I4f, I4fRate, cep.dt, yl);
+              cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              
             } else if (cem.aStrain) {
               cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
             }
@@ -700,6 +717,7 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
               double epsX;
               // Use Land model for active stress calculation
               cep_mod.ttp.actv_strs_land(X(3), I4f, I4fRate, cep.dt, yl);
+              
             } else if (cem.aStrain) {
               cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
             }

@@ -1098,41 +1098,45 @@ void active_tension(Simulation* simulation, const int iEq, const mshType& lM, co
       // Use Land model for active tension calculation
       double Tact = 0.0;
       
-      // Create Land model object
-      celec_mech land_model_obj;
-      
-      // Initialize Land model state variables (7 variables)
-      Vector<double> Y_land(7);
-      Y_land = 0.0;  // Initialize to zero
-      
-      // Land model outputs
-      double T, Ta, Tp;
-      
-      // Integrate Land model using RK4
-      land_model_obj.integ_rk(7, Y_land, T, Ta, Tp, com_mod.dt, c_Ca*1000.0, lambda, dlambda_dt);
-      
-      // Debug output to monitor Land model
-      // static int debug_count = 0;
-      // if (debug_count < 5) {
-      //   std::cout << "[active_tension] Land model: c_Ca=" << c_Ca 
-      //             << ", lambda=" << lambda << ", dlambda_dt=" << dlambda_dt << std::endl;
-      //   std::cout << "[active_tension] Land model (raw): T=" << T << ", Ta=" << Ta << ", Tp=" << Tp << std::endl;
-      //   debug_count++;
-      // }
-      T = Ta + Tp;
-      
-      // Check for NaN in Land model output
-      if (std::isnan(Ta)) {
-        Tact = 0.0;
-      } else {
-        // Additional safety limits for Land model
-        double max_land_stress = 50.0;  // kPa - Conservative limit
-        if (std::abs(Ta) > max_land_stress) {
-          Ta = (Ta > 0) ? max_land_stress : -max_land_stress;
-        }
+      // Check for valid inputs
+      if (c_Ca > 0.0 && lambda > 0.0 && !std::isnan(c_Ca) && !std::isnan(lambda) && !std::isnan(dlambda_dt)) {
+        // Create Land model object
+        celec_mech land_model_obj;
         
-        // Convert kPa to dyne/cm²: 1 kPa = 1e4 dyne/cm²
-        Tact = Ta * 1e4;
+        // Initialize Land model state variables (7 variables)
+        Vector<double> Y_land(7);
+        Y_land = 0.0;  // Initialize to zero
+        
+        // Land model outputs
+        double T, Ta, Tp;
+        
+        // Integrate Land model using RK4
+        land_model_obj.integ_rk(7, Y_land, T, Ta, Tp, com_mod.dt, c_Ca*1000.0, lambda, dlambda_dt);
+        
+        // Debug output to monitor Land model
+        // static int debug_count = 0;
+        // if (debug_count < 5) {
+        //   std::cout << "[active_tension] Land model: c_Ca=" << c_Ca 
+        //             << ", lambda=" << lambda << ", dlambda_dt=" << dlambda_dt << std::endl;
+        //   std::cout << "[active_tension] Land model (raw): T=" << T << ", Ta=" << Ta << ", Tp=" << Tp << std::endl;
+        //   debug_count++;
+        // }
+        
+        // Check for NaN in Land model output
+        if (std::isnan(Ta)) {
+          Tact = 0.0;
+        } else {
+          // Convert kPa to dyne/cm²: 1 kPa = 1e4 dyne/cm²
+          Tact = Ta * 1e4;
+          
+        }
+      } else {
+        // Fallback to simple model if inputs are invalid
+        if (c_Ca > 0.1) {  // μM threshold
+          double ca_norm = (c_Ca - 0.1) / (1.0 - 0.1);
+          ca_norm = std::max(0.0, std::min(1.0, ca_norm));
+          Tact = 2.0 * ca_norm * ca_norm * 1e4;  // Convert to dyne/cm²
+        }
       }
       
       for (int a = 0; a < eNoN; a++) { 

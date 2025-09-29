@@ -130,18 +130,27 @@ void CepModTtp::actv_strs_land(const double c_Ca, const double I4f, const double
   land_model_obj.integ_rk(7, Y_land, T, Ta, Tp, dt, c_Ca*1000.0, lambda, dlambda_dt);
   
   // Check for NaN in Land model output
-  if (std::isnan(Ta)) {
-    std::cout << "[actv_strs_land] NaN in Land model output: Ta=" << Ta << std::endl;
+  if (std::isnan(Ta) || std::isnan(Tp)) {
+    std::cout << "[actv_strs_land] NaN in Land model output: Ta=" << Ta << ", Tp=" << Tp << std::endl;
     Tact = 0.0;
     return;
   }
-  // Convert Land model output to appropriate units for structural solver
-  // Land model outputs tension in kPa, need to convert to dyne/cm² for consistency
-  // // 1 kPa = 1e4 dyne/cm²
-  // double scale_factor = 1e4;  // Convert kPa to dyne/cm²
   
-  // Return active tension (Ta) as the active stress
-  Tact = Ta;
+  // Apply very conservative scaling to prevent structural solver issues
+  double land_scale_factor = 0.01;  // Reduce Land model output by 100x
+  Ta = Ta * land_scale_factor;
+  Tp = Tp * land_scale_factor;
+  T = Ta + Tp;
+  
+  // Additional safety limits for Land model
+  double max_land_stress = 100.0;  // kPa - Very conservative limit
+  if (std::abs(Ta) > max_land_stress) {
+    std::cout << "[actv_strs_land] WARNING: Large Land model stress: Ta=" << Ta << " kPa, limiting to " << max_land_stress << " kPa" << std::endl;
+    Ta = (Ta > 0) ? max_land_stress : -max_land_stress;
+  }
+  
+  // Convert kPa to dyne/cm²: 1 kPa = 1e4 dyne/cm²
+  Tact = Ta * 1e4;
 }
 
 /// @brief Compute currents and time derivatives of state variables
