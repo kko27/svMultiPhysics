@@ -150,7 +150,7 @@ void CepModTtp::actv_strs_land(const double c_Ca, const double I4f, const double
   }
   
   // Convert kPa to dyne/cm²: 1 kPa = 1e4 dyne/cm²
-  Tact = Ta; //* 1e4;
+  Tact = Ta*1e4; //* 1e4;
 }
 
 /// @brief Compute currents and time derivatives of state variables

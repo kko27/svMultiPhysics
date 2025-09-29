@@ -100,17 +100,31 @@
 
 <Add_equation type="struct" >
 
-   <Dilational_penalty_model> M94 </Dilational_penalty_model>
-   <Density> 1.0 </Density>                           <!-- g/cm^3 -->
-   <Elasticity_modulus> 1.0e6 </Elasticity_modulus>   <!-- dyne/cm^2 -->
-   <Poisson_ratio> 0.483333 </Poisson_ratio>
+   <Domain id="1" >
+      <Dilational_penalty_model> M94 </Dilational_penalty_model>
+      <Density> 1.0 </Density>                           <!-- g/cm^3 -->
+      <Elasticity_modulus> 1.0e6 </Elasticity_modulus>   <!-- dyne/cm^2 -->
+      <Poisson_ratio> 0.483333 </Poisson_ratio>
+      <Constitutive_model type="Gucci">
+         <c> 10000 </c>
+         <bf> 8 </bf>
+         <bt> 3 </bt>
+         <bfs> 4 </bfs>
+      </Constitutive_model>
+   </Domain>
 
-   <Constitutive_model type="Gucci">
-      <c> 10000 </c>
-      <bf> 8 </bf>
-      <bt> 3 </bt>
-      <bfs> 4 </bfs>
-   </Constitutive_model>
+   <Domain id="2" >
+      <Dilational_penalty_model> M94 </Dilational_penalty_model>
+      <Density> 1.0 </Density>                           <!-- g/cm^3 -->
+      <Elasticity_modulus> 1.0e6 </Elasticity_modulus>   <!-- dyne/cm^2 -->
+      <Poisson_ratio> 0.483333 </Poisson_ratio>
+      <Constitutive_model type="Gucci">
+         <c> 10000 </c>
+         <bf> 8 </bf>
+         <bt> 3 </bt>
+         <bfs> 4 </bfs>
+      </Constitutive_model>
+   </Domain>
 
    <Add_BC name="start" > 
       <Type> Dirichlet </Type> 
