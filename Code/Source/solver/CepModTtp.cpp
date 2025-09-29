@@ -136,10 +136,10 @@ void CepModTtp::actv_strs_land(const double c_Ca, const double I4f, const double
     return;
   }
   
-  // Apply very conservative scaling to prevent structural solver issues
-  double land_scale_factor = 0.01;  // Reduce Land model output by 100x
-  Ta = Ta * land_scale_factor;
-  Tp = Tp * land_scale_factor;
+  // // Apply very conservative scaling to prevent structural solver issues
+  // double land_scale_factor = 0.01;  // Reduce Land model output by 100x
+  // Ta = Ta * land_scale_factor;
+  // Tp = Tp * land_scale_factor;
   T = Ta + Tp;
   
   // Additional safety limits for Land model
@@ -150,7 +150,7 @@ void CepModTtp::actv_strs_land(const double c_Ca, const double I4f, const double
   }
   
   // Convert kPa to dyne/cm²: 1 kPa = 1e4 dyne/cm²
-  Tact = Ta * 1e4;
+  Tact = Ta; //* 1e4;
 }
 
 /// @brief Compute currents and time derivatives of state variables

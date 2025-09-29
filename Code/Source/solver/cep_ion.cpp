@@ -691,8 +691,8 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             if (cem.aStress) {
               double epsX;
               // Use Land model for active stress calculation
-              // cep_mod.ttp.actv_strs_land(X(3), I4f, I4fRate, cep.dt, yl);
-              cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              cep_mod.ttp.actv_strs_land(X(3), I4f, I4fRate, cep.dt, yl);
+              // cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
               
             } else if (cem.aStrain) {
               cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
