@@ -681,8 +681,6 @@ void picp(Simulation* simulation)
 
     // electrophysiology
     if (eq.phys == Equation_CEP) {
-      // Debug: 
-      std::cout << "[picp] Calling cep_integ from picp for eqn " << iEq << std::endl;
       cep_ion::cep_integ(simulation, iEq, e, Do);
     }
 

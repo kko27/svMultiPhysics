@@ -55,9 +55,61 @@
   <Fiber_direction> (0.0, 0.0, 1.0)  </Fiber_direction>
   <Fiber_direction> (1.0, 0.0, 0.0)  </Fiber_direction>
 
+  <Domain_file_path> ./mesh/domain_ids.dat </Domain_file_path>
+
   <Mesh_scale_factor> 1.0 </Mesh_scale_factor> 
 
 </Add_mesh>
+
+
+<Add_equation type="CEP" >
+
+    <EMCoupling>
+        <EM_Coupled>true</EM_Coupled>
+        <EM_Active_stress>true</EM_Active_stress>
+        <EM_Active_strain>false</EM_Active_strain>
+    </EMCoupling>
+
+   <Coupled> true </Coupled>
+   <Min_iterations> 1 </Min_iterations>  
+   <Max_iterations> 7 </Max_iterations> 
+   <Tolerance> 1e-4 </Tolerance> 
+  
+   <Domain id="1" >
+      <Electrophysiology_model> TTP </Electrophysiology_model>
+      <Myocardial_zone> myocardium </Myocardial_zone> 
+      <Isotropic_conductivity> 0.05 </Isotropic_conductivity>
+      <Anisotropic_conductivity> 0.1 </Anisotropic_conductivity>
+      <ODE_solver> RK </ODE_solver>
+   </Domain> 
+
+   <Domain id="2" >
+      <Electrophysiology_model> TTP </Electrophysiology_model>
+      <Myocardial_zone> myocardium </Myocardial_zone> 
+      <Isotropic_conductivity> 0.05 </Isotropic_conductivity>
+      <Anisotropic_conductivity> 0.1 </Anisotropic_conductivity>
+      <ODE_solver> RK </ODE_solver>
+      <Stimulus type="Istim" >
+         <Amplitude> -52.0 </Amplitude>
+         <Start_time> 0.0 </Start_time>
+         <Duration> 2.0 </Duration>
+         <Cycle_length> 1000.0 </Cycle_length>
+      </Stimulus>
+   </Domain>
+
+   <Output type="Spatial" >
+      <Action_potential> true </Action_potential>
+   </Output>
+
+   <LS type="GMRES" >
+      <Linear_algebra type="fsils" >
+         <Preconditioner> fsils </Preconditioner>
+      </Linear_algebra>
+      <Max_iterations> 100 </Max_iterations>
+      <Tolerance> 1e-6 </Tolerance>
+      <Krylov_space_dimension> 50 </Krylov_space_dimension>
+   </LS>
+</Add_equation>
 
 
 <Add_equation type="struct" > 
@@ -65,39 +117,49 @@
    <Coupled> true </Coupled>
    <Min_iterations> 1 </Min_iterations>  
    <Max_iterations> 10 </Max_iterations> 
-   <Tolerance> 1e-12 </Tolerance> 
+   <Tolerance> 1e-9 </Tolerance> 
 
    <Elasticity_modulus> 240.56596e6 </Elasticity_modulus>
    <Poisson_ratio> 0.45 </Poisson_ratio>
 
-  <Constitutive_model type="HGO">
-    <a4> 9.966e5 </a4>
-    <b4> 524.6 </b4>
-    <a6> 9.966e5 </a6>
-    <b6> 524.6 </b6>
-    <kappa> 0.1 </kappa>
-  </Constitutive_model>
+   <Domain id="1" >
+      <Constitutive_model type="HGO">
+         <a4> 9.966e5 </a4>
+         <b4> 524.6 </b4>
+         <a6> 9.966e5 </a6>
+         <b6> 524.6 </b6>
+         <kappa> 0.1 </kappa>
+      </Constitutive_model>
+  </Domain>
+
+   <Domain id="2" >
+      <Constitutive_model type="HGO">
+         <a4> 9.966e5 </a4>
+         <b4> 524.6 </b4>
+         <a6> 9.966e5 </a6>
+         <b6> 524.6 </b6>
+         <kappa> 0.1 </kappa>
+      </Constitutive_model>
+  </Domain>
 
    <Output type="Spatial" >
-     <Displacement> true </Displacement>
-     <Velocity> true </Velocity>
-     <Jacobian> true </Jacobian>
-     <Stress> true </Stress>
-     <Strain> true </Strain>
-     <Cauchy_stress> true </Cauchy_stress>
-     <Def_grad> true </Def_grad>
-     <VonMises_stress> true </VonMises_stress>
-     <Fiber_stretch> true </Fiber_stretch>
-     <Fiber_stretch_rate> true </Fiber_stretch_rate>
-     <Active_tension> true </Active_tension>
+      <Displacement> true </Displacement>
+      <Velocity> true </Velocity>
+      <Jacobian> true </Jacobian>
+      <Stress> true </Stress>
+      <Strain> true </Strain>
+      <Fiber_stretch> true </Fiber_stretch>
+      <Fiber_stretch_rate> true </Fiber_stretch_rate>
+      <Active_tension> true </Active_tension>
    </Output>
 
    <LS type="GMRES" >
       <Linear_algebra type="fsils" >
          <Preconditioner> fsils </Preconditioner>
       </Linear_algebra>
-      <Tolerance> 1e-12 </Tolerance>
-      <Max_iterations> 600 </Max_iterations> 
+      <Max_iterations> 100 </Max_iterations>
+      <Tolerance> 1e-6 </Tolerance>
+      <Krylov_space_dimension> 50 </Krylov_space_dimension>
    </LS>
 
    <Add_BC name="X0" > 
@@ -131,14 +193,14 @@
       <Zero_out_perimeter> false </Zero_out_perimeter> 
    </Add_BC> 
 
-   <!-- <Add_BC name="Z1" > 
+   <Add_BC name="Z1" > 
       <Type> Dir </Type> 
-      <Value> 0.1 </Value> 
+      <Value> 0.001 </Value> 
       <Effective_direction> (0, 0, 1) </Effective_direction> 
       <Zero_out_perimeter> false </Zero_out_perimeter> 
-   </Add_BC>  -->
+   </Add_BC> 
 
-   <Add_BC name="Z1" > 
+   <!-- <Add_BC name="Z1" > 
       <Type> Dir </Type>  
       <Time_dependence> Unsteady </Time_dependence> 
       <Temporal_values_file_path> load.dat </Temporal_values_file_path> 
@@ -146,7 +208,7 @@
       <Effective_direction> (0, 0, 1) </Effective_direction> 
       <Zero_out_perimeter> false </Zero_out_perimeter>
       <Follower_pressure_load> true </Follower_pressure_load> 
-   </Add_BC> 
+   </Add_BC>  -->
 
     <!-- <Add_BC name="Z1" > 
         <Type> Neu </Type> 

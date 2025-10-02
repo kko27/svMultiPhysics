@@ -67,6 +67,7 @@
       <Electrophysiology_model> TTP </Electrophysiology_model>
       <Myocardial_zone> myocardium </Myocardial_zone> 
       <Isotropic_conductivity> 0.05 </Isotropic_conductivity>
+      <Anisotropic_conductivity> 0.1 </Anisotropic_conductivity>
       <ODE_solver> RK </ODE_solver>
    </Domain> 
 
@@ -105,11 +106,22 @@
       <Density> 1.0 </Density>                           <!-- g/cm^3 -->
       <Elasticity_modulus> 1.0e6 </Elasticity_modulus>   <!-- dyne/cm^2 -->
       <Poisson_ratio> 0.483333 </Poisson_ratio>
-      <Constitutive_model type="Gucci">
+      <!-- <Constitutive_model type="Gucci">
          <c> 10000 </c>
          <bf> 8 </bf>
          <bt> 3 </bt>
          <bfs> 4 </bfs>
+      </Constitutive_model> -->
+      <Constitutive_model type="HolzapfelOgden"> 
+         <a> 590.0 </a> <!-- Pa -->
+         <b> 8.023 </b>
+         <a4f> 184720.0 </a4f> <!-- Pa -->
+         <b4f> 16.026 </b4f>
+         <a4s> 24810.0 </a4s> <!-- Pa -->
+         <b4s> 11.12 </b4s>
+         <afs> 2160.0 </afs> <!-- Pa -->
+         <bfs> 11.436 </bfs>
+         <k> 100.0 </k>
       </Constitutive_model>
    </Domain>
 
@@ -118,11 +130,22 @@
       <Density> 1.0 </Density>                           <!-- g/cm^3 -->
       <Elasticity_modulus> 1.0e6 </Elasticity_modulus>   <!-- dyne/cm^2 -->
       <Poisson_ratio> 0.483333 </Poisson_ratio>
-      <Constitutive_model type="Gucci">
+      <!-- <Constitutive_model type="Gucci">
          <c> 10000 </c>
          <bf> 8 </bf>
          <bt> 3 </bt>
          <bfs> 4 </bfs>
+      </Constitutive_model> -->
+      <Constitutive_model type="HolzapfelOgden"> 
+         <a> 590.0 </a> <!-- Pa -->
+         <b> 8.023 </b>
+         <a4f> 184720.0 </a4f> <!-- Pa -->
+         <b4f> 16.026 </b4f>
+         <a4s> 24810.0 </a4s> <!-- Pa -->
+         <b4s> 11.12 </b4s>
+         <afs> 2160.0 </afs> <!-- Pa -->
+         <bfs> 11.436 </bfs>
+         <k> 100.0 </k>
       </Constitutive_model>
    </Domain>
 
@@ -130,7 +153,7 @@
       <Type> Dirichlet </Type> 
       <Value> 0.0 </Value>
       <Impose_on_state_variable_integral> true </Impose_on_state_variable_integral>
-      <Zero_out_perimeter> false </Zero_out_perimeter>
+      <Zero_out_perimeter> true </Zero_out_perimeter>
       <Effective_direction> (0, 0, 1) </Effective_direction>
    </Add_BC> 
 
@@ -138,7 +161,7 @@
       <Type> Dirichlet </Type> 
       <Value> 0.0 </Value>
       <Impose_on_state_variable_integral> true </Impose_on_state_variable_integral>
-      <Zero_out_perimeter> false </Zero_out_perimeter>
+      <Zero_out_perimeter> true </Zero_out_perimeter>
       <Effective_direction> (0, 0, 1) </Effective_direction>
    </Add_BC> 
 

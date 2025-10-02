@@ -1226,7 +1226,9 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
             tmpV.resize(1,msh.nNo);
             if (msh.nFn != 0) {
               post::fib_strech(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate);
-              post::active_tension(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate, tmpActiveTension);
+              // Get the CepModTtp object from the simulation
+              auto& cep_mod = simulation->cep_mod;
+              post::active_tension(simulation, iEq, msh, lD, lY, tmpVStretch, tmpVRate, tmpActiveTension, cep_mod.ttp);
             }
             for (int a = 0; a < msh.nNo; a++) {
               d[iM].x(is,a) = tmpActiveTension(a);

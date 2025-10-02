@@ -37,20 +37,8 @@
 
 CepModTtp::CepModTtp()
 {
-  // Initialize Land model state variables (7 components)
-  Y_land.resize(7);
-  Y_land = 0.0;
-  
-  // Initialize Land model state variables to reasonable values
-  // Based on Land 2016 model, these are typical initial values for resting state
-  Y_land(0) = 0.0;   // XS - strongly bound cross-bridges (resting = 0)
-  Y_land(1) = 0.0;   // XW - weakly bound cross-bridges (resting = 0)
-  Y_land(2) = 0.0;   // TRPN - troponin bound to calcium (resting = 0)
-  Y_land(3) = 0.0;   // TmBlocked - tropomyosin blocked state (resting = 0)
-  Y_land(4) = 0.0;   // ZETAS - strongly bound cross-bridge distortion (resting = 0)
-  Y_land(5) = 0.0;   // ZETAW - weakly bound cross-bridge distortion (resting = 0)
-  Y_land(6) = 0.0;   // Cd - passive model state (resting = 0)
-  
+  // Land model state variables are now stored per-node in CepMod.Y_land
+  // No need to initialize here - done in cep_init
 }
 
 CepModTtp::~CepModTtp()
@@ -85,7 +73,7 @@ void CepModTtp::actv_strs(const double c_Ca, const double dt, double& Tact, doub
 }
 
 /// @brief Compute active stress using Land model
-void CepModTtp::actv_strs_land(const double c_Ca, const double I4f, const double I4fRate, const double dt, double& Tact)
+void CepModTtp::actv_strs_land(Vector<double>& Y_land_node, const double c_Ca, const double I4f, const double I4fRate, const double dt, double& Tact)
 {  
   // Safety checks to prevent NaN
   if (std::isnan(c_Ca) || std::isnan(I4f) || std::isnan(I4fRate) || std::isnan(dt)) {
@@ -126,8 +114,8 @@ void CepModTtp::actv_strs_land(const double c_Ca, const double I4f, const double
   // Variables for Land model outputs
   double T, Ta, Tp;
   
-  // Integrate Land model using RK4
-  land_model_obj.integ_rk(7, Y_land, T, Ta, Tp, dt, c_Ca*1000.0, lambda, dlambda_dt);
+  // Integrate Land model using RK4 with per-node state vector
+  land_model_obj.integ_rk(7, Y_land_node, T, Ta, Tp, dt, c_Ca*1000.0, lambda, dlambda_dt);
   
   // Check for NaN in Land model output
   if (std::isnan(Ta) || std::isnan(Tp)) {

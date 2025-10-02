@@ -229,6 +229,9 @@ class CepMod
     /// @brief Unknowns stored at all nodes
     Array<double> Xion;
 
+    /// @brief Land model state variables stored at all nodes (7 components per node)
+    Array<double> Y_land;
+
     /// @brief Cardiac electromechanics type
     cemModelType cem;
 
