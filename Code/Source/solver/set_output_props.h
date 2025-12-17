@@ -68,6 +68,7 @@ std::map<consts::OutputNameType, OutputProps> output_props_map =
   {OutputNameType::out_fibStretch,   std::make_tuple(OutputNameType::outGrp_I4f,    0, 1,             "Fiber_stretch") },
   {OutputNameType::out_fibStretchRate, std::make_tuple(OutputNameType::outGrp_I4fRate, 0, 1,          "Fiber_stretch_rate") },
   {OutputNameType::out_activeTension, std::make_tuple(OutputNameType::outGrp_ActiveTension, 0, 1,      "Active_tension") },
+  {OutputNameType::out_calcium,       std::make_tuple(OutputNameType::outGrp_calcium,       0, 1,      "Calcium_concentration") },
 
   {OutputNameType::out_heatFlux,     std::make_tuple(OutputNameType::outGrp_hFlx,   0, nsd,           "Heat_flux") },
   {OutputNameType::out_integ,        std::make_tuple(OutputNameType::outGrp_I,      0,   1, nsd == 2 ?  "Area" : "Volume") },

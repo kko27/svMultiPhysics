@@ -182,13 +182,13 @@ void cep_init_land_l(CepMod& cep_mod, const int nodeId)
 {
   // Initialize Land model state variables to reasonable resting values
   // Based on Land 2016 model, these are typical initial values for resting state
-  cep_mod.Y_land(0, nodeId) = 0.0;   // XS - strongly bound cross-bridges (resting = 0)
+  cep_mod.Y_land(0, nodeId) = 0.99;   // XB - bound cross-bridges (resting = 1)
   cep_mod.Y_land(1, nodeId) = 0.0;   // XW - weakly bound cross-bridges (resting = 0)
-  cep_mod.Y_land(2, nodeId) = 0.0;   // TRPN - troponin bound to calcium (resting = 0)
-  cep_mod.Y_land(3, nodeId) = 0.0;   // TmBlocked - tropomyosin blocked state (resting = 0)
-  cep_mod.Y_land(4, nodeId) = 0.0;   // ZETAS - strongly bound cross-bridge distortion (resting = 0)
-  cep_mod.Y_land(5, nodeId) = 0.0;   // ZETAW - weakly bound cross-bridge distortion (resting = 0)
-  cep_mod.Y_land(6, nodeId) = 0.0;   // Cd - passive model state (resting = 0)
+  cep_mod.Y_land(2, nodeId) = 0.0;   // CaTRPN - troponin bound to calcium (resting = 0)
+  cep_mod.Y_land(3, nodeId) = 0.0;   // XS - strongly bound cross-bridges (resting = 0)
+  cep_mod.Y_land(4, nodeId) = 0.0;   // ZETAW - weakly bound cross-bridge distortion (resting = 0)
+  cep_mod.Y_land(5, nodeId) = 0.0;   // ZETAS - strongly bound cross-bridge distortion (resting = 0)
+
 }
 
 //-----------
@@ -221,11 +221,14 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
   auto& eq = com_mod.eq[iEq];
 
   auto& Yo = com_mod.Yo;
+  auto& Dn = com_mod.Dn;
   auto& Xion = cep_mod.Xion;
   int nXion = cep_mod.nXion;
 
-  Vector<double> I4f(tnNo);
-  Vector<double> I4fRate(tnNo);
+  // Fiber stretch history for finite-difference derivative
+  Vector<double> lambda_curr_vec(tnNo);
+  Vector<double> dlambda_dt_vec(tnNo);
+  Vector<double> dlambda_analytic_vec(tnNo);
 
   #ifdef debug_cep_integ
   dmsg << "cem.cpld: " << cem.cpld;
@@ -233,8 +236,18 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
   #endif
 
   // Electromechanics: get fiber stretch for stretch activated currents
+  // Compute lambda at both time n (old) and time n+1 (new) for stabilization
   //
+  // std::cout << "Finding structural equation" << std::endl;
   if (cem.cpld) {
+    if (cem.Ta.size() != tnNo) {
+      cem.Ta.resize(tnNo);
+      cem.Ta = 0.0;
+    }
+    if (cem.Ka.size() != tnNo) {
+      cem.Ka.resize(tnNo);
+      cem.Ka = 0.0;
+    }
     // Find the structural equation index
     int structEq = -1;
     for (int a = 0; a < com_mod.nEq; a++) { 
@@ -246,23 +259,24 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
     }
     
     if (structEq == -1) {
-      std::cout << "[cep_integ] No structural equation found, initializing I4f to 1.0" << std::endl;
+      std::cout << "[cep_integ] No structural equation found, initializing lambda to 1.0" << std::endl;
       for (int Ac = 0; Ac < tnNo; Ac++) {
-        I4f(Ac) = 1.0;
-        I4fRate(Ac) = 0.0;
+        lambda_curr_vec(Ac) = 1.0;
+        dlambda_dt_vec(Ac) = 0.0;
       }
     } else {
+      // Compute current lambda from Do (passed as Dg parameter) at time n
       for (int iM = 0; iM < com_mod.nMsh; iM++) {
         auto& msh = com_mod.msh[iM];
         if (msh.nFn != 0) {
-          Vector<double> sA(msh.nNo);
-          Vector<double> sFRate(msh.nNo);
-          post::fib_strech(simulation, structEq, msh, Dg, Yo, sA, sFRate);
-        for (int a = 0; a < msh.nNo; a++) {
-          int Ac = msh.gN(a);
-          I4f(Ac) = sA(a);
-          I4fRate(Ac) = sFRate(a);
-        }
+          Vector<double> sA_old(msh.nNo);
+          Vector<double> sDummyRate(msh.nNo);
+          post::fib_strech(simulation, structEq, msh, Dg, Yo, sA_old, sDummyRate);
+          for (int a = 0; a < msh.nNo; a++) {
+            int Ac = msh.gN(a);
+            lambda_curr_vec(Ac) = sA_old(a);
+            dlambda_analytic_vec(Ac) = sDummyRate(a);
+          }
         } else {
           std::cout << "[cep_integ] No fibers defined for mesh " << iM << std::endl;
         }
@@ -278,13 +292,37 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
       }
       
       if (!any_fibers) {
-        std::cout << "[cep_integ] No fibers found in any mesh, initializing I4f to 1.0" << std::endl;
+        std::cout << "[cep_integ] No fibers found in any mesh, initializing lambda to 1.0" << std::endl;
         for (int Ac = 0; Ac < tnNo; Ac++) {
-          I4f(Ac) = 1.0;
-          I4fRate(Ac) = 0.0;
+          lambda_curr_vec(Ac) = 1.0;
+          dlambda_dt_vec(Ac) = 0.0;
         }
       }
     }
+
+    bool initialize_lambda_history = false;
+    if (cem.lambda_curr.size() != tnNo) {
+      cem.lambda_curr.resize(tnNo);
+      initialize_lambda_history = true;
+    }
+    if (cem.lambda_prev.size() != tnNo) {
+      cem.lambda_prev.resize(tnNo);
+      initialize_lambda_history = true;
+    }
+
+    if (initialize_lambda_history) {
+      cem.lambda_curr = lambda_curr_vec;
+      cem.lambda_prev = lambda_curr_vec;
+    } else {
+      // Shift history: lambda_prev <= lambda_curr, lambda_curr <= new lambda
+      cem.lambda_prev = cem.lambda_curr;
+      cem.lambda_curr = lambda_curr_vec;
+    }
+
+    // for (int Ac = 0; Ac < tnNo; Ac++) {
+    //   dlambda_dt_vec(Ac) = (cem.lambda_curr(Ac) - cem.lambda_prev(Ac)) / dt;
+    //   if (Ac == 0) {std::cout << cem.lambda_curr(Ac) << " " << cem.lambda_prev(Ac) << " " << dlambda_dt_vec(Ac) << " " <<dlambda_analytic_vec(Ac) <<std::endl;}
+    // }
   }
 
   //  Ignore first pass as Xion is already initialized
@@ -304,6 +342,13 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
     Vector<double> sA(tnNo); 
     Array<double> sF(nXion,tnNo); 
     Vector<double> sY(tnNo);
+    Vector<double> sTa(tnNo);
+    Vector<double> sKa(tnNo);
+    sA = 0.0;
+    sF = 0.0;
+    sY = 0.0;
+    sTa = 0.0;
+    sKa = 0.0;
 
     for (int Ac = 0; Ac < tnNo; Ac++) {
       if (!all_fun::is_domain(com_mod, eq, Ac, Equation_CEP)) {
@@ -342,13 +387,16 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
         if (dmn.cep.cepType == ElectrophysiologyModelType::TTP) {
           Y_land_node = cep_mod.Y_land.col(Ac);
         }
-
         double yl = 0.0;
         if (cem.cpld) {
           yl = cem.Ya(Ac);
         }
 
-        cep_integ_l(cep_mod, dmn.cep, nX, nG, Xl, Xgl, time-dt, yl, I4f(Ac), I4fRate(Ac), dt, Y_land_node);
+        double Ta_node = 0.0;
+        double Ka_node = 0.0;
+        cep_integ_l(cep_mod, dmn.cep, nX, nG, Xl, Xgl, time-dt, yl, 
+          cem.lambda_prev(Ac), cem.lambda_curr(Ac), dlambda_dt_vec(Ac), dt, 
+          Y_land_node, Ta_node, Ka_node, true);
 
         // Debug: Values will be printed after communication
 
@@ -361,13 +409,30 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
           sF(nX+i,Ac) += Xgl(i);
         }
 
-        // Copy updated Land model states back to global array (only for TTP model)
-        if (dmn.cep.cepType == ElectrophysiologyModelType::TTP && Y_land_node.size() > 0) {
-          cep_mod.Y_land.col(Ac) = Y_land_node;
+        if (cem.cpld) {
+          double Ta_dyne = Ta_node *1.0e-3;
+          double Ka_dyne = Ka_node *1.0e-3;
+          yl = Ta_dyne;
+          sTa(Ac) += Ta_dyne;
+          sKa(Ac) += Ka_dyne;
+          sY(Ac) = sY(Ac) + yl;
+#ifdef debug_land_actv
+          if (Ac < 5 && cm.mas(cm_mod)) {
+            std::cout << "[cep_integ] node=" << Ac
+                      << ", lambda_prev=" << cem.lambda_prev(Ac)
+                      << ", lambda_curr=" << cem.lambda_curr(Ac)
+                      << ", dlambda_dt=" << dlambda_dt_vec(Ac)
+                      << ", Ta=" << Ta_dyne
+                      << ", Ka=" << Ka_dyne
+                      << ", tension=" << yl
+                      << std::endl;
+          }
+#endif
         }
 
-        if (cem.cpld) {
-          sY(Ac) = sY(Ac) + yl;
+        // Copy updated Land model states back to global array (only for TTP model)
+        if (dmn.cep.cepType == ElectrophysiologyModelType::TTP && Y_land_node.size() > 0) {
+          cep_mod.Y_land.set_col(Ac, Y_land_node);
         }
       }
     }
@@ -377,6 +442,8 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
 
     if (cem.cpld) {
       all_fun::commu(com_mod, sY);
+      all_fun::commu(com_mod, sTa);
+      all_fun::commu(com_mod, sKa);
     }
 
     // Debug: Print accumulated values for node 0 from all processors
@@ -391,8 +458,8 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
       if (com_mod.msh[0].gN(0) < com_mod.tnNo) {
         int global_node_0 = com_mod.msh[0].gN(0);
         global_c_Ca = Xion(3, global_node_0);
-        global_I4f = I4f(global_node_0);
-        global_I4fRate = I4fRate(global_node_0);
+        global_I4f = cem.lambda_curr(global_node_0);  // Current lambda for diagnostics
+        global_I4fRate = dlambda_dt_vec(global_node_0);
         if (cem.cpld) {
           global_ActiveTension = cem.Ya(global_node_0);
         }
@@ -400,25 +467,27 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
     } else {
       // For non-domain case, get directly
       global_c_Ca = Xion(3, 0);
-      global_I4f = I4f(0);
-      global_I4fRate = I4fRate(0);
+      global_I4f = cem.lambda_curr(0);  // Current lambda for diagnostics
+      global_I4fRate = dlambda_dt_vec(0);
       if (cem.cpld) {
         global_ActiveTension = cem.Ya(0);
       }
     }
     
     // Only print from master processor
-    if (cm.mas(cm_mod)) {
-      std::cout << "[cep_integ] Node 0 (global): c_Ca=" << global_c_Ca 
-                << ", I4f=" << global_I4f << ", I4fRate=" << global_I4fRate 
-                << ", ActiveTension=" << global_ActiveTension << " dyne/cm²" << std::endl;
-    }
+    // if (cm.mas(cm_mod)) {
+    //   std::cout << "[cep_integ] Node 0 (global): c_Ca=" << global_c_Ca 
+    //             << ", I4f=" << global_I4f << ", I4fRate=" << global_I4fRate 
+    //             << ", ActiveTension=" << global_ActiveTension << " dyne/cm²" << std::endl;
+    // }
 
     for (int Ac = 0; Ac < tnNo; Ac++) {
       if (!utils::is_zero(sA(Ac))) {
         Xion.set_col(Ac, sF.col(Ac) / sA(Ac));
         if (cem.cpld) {
-          cem.Ya(Ac) = sY(Ac) / sA(Ac);
+          cem.Ta(Ac) = sTa(Ac) / sA(Ac);
+          cem.Ka(Ac) = sKa(Ac) / sA(Ac);
+          cem.Ya(Ac) = cem.Ta(Ac);
         }
       }
     }
@@ -445,7 +514,11 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
         yl = cem.Ya(Ac);
       }
 
-      cep_integ_l(cep_mod, eq.dmn[0].cep, nX, nG, Xl, Xgl, time-dt, yl, I4f(Ac), I4fRate(Ac), dt, Y_land_node);
+      double Ta_node = 0.0;
+      double Ka_node = 0.0;
+      cep_integ_l(cep_mod, eq.dmn[0].cep, nX, nG, Xl, Xgl, time-dt, yl, 
+        cem.lambda_prev(Ac), cem.lambda_curr(Ac), dlambda_dt_vec(Ac), 
+        dt, Y_land_node, Ta_node, Ka_node, true);
 
       for (int i = 0; i < nX; i++) {
         Xion(i,Ac) = Xl(i);
@@ -457,11 +530,28 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
 
       // Copy updated Land model states back to global array (only for TTP model)
       if (eq.dmn[0].cep.cepType == ElectrophysiologyModelType::TTP && Y_land_node.size() > 0) {
-        cep_mod.Y_land.col(Ac) = Y_land_node;
+        cep_mod.Y_land.set_col(Ac, Y_land_node);
       }
 
       if (cem.cpld) {
-        cem.Ya(Ac) = yl;
+        double Ta_dyne = Ta_node *1.0e-3;
+        double Ka_dyne = Ka_node *1.0e-3;
+        cem.Ta(Ac) = Ta_dyne;
+        cem.Ka(Ac) = Ka_dyne;
+        cem.Ya(Ac) = Ta_dyne;
+        yl = Ta_dyne;
+#ifdef debug_land_actv
+        if (Ac < 5 && cm.mas(cm_mod)) {
+          std::cout << "[cep_integ] node=" << Ac
+                    << ", lambda_prev=" << cem.lambda_prev(Ac)
+                    << ", lambda_curr=" << cem.lambda_curr(Ac)
+                    << ", dlambda_dt=" << dlambda_dt_vec(Ac)
+                    << ", Ta=" << Ta_dyne
+                    << ", Ka=" << Ka_dyne
+                    << ", tension=" << tension
+                    << std::endl;
+        }
+#endif
       }
     }
 
@@ -469,8 +559,8 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
     // Only print from master processor
       if (cm.mas(cm_mod)) {
         double global_c_Ca = Xion(3, 0);
-        double global_I4f = I4f(0);
-        double global_I4fRate = I4fRate(0);
+        double global_I4f = cem.lambda_curr(0);  // Current lambda for diagnostics
+        double global_I4fRate = dlambda_dt_vec(0);
         double global_ActiveTension = cem.cpld ? cem.Ya(0) : 0.0;
         
         std::cout << "[cep_integ] Node 0 (non-domain): c_Ca=" << global_c_Ca 
@@ -491,8 +581,11 @@ void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Arra
 // integrate excitation-activation variables form coupled electro-
 // mechanics. The equations are integrated at domain nodes.
 //
+// Integrates electrophysiology variables and computes active tension using analytical dlambda_dt
+//
 void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<double>& X, Vector<double>& Xg, 
-    const double t1, double& yl, const double I4f, const double I4fRate, const double dt, Vector<double>& Y_land_node)
+    const double t1, double& yl, const double lambda_old, const double lambda_new, const double dlambda_dt, 
+    const double dt, Vector<double>& Y_land_node, double& Ta_out, double& Ka_out, bool skip_active_tension)
 {
   using namespace consts;
 
@@ -505,9 +598,10 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
   auto& cem = cep_mod.cem;
 
   // Feedback coefficient for stretch-activated-currents
+  // Use lambda_new (predicted state) for SAC coupling
   double Ksac = 0.0;
-  if (I4f > 1.0) {
-     Ksac = cep.Ksac * (sqrt(I4f) - 1.0);
+  if (lambda_new > 1.0) {
+     Ksac = cep.Ksac * (lambda_new - 1.0);
   } else {
      Ksac = 0.0;
   }
@@ -531,6 +625,9 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
   dmsg << "cep.cepType: " << cep.cepType;
   dmsg << "cep.odes.tIntTyp: " << cep.odes.tIntType;
   #endif
+
+  Ta_out = 0.0;
+  Ka_out = 0.0;
 
   switch (cep.cepType) {
     case ElectrophysiologyModelType::AP: {
@@ -628,7 +725,7 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
               double epsX;
               cep_mod.bo.actv_strs(X(0), cep.dt, yl, epsX);
             } else if (cem.aStrain) {
-              cep_mod.bo.actv_strn(X(3), I4f, cep.dt, yl);
+              cep_mod.bo.actv_strn(X(3), lambda_new*lambda_new, cep.dt, yl);  // actv_strn expects I4f = lambda^2
             }
           }
         } break;
@@ -650,7 +747,7 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
               double epsX;
               cep_mod.bo.actv_strs(X(0), cep.dt, yl, epsX);
             } else if (cem.aStrain) {
-              cep_mod.bo.actv_strn(X(3), I4f, cep.dt, yl);
+              cep_mod.bo.actv_strn(X(3), lambda_new*lambda_new, cep.dt, yl);  // actv_strn expects I4f = lambda^2
             }
           }
         } break;
@@ -672,7 +769,7 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
               double epsX;
               cep_mod.bo.actv_strs(X(0), cep.dt, yl, epsX);
             } else if (cem.aStrain) {
-              cep_mod.bo.actv_strn(X(3), I4f, cep.dt, yl);
+              cep_mod.bo.actv_strn(X(3), lambda_new*lambda_new, cep.dt, yl);  // actv_strn expects I4f = lambda^2
             }
           }
         } break;
@@ -737,7 +834,8 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
       IPAR(1) = 0;
       RPAR(0) = cep.odes.absTol;
       RPAR(1) = cep.odes.relTol;
-
+      double Ta_kPa = 0.0;
+      double Ka_kPa = 0.0;
       switch (cep.odes.tIntType) {
         case TimeIntegratioType::FE: {
           for (int i = 0; i < nt; i++) {
@@ -750,16 +848,15 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             }
             cep_mod.ttp.integ_fe(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, RPAR);
 
-            // Electromechanics excitation-activation
-            if (cem.aStress) {
-              double epsX;
-              // Use Land model for active stress calculation with per-node states
+            if (cem.aStress && !skip_active_tension) {
               if (Y_land_node.size() > 0) {
-                cep_mod.ttp.actv_strs_land(Y_land_node, X(3), I4f, I4fRate, cep.dt, yl);
+                cep_mod.ttp.actv_strs_land(Y_land_node, X(3), lambda_old, lambda_new, dlambda_dt, cep.dt, Ta_kPa, Ka_kPa);
+                Ta_out = Ta_kPa;
+                Ka_out = Ka_kPa;
+                yl = Ta_kPa *1.0e-3;
               }
-              
             } else if (cem.aStrain) {
-              cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
+              cep_mod.ttp.actv_strn(X(3), lambda_new*lambda_new, cep.dt, yl);  // actv_strn expects I4f = lambda^2
             }
           }
         } break;
@@ -777,16 +874,17 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             cep_mod.ttp.integ_rk(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, RPAR);
 
             // Electromechanics excitation-activation
-            if (cem.aStress) {
-              double epsX;
-              // Use Land model for active stress calculation with per-node states
+            if (cem.aStress && !skip_active_tension) {
               if (Y_land_node.size() > 0) {
-                cep_mod.ttp.actv_strs_land(Y_land_node, X(3), I4f, I4fRate, cep.dt, yl);
+                cep_mod.ttp.actv_strs_land(Y_land_node, X(3), lambda_old, lambda_new, dlambda_dt, cep.dt, Ta_kPa, Ka_kPa);
+                Ta_out = Ta_kPa;
+                Ka_out = Ka_kPa;
+                yl = Ta_kPa *1.0e-3;
+              } else {
+                std::cout << "[WARNING] Y_land_node is EMPTY (size=0) - active tension NOT computed!" << std::endl;
               }
-              // cep_mod.ttp.actv_strs(X(3), cep.dt, yl, epsX);
-              
             } else if (cem.aStrain) {
-              cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
+              cep_mod.ttp.actv_strn(X(3), lambda_new*lambda_new, cep.dt, yl);  // actv_strn expects I4f = lambda^2
             }
           }
         } break;
@@ -804,19 +902,21 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             cep_mod.ttp.integ_cn2(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, IPAR, RPAR);
 
             // Electromechanics excitation-activation
-            if (cem.aStress) {
-              double epsX;
-              // Use Land model for active stress calculation with per-node states
+            if (cem.aStress && !skip_active_tension) {
               if (Y_land_node.size() > 0) {
-                cep_mod.ttp.actv_strs_land(Y_land_node, X(3), I4f, I4fRate, cep.dt, yl);
+                cep_mod.ttp.actv_strs_land(Y_land_node, X(3), lambda_old, lambda_new, dlambda_dt, cep.dt, Ta_kPa, Ka_kPa);
+                Ta_out = Ta_kPa;
+                Ka_out = Ka_kPa;
+                yl = Ta_kPa *1.0e-3;
               }
               
             } else if (cem.aStrain) {
-              cep_mod.ttp.actv_strn(X(3), I4f, cep.dt, yl);
+              cep_mod.ttp.actv_strn(X(3), lambda_new*lambda_new, cep.dt, yl);  // actv_strn expects I4f = lambda^2
             }
           }
         } break;
       }
+
     } break; 
   } 
 
@@ -825,6 +925,214 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
   }
 }
 
+//-------------
+// cep_integ_active_tension
+//-------------
+// Update active tension by integrating Land-Niederer ODE system during each Newton iteration
+// This is called every Newton iteration before structural equations are solved
+//
+void cep_integ_active_tension(Simulation* simulation, const int iEq, const Array<double>& Dg, const Array<double>& Yg)
+{
+  using namespace consts;
+  
+  auto& com_mod = simulation->com_mod;
+  auto& cep_mod = simulation->cep_mod;
+  auto& cem = cep_mod.cem;
+  auto& eq = com_mod.eq[iEq];
+  
+  if (!cem.cpld || !cem.aStress) {
+    return;  // No active stress coupling, nothing to do
+  }
+  
+  const int tnNo = com_mod.tnNo;
+  const double dt = com_mod.dt;
+  
+  // Ensure arrays are allocated
+  if (cem.Ta.size() != tnNo) {
+    cem.Ta.resize(tnNo);
+    cem.Ta = 0.0;
+  }
+  if (cem.Ka.size() != tnNo) {
+    cem.Ka.resize(tnNo);
+    cem.Ka = 0.0;
+  }
+  if (cem.Ya.size() != tnNo) {
+    cem.Ya.resize(tnNo);
+    cem.Ya = 0.0;
+  }
+  if (cem.lambda_prev.size() != tnNo) {
+    cem.lambda_prev.resize(tnNo);
+    cem.lambda_prev = 1.0;
+  }
+  if (cem.lambda_curr.size() != tnNo) {
+    cem.lambda_curr.resize(tnNo);
+    cem.lambda_curr = 1.0;
+  }
 
+  // Find structural equation to compute fiber stretch
+  int structEq = -1;
+  for (int a = 0; a < com_mod.nEq; a++) { 
+    if (com_mod.eq[a].phys == EquationType::phys_struct || 
+        com_mod.eq[a].phys == EquationType::phys_ustruct) {
+      structEq = a;
+      break;
+    }
+  }
+
+  // Compute current lambda from displacement Dg
+  Vector<double> lambda_curr_vec(tnNo);
+  Vector<double> dlambda_dt_vec(tnNo);
+  lambda_curr_vec = 1.0;
+  dlambda_dt_vec = 0.0;
+
+  if (structEq != -1) {
+    for (int iM = 0; iM < com_mod.nMsh; iM++) {
+      auto& msh = com_mod.msh[iM];
+      if (msh.nFn != 0) {
+        Vector<double> sA_new(msh.nNo);
+        Vector<double> sDlambda_dt(msh.nNo);
+        post::fib_strech(simulation, structEq, msh, Dg, Yg, sA_new, sDlambda_dt);
+        for (int a = 0; a < msh.nNo; a++) {
+          int Ac = msh.gN(a);
+          lambda_curr_vec(Ac) = sA_new(a);
+          dlambda_dt_vec(Ac) = sDlambda_dt(a);
+        }
+      }
+    }
+  }
+
+  // Update lambda history
+  cem.lambda_prev = cem.lambda_curr;
+  cem.lambda_curr = lambda_curr_vec;
+
+  // Find CEP equation to get calcium concentration
+  int cepEq = -1;
+  for (int a = 0; a < com_mod.nEq; a++) {
+    if (com_mod.eq[a].phys == EquationType::phys_CEP) {
+      cepEq = a;
+      break;
+    }
+  }
+
+  if (cepEq == -1) {
+    std::cout << "[cep_integ_active_tension] WARNING: No CEP equation found, cannot get calcium concentration" << std::endl;
+    return;
+  }
+
+  // Get domain information for CEP equation
+  auto& cep_eq = com_mod.eq[cepEq];
+  
+  // Integrate Land model for each node
+  if (com_mod.dmnId.size() != 0) {
+    // Domain-based case
+    for (int Ac = 0; Ac < tnNo; Ac++) {
+      if (!all_fun::is_domain(com_mod, cep_eq, Ac, EquationType::phys_CEP)) {
+        continue;
+      }
+
+      // Find domain for this node
+      for (int iDmn = 0; iDmn < cep_eq.nDmn; iDmn++) {
+        auto& dmn = cep_eq.dmn[iDmn];
+        auto cPhys = dmn.phys;
+        int dID = dmn.Id;
+
+        if (cPhys != EquationType::phys_CEP || !utils::btest(com_mod.dmnId(Ac), dID)) {
+          continue;
+        }
+
+        // Check if TTP model is used
+        if (dmn.cep.cepType != ElectrophysiologyModelType::TTP) {
+          continue;
+        }
+
+        // Get calcium concentration (index 3 in TTP model)
+        double c_Ca = cep_mod.Xion(3, Ac);
+
+        // Get Land model state vector for this node
+        // Always start from states at time n, not from previous Newton iteration
+        Vector<double> Y_land_node;
+        if (cep_mod.Y_land_n.size() > 0) {
+          Y_land_node = cep_mod.Y_land_n.col(Ac);  // Start from time n
+        } else {
+          Y_land_node = cep_mod.Y_land.col(Ac);  // Fallback if not saved
+        }
+
+        // print out Y_land_node(0) for debugging for Ac = 0
+        // if (Ac == 0) {
+        //   std::cout << "[cep_integ_active_tension] Y_land_node(0) = " << Y_land_node(0) << std::endl;
+        //   std::cout << "[cep_integ_active_tension] Y_land_node(1) = " << Y_land_node(1) << std::endl;
+        // }
+
+        // Get lambda values
+        double lambda_old = cem.lambda_prev(Ac);
+        double lambda_new = cem.lambda_curr(Ac);
+        double dlambda_dt = dlambda_dt_vec(Ac);
+
+        // Integrate Land model
+        double Ta_kPa = 0.0;
+        double Ka_kPa = 0.0;
+        cep_mod.ttp.actv_strs_land(Y_land_node, c_Ca, lambda_old, lambda_new, dlambda_dt, dt, Ta_kPa, Ka_kPa);
+
+        // Store updated Land model states back to global array using set_col
+        cep_mod.Y_land.set_col(Ac, Y_land_node);
+
+        // Convert to dyne/cm² and store
+        cem.Ta(Ac) = Ta_kPa *1.0e-3;
+        cem.Ka(Ac) = Ka_kPa *1.0e-3;
+        cem.Ya(Ac) = cem.Ta(Ac);
+      }
+    }
+  } else {
+    // Non-domain case
+    for (int Ac = 0; Ac < tnNo; Ac++) {
+      if (!all_fun::is_domain(com_mod, cep_eq, Ac, EquationType::phys_CEP)) {
+        continue;
+      }
+
+      // Check if TTP model is used
+      if (cep_eq.dmn[0].cep.cepType != ElectrophysiologyModelType::TTP) {
+        continue;
+      }
+
+      // Get calcium concentration (index 3 in TTP model)
+      double c_Ca = cep_mod.Xion(3, Ac);
+
+      // Get Land model state vector for this node
+      Vector<double> Y_land_node;
+      if (cep_mod.Y_land_n.size() > 0) {
+        Y_land_node = cep_mod.Y_land_n.col(Ac);
+      } else {
+        Y_land_node = cep_mod.Y_land.col(Ac);
+      }
+
+      if (Y_land_node.size() == 0) {
+        continue;  // Skip if Land states not initialized
+      }
+
+      if (Ac == 0) {
+          std::cout << "[cep_integ_active_tension] Y_land_node(0) = " << Y_land_node(0) << std::endl;
+        }
+
+      // Get lambda values
+      double lambda_old = cem.lambda_prev(Ac);
+      double lambda_new = cem.lambda_curr(Ac);
+      double dlambda_dt = dlambda_dt_vec(Ac);
+
+      // Integrate Land model
+      double Ta_kPa = 0.0;
+      double Ka_kPa = 0.0;
+      cep_mod.ttp.actv_strs_land(Y_land_node, c_Ca, lambda_old, lambda_new, dlambda_dt, dt, Ta_kPa, Ka_kPa);
+
+      // Store updated Land model states back to global array using set_col
+      cep_mod.Y_land.set_col(Ac, Y_land_node);
+
+      // Convert to dyne/cm² and store
+      cem.Ta(Ac) = Ta_kPa *1.0e-3;
+      cem.Ka(Ac) = Ka_kPa *1.0e-3;
+      cem.Ya(Ac) = cem.Ta(Ac);
+    }
+  }
+}
 };
+
 

@@ -66,8 +66,10 @@ SetEquationPropertiesMapType set_equation_props = {
 
   read_domain(simulation, eq_params, lEq, propL);
 
-  nDOP = {1, 1, 0, 0};
+  // Total outputs = 2 (voltage and calcium); both enabled by default for VTK.
+  nDOP = {2, 2, 0, 0};
   outPuts[0] = OutputNameType::out_voltage;
+  outPuts[1] = OutputNameType::out_calcium;
 
   // Set solver parameters.
   read_ls(simulation, eq_params, SolverType::lSolver_CG, lEq);

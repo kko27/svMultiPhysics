@@ -214,6 +214,18 @@ class cemModelType
     ///    := activation force for active stress model
     ///    := fiber stretch for active strain model
     Vector<double> Ya;
+
+    /// @brief Fiber stretch at current global time level (lambda^n)
+    Vector<double> lambda_curr;
+
+    /// @brief Fiber stretch at previous global time level (lambda^{n-1})
+    Vector<double> lambda_prev;
+
+    /// @brief Base active tension (Ta) returned by Land model [dyne/cm^2]
+    Vector<double> Ta;
+
+    /// @brief Active stiffness (Ka) returned by Land model [dyne/cm^2]
+    Vector<double> Ka;
 };
 
 class CepMod 
@@ -231,6 +243,9 @@ class CepMod
 
     /// @brief Land model state variables stored at all nodes (7 components per node)
     Array<double> Y_land;
+
+    /// @brief Land model state variables stored at all nodes (7 components per node)
+    Array<double> Y_land_n;
 
     /// @brief Cardiac electromechanics type
     cemModelType cem;

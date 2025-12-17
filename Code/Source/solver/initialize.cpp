@@ -699,7 +699,7 @@ void initialize(Simulation* simulation, Vector<double>& timeP)
     cep_mod.Xion.resize(cep_mod.nXion,tnNo);
     
     // Initialize Land model state variables for all nodes (7 components per node)
-    cep_mod.Y_land.resize(7, tnNo);
+    cep_mod.Y_land.resize(6, tnNo);
     
     cep_ion::cep_init(simulation);
 

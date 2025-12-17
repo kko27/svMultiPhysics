@@ -43,8 +43,10 @@
 #include "Simulation.h"
 #include "all_fun.h"
 #include "cep_ion.h"
+#include "CepMod.h"
 #include "nn.h"
 #include "utils.h"
+#include "post.h"
 
 #include "mpi.h"
 
@@ -285,6 +287,88 @@ void picc(Simulation* simulation)
     #ifdef debug_picc
     dmsg << "all ok";
     #endif
+    
+    // All equations have converged - now integrate Land model states from n to n+1
+    auto& cem = cep_mod.cem;
+    if (cem.cpld && cem.aStress && cep_mod.Y_land_n.size() > 0) {
+      // Find structural and CEP equations
+      int structEq = -1;
+      int cepEq = -1;
+      for (int a = 0; a < com_mod.nEq; a++) {
+        if (com_mod.eq[a].phys == EquationType::phys_struct || 
+            com_mod.eq[a].phys == EquationType::phys_ustruct) {
+          structEq = a;
+        }
+        if (com_mod.eq[a].phys == EquationType::phys_CEP) {
+          cepEq = a;
+        }
+      }
+      
+      if (structEq != -1 && cepEq != -1) {
+        // Use converged displacement Dn to compute final lambda
+        Vector<double> lambda_curr_vec(tnNo);
+        Vector<double> dlambda_dt_vec(tnNo);
+        lambda_curr_vec = 1.0;
+        dlambda_dt_vec = 0.0;
+        
+        auto& cep_eq = com_mod.eq[cepEq];
+        for (int iM = 0; iM < com_mod.nMsh; iM++) {
+          auto& msh = com_mod.msh[iM];
+          if (msh.nFn != 0) {
+            Vector<double> sA_new(msh.nNo);
+            Vector<double> sDlambda_dt(msh.nNo);
+            post::fib_strech(simulation, structEq, msh, Dn, Yn, sA_new, sDlambda_dt);
+            for (int a = 0; a < msh.nNo; a++) {
+              int Ac = msh.gN(a);
+              lambda_curr_vec(Ac) = sA_new(a);
+              dlambda_dt_vec(Ac) = sDlambda_dt(a);
+            }
+          }
+        }
+        
+        // Integrate Land model from n to n+1 using converged solution
+        if (com_mod.dmnId.size() != 0) {
+          for (int Ac = 0; Ac < tnNo; Ac++) {
+            if (!all_fun::is_domain(com_mod, cep_eq, Ac, EquationType::phys_CEP)) {
+              continue;
+            }
+            for (int iDmn = 0; iDmn < cep_eq.nDmn; iDmn++) {
+              auto& dmn = cep_eq.dmn[iDmn];
+              if (dmn.cep.cepType != ElectrophysiologyModelType::TTP) continue;
+              if (!utils::btest(com_mod.dmnId(Ac), dmn.Id)) continue;
+              
+              Vector<double> Y_land_node = cep_mod.Y_land_n.col(Ac);
+              double c_Ca = cep_mod.Xion(3, Ac);
+              double lambda_old = cem.lambda_prev(Ac);
+              double lambda_new = lambda_curr_vec(Ac);
+              double dlambda_dt = dlambda_dt_vec(Ac);
+              
+              double Ta_kPa = 0.0, Ka_kPa = 0.0;
+              cep_mod.ttp.actv_strs_land(Y_land_node, c_Ca, lambda_old, lambda_new, dlambda_dt, dt, Ta_kPa, Ka_kPa);
+
+              cep_mod.Y_land.set_col(Ac, Y_land_node);
+            }
+          }
+        } else {
+          // Non-domain case - similar logic
+          for (int Ac = 0; Ac < tnNo; Ac++) {
+            if (cep_eq.dmn[0].cep.cepType == ElectrophysiologyModelType::TTP) {
+              Vector<double> Y_land_node = cep_mod.Y_land_n.col(Ac);
+              double c_Ca = cep_mod.Xion(3, Ac);
+              double lambda_old = cem.lambda_prev(Ac);
+              double lambda_new = lambda_curr_vec(Ac);
+              double dlambda_dt = dlambda_dt_vec(Ac);
+              
+              double Ta_kPa = 0.0, Ka_kPa = 0.0;
+              cep_mod.ttp.actv_strs_land(Y_land_node, c_Ca, lambda_old, lambda_new, dlambda_dt, dt, Ta_kPa, Ka_kPa);
+              
+              cep_mod.Y_land.set_col(Ac, Y_land_node);
+            }
+          }
+        }
+      }
+    }
+    
     return;
   }
   //if (ALL(eq.ok)) RETURN
@@ -593,6 +677,7 @@ void picp(Simulation* simulation)
   using namespace consts;
 
   auto& com_mod = simulation->com_mod;
+  auto& cep_mod = simulation->get_cep_mod();
 
   #define n_debug_picp
   #ifdef debug_picp
@@ -682,6 +767,36 @@ void picp(Simulation* simulation)
     // electrophysiology
     if (eq.phys == Equation_CEP) {
       cep_ion::cep_integ(simulation, iEq, e, Do);
+      
+      // Save Land model states at time n before Newton iterations
+      // This ensures we always integrate from n to n+1, not from k to k+1
+      auto& cem = cep_mod.cem;
+      if (cem.cpld && cem.aStress && cep_mod.Y_land.size() > 0) {
+        // Check if TTP model is used
+        bool has_ttp = false;
+        if (com_mod.dmnId.size() != 0) {
+          for (int iDmn = 0; iDmn < eq.nDmn; iDmn++) {
+            if (eq.dmn[iDmn].cep.cepType == ElectrophysiologyModelType::TTP) {
+              has_ttp = true;
+              break;
+            }
+          }
+        } else {
+          if (eq.dmn[0].cep.cepType == ElectrophysiologyModelType::TTP) {
+            has_ttp = true;
+          }
+        }
+        
+        if (has_ttp) {
+          // Allocate Y_land_n if needed
+          if (cep_mod.Y_land_n.size() == 0 || 
+              cep_mod.Y_land_n.nrows() != cep_mod.Y_land.nrows() ||
+              cep_mod.Y_land_n.ncols() != cep_mod.Y_land.ncols()) {
+            cep_mod.Y_land_n.resize(cep_mod.Y_land.nrows(), cep_mod.Y_land.ncols());
+          }
+          cep_mod.Y_land_n = cep_mod.Y_land;  // Save states at time n
+        }
+      }
     }
 
     // eqn 86 of Bazilevs 2007

@@ -31,16 +31,23 @@
 #ifndef CELEC_MECH_H
 #define CELEC_MECH_H
 #include "Vector.h"
+#include "Array.h"
 
 class celec_mech {
 public:
     celec_mech(); 
     ~celec_mech();
     void land_model(const Vector<double>& Y, Vector<double>& dY, const double Cai, const double nominal_lambda, 
-        const double dlambda_dt, double& T,  double& Ta, double& Tp);
+        const double dlambda_dt, double& Ta, double& Ka);
 
-    void integ_rk(const int nY, Vector<double>& Y, double& T,  double& Ta, double& Tp, 
+    void LandJacobian(Array<double>& J, double t, double Cai, 
+            double lambda, const Vector<double>& y);
+
+    void integ_rk(const int nY, Vector<double>& Y, double& Ta, double& Ka, 
     const double dt, const double Cai, const double nominal_lambda, const double dlambda_dt);
+
+    void integ_cn2(const int nY, Vector<double>& Yn, double& Ta, double& Ka, const double Ts, 
+    const double dt, const double Cai, const double nominal_lambda, const double dlambda_dt, Vector<int>& IPAR, Vector<double>& RPAR);
 };
 
 #endif

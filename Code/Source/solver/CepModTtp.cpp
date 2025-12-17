@@ -35,6 +35,9 @@
 #include <math.h>
 #include <cmath>
 
+// Uncomment to enable verbose Land-model debug output
+// #define debug_land_actv
+
 CepModTtp::CepModTtp()
 {
   // Land model state variables are now stored per-node in CepMod.Y_land
@@ -72,63 +75,62 @@ void CepModTtp::actv_strs(const double c_Ca, const double dt, double& Tact, doub
   Tact = nr / (1.0 + epsX*dt);
 }
 
-/// @brief Compute active stress using Land model
-void CepModTtp::actv_strs_land(Vector<double>& Y_land_node, const double c_Ca, const double I4f, const double I4fRate, const double dt, double& Tact)
+/// @brief Compute active stress using Land model with Regazzoni stabilization
+/// @param lambda_old Fiber stretch at time n (λ^n) - computed from Do
+/// @param lambda_new Fiber stretch at time n+1 (λ^{n+1}) - computed from Dn
+/// @param dlambda_dt Fiber stretch rate (dλ/dt) - kept for compatibility
+void CepModTtp::actv_strs_land(Vector<double>& Y_land_node, const double c_Ca, const double lambda_old, const double lambda_new, const double dlambda_dt, const double dt, double& Ta_out, double& Ka_out)
 {  
   // Safety checks to prevent NaN
-  if (std::isnan(c_Ca) || std::isnan(I4f) || std::isnan(I4fRate) || std::isnan(dt)) {
+  if (std::isnan(c_Ca) || std::isnan(lambda_old) || std::isnan(lambda_new) || std::isnan(dlambda_dt) || std::isnan(dt)) {
     std::cout << "[actv_strs_land] NaN detected in inputs: c_Ca=" << c_Ca 
-              << ", I4f=" << I4f << ", I4fRate=" << I4fRate << ", dt=" << dt << std::endl;
-    Tact = 0.0;
+              << ", lambda_old=" << lambda_old << ", lambda_new=" << lambda_new 
+              << ", dlambda_dt=" << dlambda_dt << ", dt=" << dt << std::endl;
+    Ta_out = 0.0;
+    Ka_out = 0.0;
     return;
   }
   
-  // Check for invalid I4f (should be positive)
-  // Set minimum I4f to represent undeformed state (λ = 1, so I4f = 1)
-  double I4f_safe = I4f;
-  if (I4f <= 0.0) {
-    I4f_safe = 1.0;  // Undeformed state: λ = 1, so I4f = λ² = 1
+  // Check for invalid lambda (should be positive)
+  double lambda_safe = lambda_new;
+  if (lambda_new <= 0.0) {
+    lambda_safe = 1.0;  // Undeformed state: λ = 1
   }
-  
-  // Convert I4f to lambda (fiber stretch ratio)
-  double lambda = sqrt(I4f_safe);
-  
-  // Check for invalid lambda
-  if (std::isnan(lambda) || lambda <= 0.0) {
-    std::cout << "[actv_strs_land] Invalid lambda: " << lambda << std::endl;
-    Tact = 0.0;
-    return;
-  }
-  
-  // Convert I4fRate to dlambda/dt (fiber stretch rate)
-  // If I4f was zero, I4fRate should also be zero (no deformation rate)
-  double dlambda_dt = (I4f <= 0.0) ? 0.0 : I4fRate / (2.0 * lambda);
-  
-  // Check for invalid dlambda_dt
-  if (std::isnan(dlambda_dt)) {
-    std::cout << "[actv_strs_land] NaN in dlambda_dt: " << dlambda_dt << std::endl;
-    Tact = 0.0;
-    return;
-  }
-  
-  // Variables for Land model outputs
-  double T, Ta, Tp;
+
+  // Variables for Land model outputs (active tension and stiffness)
+  double Ta, Ka;
   
   // Integrate Land model using RK4 with per-node state vector
-  land_model_obj.integ_rk(7, Y_land_node, T, Ta, Tp, dt, c_Ca*1000.0, lambda, dlambda_dt);
+  // Use lambda_new for the integration (predicted state)
+  // If RK4 then use integ_rk else use integ_cn2
+
+  // Note: c_Ca is in mM, multiply by 1000 to convert to μM for Land model
+  // land_model_obj.integ_rk(6, Y_land_node, Ta, Ka, dt, c_Ca*1000.0, lambda_safe, 0.0); 
+  land_model_obj.integ_rk(6, Y_land_node, Ta, Ka, dt, c_Ca*1000.0, lambda_safe, dlambda_dt); 
+  // NOTE: To use Crank-Nicolson (CN2) instead of RK4, uncomment the code below and comment out the integ_rk call above:
+
+  // Set up parameters for Crank-Nicolson integration
+  // Vector<int> IPAR(2);
+  // Vector<double> RPAR(2);
+  // IPAR(0) = 10;        // Maximum Newton iterations
+  // IPAR(1) = 0;         // Convergence failure counter
+  // RPAR(0) = 1e-7;      // Absolute tolerance
+  // RPAR(1) = 1e-6;      // Relative tolerance
   
-  // Check for NaN in Land model output
-  if (std::isnan(Ta) || std::isnan(Tp)) {
-    std::cout << "[actv_strs_land] NaN in Land model output: Ta=" << Ta << ", Tp=" << Tp << std::endl;
-    Tact = 0.0;
-    return;
-  }
+  // double Ts = 0.0;  // Start time (not used in Land model, no time-dependent parameters)
+  // land_model_obj.integ_cn2(6, Y_land_node, Ta, Ka, Ts, dt, c_Ca*1000.0, lambda_safe, dlambda_dt, IPAR, RPAR);
   
-  // // Apply very conservative scaling to prevent structural solver issues
-  // double land_scale_factor = 0.01;  // Reduce Land model output by 100x
-  // Ta = Ta * land_scale_factor;
-  // Tp = Tp * land_scale_factor;
-  T = Ta + Tp;
+  // // Check for convergence failures
+  // if (IPAR(1) > 0) {
+  //   std::cout << "[actv_strs_land] WARNING: CN2 failed to converge. Convergence failures: " << IPAR(1) << std::endl;
+  // }
+  
+  // // Check for NaN in Land model output
+  // if (std::isnan(Ta) || std::isnan(Ka)) {
+  //   std::cout << "[actv_strs_land] NaN in Land model output: Ta=" << Ta << ", Ka=" << Ka << std::endl;
+  //   Tact = 0.0;
+  //   return;
+  // }
   
   // Additional safety limits for Land model
   double max_land_stress = 100.0;  // kPa - Very conservative limit
@@ -137,8 +139,29 @@ void CepModTtp::actv_strs_land(Vector<double>& Y_land_node, const double c_Ca, c
     Ta = (Ta > 0) ? max_land_stress : -max_land_stress;
   }
   
-  // Convert kPa to dyne/cm²: 1 kPa = 1e4 dyne/cm²
-  Tact = Ta*1e4; //* 1e4;
+  Ta_out = Ta;
+  Ka_out = Ka;
+  // Print Tact for debugging for the first 3 nodes 
+
+#ifdef debug_land_actv
+  std::cout << "[actv_strs_land] "
+            << "lambda_old=" << lambda_old
+            << ", lambda_new=" << lambda_new
+            << ", dlambda_dt=" << dlambda_dt
+            << ", c_Ca=" << c_Ca
+            << ", Ta_kPa=" << Ta
+            << ", Ka_kPa=" << Ka
+            << std::endl;
+  std::cout << "    Y_land=[";
+  for (int idx = 0; idx < Y_land_node.size(); ++idx) {
+    std::cout << Y_land_node(idx);
+    if (idx + 1 < Y_land_node.size()) {
+      std::cout << ", ";
+    }
+  }
+  std::cout << "]" << std::endl;
+#endif
+  
 }
 
 /// @brief Compute currents and time derivatives of state variables

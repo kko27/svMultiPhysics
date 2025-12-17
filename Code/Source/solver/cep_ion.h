@@ -51,7 +51,10 @@ void cep_init_land_l(CepMod& cep_mod, const int nodeId);
 void cep_integ(Simulation* simulation, const int iEq, const int iDof, const Array<double>& Dg);
 
 void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<double>& X, Vector<double>& Xg,
-    const double t1, double& yl, const double I4f, const double I4fRate, const double dt, Vector<double>& Y_land_node);
+    const double t1, double& yl, const double lambda_old, const double lambda_new, const double dlambda_dt, 
+    const double dt, Vector<double>& Y_land_node, double& Ta_out, double& Ka_out, bool skip_active_tension = false);
+
+void cep_integ_active_tension(Simulation* simulation, const int iEq, const Array<double>& Dg, const Array<double>& Yg);
 
 };
 

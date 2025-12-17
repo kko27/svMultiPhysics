@@ -55,6 +55,7 @@
 #include "vtk_xml.h"
 #include "ris.h"
 #include "uris.h"
+#include "cep_ion.h" 
 
 #include <stdlib.h>
 #include <iomanip>
@@ -410,6 +411,35 @@ void iterate_solution(Simulation* simulation)
       Yg.write("Yg_pic"+ istr);
       Dg.write("Dg_pic"+ istr);
       Yn.write("Yn_pic"+ istr);
+
+      // Update active tension by integrating Land-Niederer ODE system during each Newton iteration
+      // This must be done before structural equations are assembled
+      // Find CEP equation index
+      int cepEq = -1;
+      for (int a = 0; a < com_mod.nEq; a++) {
+        if (com_mod.eq[a].phys == EquationType::phys_CEP) {
+          cepEq = a;
+          break;
+        }
+      }
+
+      // If the equation is structural and cem.cpld is true then update active tension
+      if (cepEq != -1 && 
+          (com_mod.eq[cEq].phys == EquationType::phys_struct || 
+           com_mod.eq[cEq].phys == EquationType::phys_ustruct)) 
+      {
+        // Integrate Land-Niederer ODE system and update active tension using current displacement Dg
+        cep_ion::cep_integ_active_tension(simulation, cepEq, Dg, Yg);
+        
+        // Print active tension for this Newton iteration
+        if (cm.mas(cm_mod)) {
+          auto& cem = cep_mod.cem;
+          if (cem.Ya.size() > 0) {
+            std::cout << "[Newton Iter " << inner_count << ", TS " << cTS 
+                      << "] Active Tension (node 0): " << cem.Ya(0) << " dyne/cm²" << std::endl;
+          }
+        }
+      }
 
       if (Rd.size() != 0) {
         Rd = 0.0;

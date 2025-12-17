@@ -1073,6 +1073,7 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
         Vector<double> tmpVStretch(msh.nNo);
         Vector<double> tmpVRate(msh.nNo);
         Vector<double> tmpActiveTension(msh.nNo);
+        Vector<double> tmpCalcium(msh.nNo);
 
         switch (oGrp) {
           case OutputNameType::outGrp_NA:
@@ -1232,6 +1233,15 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
             }
             for (int a = 0; a < msh.nNo; a++) {
               d[iM].x(is,a) = tmpActiveTension(a);
+            }
+            tmpV.resize(consts::maxNSD, msh.nNo);
+          break;
+
+          case OutputNameType::outGrp_calcium:
+            // CEP scalar calcium concentration field
+            post::calcium_concentration(simulation, msh, tmpCalcium);
+            for (int a = 0; a < msh.nNo; a++) {
+              d[iM].x(is,a) = tmpCalcium(a);
             }
             tmpV.resize(consts::maxNSD, msh.nNo);
           break;

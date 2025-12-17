@@ -369,6 +369,7 @@ enum class OutputNameType
   outGrp_I4f = 526,
   outGrp_I4fRate = 527,
   outGrp_ActiveTension = 528,
+  outGrp_calcium = 529,
 
   out_velocity = 599,
   out_pressure = 598, 
@@ -400,7 +401,8 @@ enum class OutputNameType
   out_fibStretchRate = 572,
   out_activeTension = 571,
   out_CGstrain = 570,
-  out_CGInv1 = 569
+  out_CGInv1 = 569,
+  out_calcium = 568
 };
 
 /// @brief Simulation output file types. 

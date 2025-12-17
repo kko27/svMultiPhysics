@@ -54,6 +54,7 @@
 
    <Output type="Spatial" >
       <Action_potential> true </Action_potential>
+      <Calcium_concentration> true </Calcium_concentration>
    </Output>
 
    <LS type="GMRES" >

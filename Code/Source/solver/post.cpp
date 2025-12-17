@@ -144,6 +144,15 @@ void all_post(Simulation* simulation, Array<double>& res, const Array<double>& l
          res(0,Ac) = tmpActiveTension(a);
        }
 
+     } else if (outGrp == OutputNameType::outGrp_calcium) {
+       Vector<double> tmpCalcium(msh.nNo);
+       post::calcium_concentration(simulation, msh, tmpCalcium);
+       res = 0.0;
+       for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
+         int Ac = msh.gN(a);
+         res(0,Ac) = tmpCalcium(a);
+       }
+
      } else {
        post(simulation, msh, tmpV, lY, lD, outGrp, iEq);
        for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
@@ -892,16 +901,6 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
           vx(2,1) = vx(2,1) + Nx(1,a)*yl(k,a);
           vx(2,2) = vx(2,2) + Nx(2,a)*yl(k,a);
 
-          VxF(0,0) = vx(0,0)*F(0,0) + vx(0,1)*F(1,0) + vx(0,2)*F(2,0);
-          VxF(0,1) = vx(0,0)*F(0,1) + vx(0,1)*F(1,1) + vx(0,2)*F(2,1);
-          VxF(0,2) = vx(0,0)*F(0,2) + vx(0,1)*F(1,2) + vx(0,2)*F(2,2);
-          VxF(1,0) = vx(1,0)*F(0,0) + vx(1,1)*F(1,0) + vx(1,2)*F(2,0);
-          VxF(1,1) = vx(1,0)*F(0,1) + vx(1,1)*F(1,1) + vx(1,2)*F(2,1);
-          VxF(1,2) = vx(1,0)*F(0,2) + vx(1,1)*F(1,2) + vx(1,2)*F(2,2);
-          VxF(2,0) = vx(2,0)*F(0,0) + vx(2,1)*F(1,0) + vx(2,2)*F(2,0);
-          VxF(2,1) = vx(2,0)*F(0,1) + vx(2,1)*F(1,1) + vx(2,2)*F(2,1);
-          VxF(2,2) = vx(2,0)*F(0,2) + vx(2,1)*F(1,2) + vx(2,2)*F(2,2);
-          
         } else {
           F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
           F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
@@ -913,51 +912,61 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
           vx(1,0) = vx(1,0) + Nx(0,a)*yl(j,a);
           vx(1,1) = vx(1,1) + Nx(1,a)*yl(j,a);
 
-          VxF(0,0) = vx(0,0)*F(0,0) + vx(0,1)*F(1,0);
-          VxF(0,1) = vx(0,0)*F(0,1) + vx(0,1)*F(1,1);
-          VxF(1,0) = vx(1,0)*F(0,0) + vx(1,1)*F(1,0);
-          VxF(1,1) = vx(1,0)*F(0,1) + vx(1,1)*F(1,1);
         }
       }
 
       auto fl = mat_fun::mat_mul(F, lM.fN.rows(0,nsd-1,e));
       double I4f = utils::norm(fl);
+      
+      // Compute lambda = sqrt(I4f)
+      double lambda = sqrt(I4f);
+      
+      // Safety check: if lambda is too small, set to 1.0 to avoid division by zero
+      if (lambda < 1e-12) {
+        lambda = 1.0;
+      }
 
-      // Compute fiber stretch rate: f^T (dC/dt) f where dC/dt = (VxF)^T F + F^T (VxF)
-      Array<double> VxF_T = mat_fun::transpose(VxF);
+      // Compute fiber stretch rate: dλ/dt = 1/(2λ) f^T (dC/dt) f where dC/dt = (VxF)^T F + F^T (VxF)
+      Array<double> Vx_T = mat_fun::transpose(vx);
       Array<double> F_T = mat_fun::transpose(F);
       
-      // Compute (VxF)^T F
-      Array<double> VxF_T_F = mat_fun::mat_mul(VxF_T, F);
+      // Compute (Vx)^T F
+      Array<double> Vx_T_F = mat_fun::mat_mul(Vx_T, F);
       
-      // Compute F^T (VxF)
-      Array<double> F_T_VxF = mat_fun::mat_mul(F_T, VxF);
+      // Compute F^T (Vx)
+      Array<double> F_T_Vx = mat_fun::mat_mul(F_T, vx);
       
       // Add the two terms to get dC/dt
       Array<double> dC_dt(nsd, nsd);
       for (int i = 0; i < nsd; i++) {
         for (int j = 0; j < nsd; j++) {
-          dC_dt(i,j) = VxF_T_F(i,j) + F_T_VxF(i,j);
+          dC_dt(i,j) = Vx_T_F(i,j) + F_T_Vx(i,j);
         }
       }
       
       // Get fiber direction in reference configuration
       auto fN = lM.fN.rows(0,nsd-1,e);  // Fiber direction in reference config
       
-      // Compute fiber stretch rate: f^T (dC/dt) f
-      double I4fRate = 0.0;
+      // Compute f^T (dC/dt) f
+      double fT_dC_dt_f = 0.0;
       for (int i = 0; i < nsd; i++) {
         for (int j = 0; j < nsd; j++) {
-          I4fRate += fN(i) * dC_dt(i,j) * fN(j);
+          fT_dC_dt_f += fN(i) * dC_dt(i,j) * fN(j);
         }
+      }
+      
+      // Compute fiber stretch rate: dλ/dt = 1/(2λ) f^T (dC/dt) f
+      double dlambda_dt = 0.0;
+      if (lambda > 0.0) {
+        dlambda_dt = fT_dC_dt_f / (2.0 * lambda);
       }
 
       
       for (int a = 0; a < eNoN; a++) { 
         int Ac = lM.IEN(a,e);
         sA(Ac) = sA(Ac) + w*N(a);
-        sF(Ac) = sF(Ac) + w*N(a)*I4f;
-        sFRate(Ac) = sFRate(Ac) + w*N(a)*I4fRate;
+        sF(Ac) = sF(Ac) + w*N(a)*lambda;
+        sFRate(Ac) = sFRate(Ac) + w*N(a)*dlambda_dt;
         
       }
     }
@@ -975,12 +984,7 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
       res(a) = res(a) + sF(Ac) / sA(Ac);
       resRate(a) = resRate(a) + sFRate(Ac) / sA(Ac);
     }
-    // Debug print res 
-    if (a == 0) {
-    std::cout << "Node " << a << " (Global " << Ac << "): I4f = " << res(a) << ", I4fRate = " << resRate(a) << std::endl;
   }
-}
-
 }
 
 /// @brief Compute active tension for post-processing output
@@ -988,7 +992,7 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
 ///       For post-processing, we return the active tension values from the global cem.Ya array.
 //
 void active_tension(Simulation* simulation, const int iEq, const mshType& lM, const Array<double>& lD, const Array<double>& lY, 
-    const Vector<double>& I4f, const Vector<double>& I4fRate, Vector<double>& res, CepModTtp& ttp_mod)
+    const Vector<double>& lambda, const Vector<double>& dlambda_dt, Vector<double>& res, CepModTtp& ttp_mod)
 {
   auto& com_mod = simulation->com_mod;
   auto& cep_mod = simulation->cep_mod;
@@ -1003,6 +1007,33 @@ void active_tension(Simulation* simulation, const int iEq, const mshType& lM, co
       res(a) = cem.Ya(Ac);
     } else {
       res(a) = 0.0;  // No active tension if not coupled
+    }
+  }
+}
+
+/// @brief Extract calcium concentration from electrophysiology state variables
+///
+/// For each node in the mesh, extract the calcium concentration (Ca_i) from the 
+/// electrophysiology model state variables (Xion array). For the TTP model, 
+/// calcium is stored at index 3.
+//
+void calcium_concentration(Simulation* simulation, const mshType& lM, Vector<double>& res)
+{
+  auto& com_mod = simulation->com_mod;
+  auto& cep_mod = simulation->cep_mod;
+
+  res = 0.0;
+  
+  for (int a = 0; a < lM.nNo; a++) {
+    int Ac = lM.gN(a);
+    
+    // Extract calcium concentration from state variables
+    // For TTP model: index 3 corresponds to Ca_i
+    // For other models (AP, BO, FN): adjust index as needed
+    if (cep_mod.Xion.ncols() > Ac && cep_mod.Xion.nrows() > 3) {
+      res(a) = cep_mod.Xion(3, Ac);  // Calcium concentration in mM
+    } else {
+      res(a) = 0.0;
     }
   }
 }
