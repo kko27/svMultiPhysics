@@ -158,9 +158,10 @@ These commands will create the following directories under /user/shared/vtk/inst
 bin/ include/ lib/ share/
 ```
 
-You can then build svFISplus with the local VTK libraries using the two CMake command-line arguments that sets the option to use a local VTK build and the location of the build
+You can then build svMultiPhysics with the local VTK libraries using the `ccmake` interface to set the `SV_LOCAL_VTK_PATH` variable to the location of the local VTK build 
+or do this using the CMake command-line argument:
 ```
--DSV_USE_LOCAL_VTK=ON  -DSV_VTK_LOCAL_PATH=/user/shared/vtk/install 
+-DSV_LOCAL_VTK_PATH=/user/shared/vtk/install 
 ```
 
 <!--- =================================================================================== -->
@@ -218,21 +219,19 @@ BLAS
 HDF5
 HYPRE
 LAPACK
-MUMPS
 ```
 and the following Trilinos packages
 ```
-mesos
-AztecOO
-Epetra
-EpetraEXT
-Ifpack
-ML
-MueLU
+MueLu
 ROL
 Sacado
 Teuchos
-Zoltan
+Tpetra
+Belos
+Ifpack2
+Amesos2
+Zoltan2
+Kokkos
 ```
 
 ## Building PETSc

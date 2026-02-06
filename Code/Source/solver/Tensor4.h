@@ -1,38 +1,13 @@
-/* Copyright (c) Stanford University, The Regents of the University of California, and others.
- *
- * All Rights Reserved.
- *
- * See Copyright-SimVascular.txt for additional details.
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Software.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
- * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+// SPDX-FileCopyrightText: Copyright (c) Stanford University, The Regents of the University of California, and others.
+// SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef TENSOR4_H 
-#define TENSOR4_H 
+#ifndef TENSOR4_H
+#define TENSOR4_H
 
 #include <cstring>
 #include <iostream>
+
+#include "Vector.h"
 
 #ifdef ENABLE_ARRAY_INDEX_CHECKING
 #define Tensor4_check_enabled
@@ -41,10 +16,8 @@
 /// @brief The Tensor4 template class implements a simple interface to 4th order tensors.
 //
 template<typename T>
-class Tensor4 
+class Tensor4
 {
-  static bool show_index_check_message;
-
   public:
     std::string name_ = "";
     int ni_ = 0;
@@ -202,14 +175,7 @@ class Tensor4
     //
     void check_index(const int i, const int j, const int k, const int l) const
     {
-      if (show_index_check_message) {
-        std::cout << "[Tensor4] **********************************" << std::endl;
-        std::cout << "[Tensor4] WARNING: Index checking is enabled " << std::endl;
-        std::cout << "[Tensor4] **********************************" << std::endl;
-        show_index_check_message = false;
-      }
-
-     if (data_ == nullptr) {
+      if (data_ == nullptr) {
         throw std::runtime_error(name_+"Accessing null data in Tensor4.");
       } 
       if ((i < 0) || (i >= ni_) || (j < 0) || (j >= nj_) || (k < 0) || (k >= nk_) || (l < 0) || (l >= nl_)) {
