@@ -1629,34 +1629,6 @@ DomainParameters::DomainParameters()
   set_parameter("G_Kr", 0.153, !required, G_Kr);
   set_parameter("G_Ks", 0.392, !required, G_Ks);
   set_parameter("G_to", 0.294, !required, G_to);
-
-  // set_parameter("Initial_conditions", "", !required, initial_conditions);
-  // set_parameter("Initial_states", "", !required, initial_states);
-  // set_parameter("Gating_variables", "", !required, gating_variables);
-  // set_parameter("Rectifier_current", "", !required, rectifier_current);
-  // set_parameter("Fast_sodium_current", "", !required, fast_sodium_current);
-  // set_parameter("Slow_inward_current", "", !required, slow_inward_current);
-  // set_parameter("Transient_outward_current", "", !required, transient_outward_current);
-  // set_parameter("V", 0.0, !required, V);
-  // set_parameter("K_i", 0.0, !required, K_i);
-  // set_parameter("Na_i", 0.0, !required, Na_i);
-  // set_parameter("Ca_i", 0.0, !required, Ca_i);
-  // set_parameter("Ca_ss", 0.0, !required, Ca_ss);
-  // set_parameter("Ca_sr", 0.0, !required, Ca_sr);
-  // set_parameter("R_bar", 0.0, !required, R_bar);
-  // set_parameter("x_r1", 0.0, !required, x_r1);
-  // set_parameter("x_r2", 0.0, !required, x_r2);
-  // set_parameter("x_s", 0.0, !required, x_s);
-  // set_parameter("m", 0.0, !required, m);
-  // set_parameter("h", 0.0, !required, h);
-  // set_parameter("j", 0.0, !required, j);
-  // set_parameter("d", 0.0, !required, d);
-  // set_parameter("f", 0.0, !required, f);
-  // set_parameter("f2", 0.0, !required, f2);
-  // set_parameter("fcass", 0.0, !required, fcass);
-  // set_parameter("s", 0.0, !required, s);
-  // set_parameter("r", 0.0, !required, r);
-
   set_parameter("tau_fi", 0.110, !required, tau_fi);
   set_parameter("tau_si", 1.88750, !required, tau_si);
 

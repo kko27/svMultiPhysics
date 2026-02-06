@@ -433,9 +433,6 @@ class CepModTtp
 
     void copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const;
     
-//     // Helper method to populate initial_state from individual member variables
-//     void populateInitialStateFromMembers();
-
 };
 
 #endif
