@@ -1665,7 +1665,7 @@ void DomainParameters::print_parameters()
 
   stimulus.print_parameters();
 
-  initial_conditions.print_parameters();
+  ttp_initial_conditions.print_parameters();
 
   fluid_viscosity.print_parameters();
 
@@ -1713,7 +1713,7 @@ void DomainParameters::set_values(tinyxml2::XMLElement* domain_elem, bool from_e
       stimulus.set_values(item);
 
     } else if (name == InitialConditionsParameters::xml_element_name_) {
-      initial_conditions.set_values(item);
+      ttp_initial_conditions.set_values(item);
 
     } else if (name == FluidViscosityParameters::xml_element_name_ || name == SolidViscosityParameters::xml_element_name_) {
       auto eq_type = consts::equation_name_to_type.at(equation.value());
@@ -3145,10 +3145,10 @@ void LinearSolverParameters::set_values(tinyxml2::XMLElement* xml_elem)
 //            InitialConditionsParameters               //
 //////////////////////////////////////////////////////////
 
-// Process parameters for the 'Initial_conditions' XML element.
+// Process parameters for the 'TTP_initial_conditions' XML element.
 
 /// @brief Define the XML element name for initial conditions parameters.
-const std::string InitialConditionsParameters::xml_element_name_ = "Initial_conditions";
+const std::string InitialConditionsParameters::xml_element_name_ = "TTP_initial_conditions";
 
 InitialConditionsParameters::InitialConditionsParameters()
 {
@@ -3196,8 +3196,8 @@ void InitialConditionsParameters::set_values(tinyxml2::XMLElement* xml_elem)
 //            InitialStatesParameters                   //
 //////////////////////////////////////////////////////////
 
-/// @brief Define the XML element name for initial states parameters.
-const std::string InitialStatesParameters::xml_element_name_ = "Initial_States";
+/// @brief Define the XML element name for initial states parameters (Initial_states).
+const std::string InitialStatesParameters::xml_element_name_ = "Initial_states";
 
 InitialStatesParameters::InitialStatesParameters()
 {

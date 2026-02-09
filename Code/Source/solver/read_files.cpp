@@ -1039,11 +1039,11 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
     }
   }
 
-  if (domain_params->initial_conditions.defined()) {
+  if (domain_params->ttp_initial_conditions.defined()) {
 
-    auto& initial_conditions_params = domain_params->initial_conditions;
-    if (initial_conditions_params.initial_states.defined()) {
-      auto& initial_states_params = initial_conditions_params.initial_states;
+    auto& ttp_initial_conditions_params = domain_params->ttp_initial_conditions;
+    if (ttp_initial_conditions_params.initial_states.defined()) {
+      auto& initial_states_params = ttp_initial_conditions_params.initial_states;
       bool any_set = false;
       if (initial_states_params.V.defined()) { lDmn.cep.ttp_initial_state.V = initial_states_params.V.value(); any_set = true; }
       if (initial_states_params.K_i.defined()) { lDmn.cep.ttp_initial_state.K_i = initial_states_params.K_i.value(); any_set = true; }
@@ -1055,8 +1055,8 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
       lDmn.cep.ttp_user_initial_state = any_set;
     }
 
-    if (initial_conditions_params.gating_variables.defined()) {
-      auto& gating_variables_params = initial_conditions_params.gating_variables;
+    if (ttp_initial_conditions_params.gating_variables.defined()) {
+      auto& gating_variables_params = ttp_initial_conditions_params.gating_variables;
       bool any_set = false;
       // Rectifier current gating variables
       if (gating_variables_params.x_r1_rectifier.defined()) { lDmn.cep.ttp_initial_state.x_r1 = gating_variables_params.x_r1_rectifier.value(); any_set = true; }

@@ -62,8 +62,8 @@
       <Isotropic_conductivity> 0.1171 </Isotropic_conductivity>
 
       <Myocardial_zone> epi </Myocardial_zone>
-        <Initial_conditions>
-            <Initial_States>
+        <TTP_initial_conditions>
+            <Initial_states>
                 <V>18.167</V>
                 <K_i>136.897</K_i>
                 <Na_i>8.6105</Na_i>
@@ -71,7 +71,7 @@
                 <Ca_ss>3.6181E-4</Ca_ss>
                 <Ca_sr>3.6399</Ca_sr>
                 <R_bar>0.9078</R_bar>
-            </Initial_States>
+            </Initial_states>
 
             <Gating_variables>
                 <x_r1_rectifier>6.368E-3</x_r1_rectifier>
@@ -87,7 +87,7 @@
                 <s_out>0.9941</s_out>
                 <r_out>4.2757E-5</r_out>
             </Gating_variables>
-        </Initial_conditions>
+        </TTP_initial_conditions>
       <ODE_solver> RK </ODE_solver>
    </Domain>
 
@@ -113,8 +113,8 @@
       <Isotropic_conductivity> 0.1171 </Isotropic_conductivity>
 
       <Myocardial_zone> epi </Myocardial_zone>
-        <Initial_conditions>
-            <Initial_States>
+        <TTP_initial_conditions>
+            <Initial_states>
                 <V>-44.756</V>
                 <K_i>136.88</K_i>
                 <Na_i>8.5907</Na_i>
@@ -122,7 +122,7 @@
                 <Ca_ss>2.5462E-3</Ca_ss>
                 <Ca_sr>3.5292</Ca_sr>
                 <R_bar>0.7235</R_bar>
-            </Initial_States>
+            </Initial_states>
 
             <Gating_variables>
                 <x_r1_rectifier>0.9739</x_r1_rectifier>
@@ -138,7 +138,7 @@
                 <s_out>0.4095</s_out>
                 <r_out>7.857E-4</r_out>
             </Gating_variables>
-        </Initial_conditions>
+        </TTP_initial_conditions>
       <ODE_solver> RK </ODE_solver>
    </Domain>
 
@@ -152,8 +152,8 @@
       <Isotropic_conductivity> 0.1171 </Isotropic_conductivity>
 
       <Myocardial_zone> epi </Myocardial_zone>
-        <Initial_conditions>
-            <Initial_States>
+        <TTP_initial_conditions>
+            <Initial_states>
                 <V>-11.612</V>
                 <K_i>136.88</K_i>
                 <Na_i>8.5916</Na_i>
@@ -161,7 +161,7 @@
                 <Ca_ss>1.312E-2</Ca_ss>
                 <Ca_sr>3.4619</Ca_sr>
                 <R_bar>0.6875</R_bar>
-            </Initial_States>
+            </Initial_states>
 
             <Gating_variables>
                 <x_r1_rectifier>9.882E-1</x_r1_rectifier>
@@ -177,7 +177,7 @@
                 <s_out>7.9355E-2</s_out>
                 <r_out>1.0429E-2</r_out>
             </Gating_variables>
-        </Initial_conditions>
+        </TTP_initial_conditions>
       <ODE_solver> RK </ODE_solver>
    </Domain>
 

@@ -2,7 +2,7 @@
 <svMultiPhysicsFile version="0.1">
 
 <Electrophysiology_model> TTP </Electrophysiology_model>
-<G_Na> 10 </G_Na>
+<G_Na> 14.838 </G_Na>
 <G_CaL> 3.98E-5 </G_CaL>
 <G_Kr> 0.153 </G_Kr>
 <G_Ks> 0.392 </G_Ks>
@@ -11,8 +11,8 @@
 
 <Myocardial_zone> epi </Myocardial_zone>
 
-<Initial_conditions>
-    <Initial_States>
+<TTP_initial_conditions>
+    <Initial_states>
         <V>18.167</V>
         <K_i>136.897</K_i>
         <Na_i>8.6105</Na_i>
@@ -20,7 +20,7 @@
         <Ca_ss>3.6181E-4</Ca_ss>
         <Ca_sr>3.6399</Ca_sr>
         <R_bar>0.9078</R_bar>
-    </Initial_States>
+    </Initial_states>
 
     <Gating_variables>
         <x_r1_rectifier>6.368E-3</x_r1_rectifier>
@@ -36,7 +36,7 @@
         <s_out>0.9941</s_out>
         <r_out>4.2757E-5</r_out>
     </Gating_variables>
-</Initial_conditions>
+</TTP_initial_conditions>
 
 <ODE_solver> RK </ODE_solver>
 

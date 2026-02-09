@@ -1181,7 +1181,7 @@ class FiberReinforcementStressParameters : public ParameterLists
 };
 
 /// @brief The GatingVariablesParameters class stores parameters for the
-/// 'Gating_variables' XML element under Initial_conditions.
+/// 'Gating_variables' XML element under TTP_initial_conditions.
 class GatingVariablesParameters : public ParameterLists
 {
   public:
@@ -1217,7 +1217,7 @@ class GatingVariablesParameters : public ParameterLists
 };
 
 /// @brief The InitialStatesParameters class stores parameters for the
-/// 'Initial_States' XML element under Initial_conditions.
+/// 'Initial_states' XML element under TTP_initial_conditions.
 class InitialStatesParameters : public ParameterLists
 {
   public:
@@ -1241,7 +1241,7 @@ class InitialStatesParameters : public ParameterLists
 };
 
 /// @brief The InitialConditionsParameters class stores parameters for the
-/// 'Initial_conditions' XML element under Domain.
+/// 'TTP_initial_conditions' XML element under Domain.
 class InitialConditionsParameters : public ParameterLists
 {
   public:
@@ -1288,7 +1288,7 @@ class DomainParameters : public ParameterLists
     StimulusParameters stimulus;
     FluidViscosityParameters fluid_viscosity;
     SolidViscosityParameters solid_viscosity;
-    InitialConditionsParameters initial_conditions;
+    InitialConditionsParameters ttp_initial_conditions;
 
     // Attributes.
     Parameter<std::string> id;

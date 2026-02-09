@@ -54,21 +54,21 @@ auto root_element = doc.FirstChildElement(FSI_FILE.c_str());
 - **Location**: `Code/Source/solver/Parameters.cpp:1673`
 - **Action**:
   - Iterates through child elements of `<Domain>`
-  - When encountering `<Initial_conditions>` element:
+  - When encountering `<TTP_initial_conditions>` element:
     - Creates/calls `InitialConditionsParameters::set_values()`
 
 ### Step 1.5: Initial States Parsing
 - **Function**: `InitialConditionsParameters::set_values(tinyxml2::XMLElement* xml_elem)`
 - **Location**: `Code/Source/solver/Parameters.cpp:2986`
 - **Action**:
-  - Checks for `<Initial_States>` child element
+  - Checks for `<Initial_states>` child element
   - If found, calls `InitialStatesParameters::set_values()`
 
 ### Step 1.6: Individual State Variable Parsing
 - **Function**: `InitialStatesParameters::set_values(tinyxml2::XMLElement* xml_elem)`
 - **Location**: `Code/Source/solver/Parameters.cpp:3043`
 - **Action**:
-  - Iterates through child elements of `<Initial_States>`
+  - Iterates through child elements of `<Initial_states>`
   - For each element (e.g., `<V>`, `<K_i>`, `<Na_i>`, etc.):
     - Extracts text value using `item->GetText()`
     - Calls `set_parameter_value(name, value)` to store the value
@@ -97,7 +97,7 @@ auto root_element = doc.FirstChildElement(FSI_FILE.c_str());
 - **Function**: `read_cep_domain(CepMod* cep_mod, Simulation* simulation, DomainParameters* domain_params, cepModelType& lDmn)`
 - **Location**: `Code/Source/solver/read_files.cpp:1058`
 - **Action**:
-  - Checks if `domain_params->initial_conditions.defined()` is true
+  - Checks if `domain_params->ttp_initial_conditions.defined()` is true
   - If initial conditions are defined in XML, proceeds to extract and store values
 
 ### Step 2.2: Initial States Storage
@@ -378,8 +378,8 @@ XML File (solver.xml)
     <Electrophysiology_model> TTP </Electrophysiology_model>
     <Myocardial_zone> epi </Myocardial_zone>
     
-    <Initial_conditions>
-        <Initial_States>
+    <TTP_initial_conditions>
+        <Initial_states>
             <V>18.167</V>
             <K_i>136.897</K_i>
             <Na_i>8.6105</Na_i>
@@ -387,7 +387,7 @@ XML File (solver.xml)
             <Ca_ss>3.6181E-4</Ca_ss>
             <Ca_sr>3.6399</Ca_sr>
             <R_bar>0.9078</R_bar>
-        </Initial_States>
+        </Initial_states>
         
         <Gating_variables>
             <x_r1_rectifier>6.368E-3</x_r1_rectifier>
@@ -403,7 +403,7 @@ XML File (solver.xml)
             <s_out>0.9941</s_out>
             <r_out>4.2757E-5</r_out>
         </Gating_variables>
-    </Initial_conditions>
+    </TTP_initial_conditions>
 </Domain>
 ```
 

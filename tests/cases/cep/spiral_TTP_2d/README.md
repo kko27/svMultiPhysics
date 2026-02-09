@@ -10,14 +10,14 @@ Initial conditions for the Ten-tusscher-Panfilov (TTP) EP model to be specified 
 
 ## Overview
 
-The user-defined initial conditions override system allows users to specify custom initial states and gating variables directly in the XML configuration file. When `Initial_conditions` is specified in the XML, it automatically overrides the default initial conditions that would normally be set based on the myocardial zone (epicardium, endocardium, or midmyocardium).
+The user-defined initial conditions override system allows users to specify custom initial states and gating variables directly in the XML configuration file. When `TTP_initial_conditions` is specified in the XML, it automatically overrides the default initial conditions that would normally be set based on the myocardial zone (epicardium, endocardium, or midmyocardium).
 
 ## How It Works
 
-1. **XML Specification**: Users specify `Initial_conditions` in the domain configuration
+1. **XML Specification**: Users specify `TTP_initial_conditions` in the domain configuration
 2. **Flag Activation**: The system automatically sets a flag indicating user-defined initial conditions are being used
 3. **Override Logic**: During initialization, the system uses the user-defined values instead of defaults
-4. **Fallback**: If no `Initial_conditions` are specified, the system uses default initialization based on myocardial zone
+4. **Fallback**: If no `TTP_initial_conditions` are specified, the system uses default initialization based on myocardial zone
 
 ## XML Configuration
 
@@ -28,8 +28,8 @@ The user-defined initial conditions override system allows users to specify cust
     <Electrophysiology_model> TTP </Electrophysiology_model>
     <Myocardial_zone> epicardium </Myocardial_zone>
     <!-- User-defined initial conditions - these override the default epicardium values -->
-    <Initial_conditions>
-        <Initial_States>
+    <TTP_initial_conditions>
+        <Initial_states>
             <V>-82.0</V>
             <K_i>135.0</K_i>
             <Na_i>9.5</Na_i>
@@ -37,7 +37,7 @@ The user-defined initial conditions override system allows users to specify cust
             <Ca_ss>0.00015</Ca_ss>
             <Ca_sr>0.18</Ca_sr>
             <R_bar>0.0</R_bar>
-        </Initial_States>
+        </Initial_states>
         <Gating_variables>
             <Rectifier_current>
                 <x_r1>0.008</x_r1>
@@ -60,7 +60,7 @@ The user-defined initial conditions override system allows users to specify cust
                 <r>0.001</r>
             </Transient_outward_current>
         </Gating_variables>
-    </Initial_conditions>
+    </TTP_initial_conditions>
 </Domain>
 ```
 
@@ -71,12 +71,12 @@ The user-defined initial conditions override system allows users to specify cust
     <Electrophysiology_model> TTP </Electrophysiology_model>
     <Myocardial_zone> epicardium </Myocardial_zone>
     <!-- Partial override - only specified values override defaults -->
-    <Initial_conditions>
-        <Initial_States>
+    <TTP_initial_conditions>
+        <Initial_states>
             <V>-82.0</V>
             <K_i>135.0</K_i>
             <!-- Other values (Na_i, Ca_i, Ca_ss, Ca_sr, R_bar) use epicardium defaults -->
-        </Initial_States>
+        </Initial_states>
         <Gating_variables>
             <Rectifier_current>
                 <x_r1>0.008</x_r1>
@@ -84,7 +84,7 @@ The user-defined initial conditions override system allows users to specify cust
             </Rectifier_current>
             <!-- Other gating variable groups use epicardium defaults -->
         </Gating_variables>
-    </Initial_conditions>
+    </TTP_initial_conditions>
 </Domain>
 ```
 
@@ -94,7 +94,7 @@ The user-defined initial conditions override system allows users to specify cust
 <Domain id="1">
     <Electrophysiology_model> TTP </Electrophysiology_model>
     <Myocardial_zone> epicardium </Myocardial_zone>
-    <!-- No Initial_conditions specified - uses epicardium defaults -->
+    <!-- No TTP_initial_conditions specified - uses epicardium defaults -->
 </Domain>
 ```
 
@@ -137,7 +137,7 @@ The user-defined initial conditions override system allows users to specify cust
 
 1. **Added Flag**: `user_initial_conditions_defined` flag in `CepModTtp` class
 2. **Modified Initialization**: `init()` method checks the flag and uses user values when set
-3. **XML Integration**: `read_cep_domain()` sets the flag when `Initial_conditions` is specified
+3. **XML Integration**: `read_cep_domain()` sets the flag when `TTP_initial_conditions` is specified
 
 ### Logic Flow
 
@@ -150,7 +150,7 @@ The user-defined initial conditions override system allows users to specify cust
 
 ```cpp
 // In read_files.cpp
-if (domain_params->initial_conditions.defined()) {
+if (domain_params->ttp_initial_conditions.defined()) {
     // Read and set user-defined values
     cep_mod.ttp.set_user_initial_conditions_flag(true);
 }
