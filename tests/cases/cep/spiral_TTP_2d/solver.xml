@@ -46,140 +46,27 @@
 
 </Add_mesh>                                                         
 
-<Add_equation type="CEP" >
+<Add_equation type="CEP">
    <Coupled> true </Coupled>
    <Min_iterations> 1 </Min_iterations>
    <Max_iterations> 2 </Max_iterations>
    <Tolerance> 1e-6 </Tolerance>
 
-  <Domain id="1" >
-     <Electrophysiology_model> TTP </Electrophysiology_model>
-      <G_Na> 10 </G_Na>
-      <G_CaL> 3.98E-5 </G_CaL>
-      <G_Kr> 0.153 </G_Kr>
-      <G_Ks> 0.392 </G_Ks>
-      <G_to> 0.294 </G_to>
-      <Isotropic_conductivity> 0.1171 </Isotropic_conductivity>
+    <Domain id="1" >
+        <Include_xml> domain-1_EPmodel.xml </Include_xml>
+    </Domain>
 
-      <Myocardial_zone> epi </Myocardial_zone>
-        <TTP_initial_conditions>
-            <Initial_states>
-                <V>18.167</V>
-                <K_i>136.897</K_i>
-                <Na_i>8.6105</Na_i>
-                <Ca_i>1.2592E-4</Ca_i>
-                <Ca_ss>3.6181E-4</Ca_ss>
-                <Ca_sr>3.6399</Ca_sr>
-                <R_bar>0.9078</R_bar>
-            </Initial_states>
-
-            <Gating_variables>
-                <x_r1_rectifier>6.368E-3</x_r1_rectifier>
-                <x_r2_rectifier>0.36774</x_r2_rectifier>
-                <x_s_rectifier>9.77E-3</x_s_rectifier>
-                <m_fast_Na>0.9338</m_fast_Na>
-                <h_fast_Na>0.5276</h_fast_Na>
-                <j_fast_Na>0.6837</j_fast_Na>
-                <d_slow_in>1.9520E-2</d_slow_in>
-                <f_slow_in>0.7896</f_slow_in>
-                <f2_slow_in>0.9752</f2_slow_in>
-                <fcass_slow_in>0.9954</fcass_slow_in>
-                <s_out>0.9941</s_out>
-                <r_out>4.2757E-5</r_out>
-            </Gating_variables>
-        </TTP_initial_conditions>
-      <ODE_solver> RK </ODE_solver>
-   </Domain>
-
-  <Domain id="2" >
-     <Electrophysiology_model> TTP </Electrophysiology_model>
-      <G_Na> 20 </G_Na>
-      <G_CaL> 3.98E-5 </G_CaL>
-      <G_Kr> 0.153 </G_Kr>
-      <G_Ks> 0.392 </G_Ks>
-      <G_to> 0.294 </G_to>
-      <Isotropic_conductivity> 0.1171 </Isotropic_conductivity>
-      <Myocardial_zone> myo </Myocardial_zone>
-      <ODE_solver> RK </ODE_solver>
-   </Domain>
+    <Domain id="2" >
+        <Include_xml> domain-2_EPmodel.xml </Include_xml>
+    </Domain>
 
    <Domain id="3" >
-     <Electrophysiology_model> TTP </Electrophysiology_model>
-      <G_Na> 30 </G_Na>
-      <G_CaL> 3.98E-5 </G_CaL>
-      <G_Kr> 0.153 </G_Kr>
-      <G_Ks> 0.392 </G_Ks>
-      <G_to> 0.294 </G_to>
-      <Isotropic_conductivity> 0.1171 </Isotropic_conductivity>
-
-      <Myocardial_zone> epi </Myocardial_zone>
-        <TTP_initial_conditions>
-            <Initial_states>
-                <V>-44.756</V>
-                <K_i>136.88</K_i>
-                <Na_i>8.5907</Na_i>
-                <Ca_i>3.0084E-4</Ca_i>
-                <Ca_ss>2.5462E-3</Ca_ss>
-                <Ca_sr>3.5292</Ca_sr>
-                <R_bar>0.7235</R_bar>
-            </Initial_states>
-
-            <Gating_variables>
-                <x_r1_rectifier>0.9739</x_r1_rectifier>
-                <x_r2_rectifier>0.1239</x_r2_rectifier>
-                <x_s_rectifier>0.1766</x_s_rectifier>
-                <m_fast_Na>0.6379</m_fast_Na>
-                <h_fast_Na>2.3557E-4</h_fast_Na>
-                <j_fast_Na>3.147E-5</j_fast_Na>
-                <d_slow_in>9.7186E-3</d_slow_in>
-                <f_slow_in>0.1754</f_slow_in>
-                <f2_slow_in>0.3475</f2_slow_in>
-                <fcass_slow_in>0.9296</fcass_slow_in>
-                <s_out>0.4095</s_out>
-                <r_out>7.857E-4</r_out>
-            </Gating_variables>
-        </TTP_initial_conditions>
-      <ODE_solver> RK </ODE_solver>
+        <Include_xml> domain-3_EPmodel.xml </Include_xml>
    </Domain>
 
-   <Domain id="4" >
-     <Electrophysiology_model> TTP </Electrophysiology_model>
-      <G_Na> 40 </G_Na>
-      <G_CaL> 3.98E-5 </G_CaL>
-      <G_Kr> 0.153 </G_Kr>
-      <G_Ks> 0.392 </G_Ks>
-      <G_to> 0.294 </G_to>
-      <Isotropic_conductivity> 0.1171 </Isotropic_conductivity>
-
-      <Myocardial_zone> epi </Myocardial_zone>
-        <TTP_initial_conditions>
-            <Initial_states>
-                <V>-11.612</V>
-                <K_i>136.88</K_i>
-                <Na_i>8.5916</Na_i>
-                <Ca_i>3.486E-4</Ca_i>
-                <Ca_ss>1.312E-2</Ca_ss>
-                <Ca_sr>3.4619</Ca_sr>
-                <R_bar>0.6875</R_bar>
-            </Initial_states>
-
-            <Gating_variables>
-                <x_r1_rectifier>9.882E-1</x_r1_rectifier>
-                <x_r2_rectifier>3.707E-2</x_r2_rectifier>
-                <x_s_rectifier>1.7887E-1</x_s_rectifier>
-                <m_fast_Na>9.8692E-1</m_fast_Na>
-                <h_fast_Na>9.184E-8</h_fast_Na>
-                <j_fast_Na>6.291E-8</j_fast_Na>
-                <d_slow_in>0.4147</d_slow_in>
-                <f_slow_in>0.15883</f_slow_in>
-                <f2_slow_in>0.3341</f2_slow_in>
-                <fcass_slow_in>0.9036</fcass_slow_in>
-                <s_out>7.9355E-2</s_out>
-                <r_out>1.0429E-2</r_out>
-            </Gating_variables>
-        </TTP_initial_conditions>
-      <ODE_solver> RK </ODE_solver>
-   </Domain>
+    <Domain id="4" >
+        <Include_xml> domain-4_EPmodel.xml </Include_xml>
+    </Domain>
 
    <Output type="Spatial" >
       <Action_potential> true </Action_potential>

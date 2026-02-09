@@ -151,14 +151,6 @@ void CepModTtp::getf(const int i, const int nX, const int nG, const Vector<doubl
 
   // I_Na: Fast sodium current
   double I_Na = G_Na * pow(m,3.0) * h * j * (V - E_Na);
-  
-  // // Debug print for G_Na usage
-  // static int debug_counter = 0;
-  // if (debug_counter % 50 == 0) {  // Only print every 50 times to avoid spam
-  //   std::cout << "[DEBUG] TTP getf: G_Na=" << G_Na << ", I_Na=" << I_Na 
-  //             << ", V=" << V << ", m=" << m << ", h=" << h << ", j=" << j << std::endl;
-  // }
-  // debug_counter++;
 
   // I_to: transient outward current
   double I_to = G_to[i-1] * r * s * (V - E_K);

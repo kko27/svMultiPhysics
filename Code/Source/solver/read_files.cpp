@@ -1002,12 +1002,7 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
 
   // Set Ttp parameters.
   //
-  if (domain_params->G_Na.defined())  { 
-    lDmn.cep.ttp.G_Na = domain_params->G_Na.value(); 
-    // std::cout << "[DEBUG] G_Na assigned for domain " << domain_params->id.value() 
-    //           << " (myocardial zone: " << domain_params->myocardial_zone.value() 
-    //           << ", imyo: " << lDmn.cep.imyo << "): " << lDmn.cep.ttp.G_Na << std::endl;
-  }
+  if (domain_params->G_Na.defined())  { lDmn.cep.ttp.G_Na = domain_params->G_Na.value(); }
   if (domain_params->G_Kr.defined())  { lDmn.cep.ttp.G_Kr = domain_params->G_Kr.value(); }
   if (domain_params->G_Ks.defined())  { lDmn.cep.ttp.G_Ks[lDmn.cep.imyo - 1] = domain_params->G_Ks.value(); }
   if (domain_params->G_to.defined())  { lDmn.cep.ttp.G_to[lDmn.cep.imyo - 1] = domain_params->G_to.value(); }
