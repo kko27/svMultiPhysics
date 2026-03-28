@@ -1565,6 +1565,34 @@ void dist_eq(ComMod& com_mod, const CmMod& cm_mod, const cmType& cm, const std::
       cm.bcast(cm_mod, cep.ttp.G_Ks);
       cm.bcast(cm_mod, cep.ttp.G_to);
 
+      // Broadcast per-domain TTP initial state flag and values
+      cm.bcast(cm_mod, &cep.ttp_user_initial_state);
+      
+      if (cep.ttp_user_initial_state) {
+        // Broadcast initial condition values (state variables)
+        cm.bcast(cm_mod, &cep.ttp_initial_state.V);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.K_i);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.Na_i);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.Ca_i);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.Ca_ss);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.Ca_sr);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.R_bar);
+        
+        // Broadcast gating variables
+        cm.bcast(cm_mod, &cep.ttp_initial_state.x_r1);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.x_r2);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.x_s);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.m);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.h);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.j);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.d);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.f);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.f2);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.fcass);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.s);
+        cm.bcast(cm_mod, &cep.ttp_initial_state.r);
+      }
+
       cm.bcast(cm_mod, cep.bo.tau_si);
       cm.bcast(cm_mod, cep.bo.tau_fi);
     } 

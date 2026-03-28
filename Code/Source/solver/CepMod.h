@@ -177,6 +177,10 @@ class cepModelType
 
     /// @brief Interface for Tusscher-Panfilov cellular activation model
     CepModTtp ttp;
+
+    /// @brief TTP state initializations 
+    TenTusscherPanfilovState ttp_initial_state;
+    bool ttp_user_initial_state = false;    
 };
 
 /// @brief Cardiac electromechanics model type
