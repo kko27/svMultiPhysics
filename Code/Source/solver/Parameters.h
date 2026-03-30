@@ -1180,12 +1180,12 @@ class FiberReinforcementStressParameters : public ParameterLists
     bool value_set = false;
 };
 
-/// @brief The GatingVariablesParameters class stores parameters for the
+/// @brief The TTPGatingVariablesParameters class stores parameters for the
 /// 'Gating_variables' XML element under TTP_initial_conditions.
-class GatingVariablesParameters : public ParameterLists
+class TTPGatingVariablesParameters : public ParameterLists
 {
   public:
-    GatingVariablesParameters();
+    TTPGatingVariablesParameters();
 
     static const std::string xml_element_name_;
 
@@ -1216,12 +1216,12 @@ class GatingVariablesParameters : public ParameterLists
     bool value_set = false;
 };
 
-/// @brief The InitialStatesParameters class stores parameters for the
+/// @brief The TTPInitialStatesParameters class stores parameters for the
 /// 'Initial_states' XML element under TTP_initial_conditions.
-class InitialStatesParameters : public ParameterLists
+class TTPInitialStatesParameters : public ParameterLists
 {
   public:
-    InitialStatesParameters();
+    TTPInitialStatesParameters();
 
     static const std::string xml_element_name_;
 
@@ -1240,12 +1240,12 @@ class InitialStatesParameters : public ParameterLists
     bool value_set = false;
 };
 
-/// @brief The InitialConditionsParameters class stores parameters for the
+/// @brief The TTPInitialConditionsParameters class stores parameters for the
 /// 'TTP_initial_conditions' XML element under Domain.
-class InitialConditionsParameters : public ParameterLists
+class TTPInitialConditionsParameters : public ParameterLists
 {
   public:
-    InitialConditionsParameters();
+    TTPInitialConditionsParameters();
 
     static const std::string xml_element_name_;
 
@@ -1253,8 +1253,8 @@ class InitialConditionsParameters : public ParameterLists
     void print_parameters();
     void set_values(tinyxml2::XMLElement* xml_elem);
 
-    InitialStatesParameters initial_states;
-    GatingVariablesParameters gating_variables;
+    TTPInitialStatesParameters initial_states;
+    TTPGatingVariablesParameters gating_variables;
 
     bool value_set = false;
 };
@@ -1288,7 +1288,7 @@ class DomainParameters : public ParameterLists
     StimulusParameters stimulus;
     FluidViscosityParameters fluid_viscosity;
     SolidViscosityParameters solid_viscosity;
-    InitialConditionsParameters ttp_initial_conditions; 
+    TTPInitialConditionsParameters ttp_initial_conditions; 
 
     // Attributes.
     Parameter<std::string> id;

@@ -1713,7 +1713,7 @@ void DomainParameters::set_values(tinyxml2::XMLElement* domain_elem, bool from_e
     } else if (name == StimulusParameters::xml_element_name_) {
       stimulus.set_values(item);
 
-    } else if (name == InitialConditionsParameters::xml_element_name_) {
+    } else if (name == TTPInitialConditionsParameters::xml_element_name_) {
       ttp_initial_conditions.set_values(item);
 
     } else if (name == FluidViscosityParameters::xml_element_name_ || name == SolidViscosityParameters::xml_element_name_) {
@@ -3143,20 +3143,20 @@ void LinearSolverParameters::set_values(tinyxml2::XMLElement* xml_elem)
 
 }
 ///////////////////////////////////////////////////////////
-//            InitialConditionsParameters               //
+//            TTPInitialConditionsParameters               //
 //////////////////////////////////////////////////////////
 
 // Process parameters for the 'TTP_initial_conditions' XML element.
 
 /// @brief Define the XML element name for initial conditions parameters.
-const std::string InitialConditionsParameters::xml_element_name_ = "TTP_initial_conditions";
+const std::string TTPInitialConditionsParameters::xml_element_name_ = "TTP_initial_conditions";
 
-InitialConditionsParameters::InitialConditionsParameters()
+TTPInitialConditionsParameters::TTPInitialConditionsParameters()
 {
   // No parameters to set in constructor - all are in sub-elements
 }
 
-void InitialConditionsParameters::print_parameters()
+void TTPInitialConditionsParameters::print_parameters()
 {
   if (value_set) {
     std::cout << std::endl;
@@ -3167,7 +3167,7 @@ void InitialConditionsParameters::print_parameters()
   }
 }
 
-void InitialConditionsParameters::set_values(tinyxml2::XMLElement* xml_elem)
+void TTPInitialConditionsParameters::set_values(tinyxml2::XMLElement* xml_elem)
 {
   using namespace tinyxml2;
   std::string error_msg = "Unknown " + xml_element_name_ + " XML element '";
@@ -3177,11 +3177,11 @@ void InitialConditionsParameters::set_values(tinyxml2::XMLElement* xml_elem)
   while (item != nullptr) {
     auto name = std::string(item->Value());
 
-    if (name == InitialStatesParameters::xml_element_name_) {
+    if (name == TTPInitialStatesParameters::xml_element_name_) {
       initial_states.set_values(item);
       value_set = true;
 
-    } else if (name == GatingVariablesParameters::xml_element_name_) {
+    } else if (name == TTPGatingVariablesParameters::xml_element_name_) {
       gating_variables.set_values(item);
       value_set = true;
 
@@ -3194,13 +3194,13 @@ void InitialConditionsParameters::set_values(tinyxml2::XMLElement* xml_elem)
 }
 
 //////////////////////////////////////////////////////////
-//            InitialStatesParameters                   //
+//            TTPInitialStatesParameters                   //
 //////////////////////////////////////////////////////////
 
 /// @brief Define the XML element name for initial states parameters (Initial_states).
-const std::string InitialStatesParameters::xml_element_name_ = "Initial_states";
+const std::string TTPInitialStatesParameters::xml_element_name_ = "Initial_states";
 
-InitialStatesParameters::InitialStatesParameters()
+TTPInitialStatesParameters::TTPInitialStatesParameters()
 {
   bool required = false;
 
@@ -3213,7 +3213,7 @@ InitialStatesParameters::InitialStatesParameters()
   set_parameter("R_bar", 0.9073, !required, R_bar);
 }
 
-void InitialStatesParameters::print_parameters()
+void TTPInitialStatesParameters::print_parameters()
 {
   if (value_set) {
     std::cout << "  Initial States:" << std::endl;
@@ -3224,7 +3224,7 @@ void InitialStatesParameters::print_parameters()
   }
 }
 
-void InitialStatesParameters::set_values(tinyxml2::XMLElement* xml_elem)
+void TTPInitialStatesParameters::set_values(tinyxml2::XMLElement* xml_elem)
 {
   using namespace tinyxml2;
   std::string error_msg = "Unknown " + xml_element_name_ + " XML element '";
@@ -3252,13 +3252,13 @@ void InitialStatesParameters::set_values(tinyxml2::XMLElement* xml_elem)
 }
 
 //////////////////////////////////////////////////////////
-//            GatingVariablesParameters                 //
+//            TTPGatingVariablesParameters                 //
 //////////////////////////////////////////////////////////
 
 /// @brief Define the XML element name for gating variables parameters.
-const std::string GatingVariablesParameters::xml_element_name_ = "Gating_variables";
+const std::string TTPGatingVariablesParameters::xml_element_name_ = "Gating_variables";
 
-GatingVariablesParameters::GatingVariablesParameters()
+TTPGatingVariablesParameters::TTPGatingVariablesParameters()
 {
   bool required = false;
 
@@ -3283,7 +3283,7 @@ GatingVariablesParameters::GatingVariablesParameters()
   set_parameter("r_out", 2.42E-8, !required, r_out);
 }
 
-void GatingVariablesParameters::print_parameters()
+void TTPGatingVariablesParameters::print_parameters()
 {
   if (value_set) {
     std::cout << "  Gating Variables:" << std::endl;
@@ -3294,7 +3294,7 @@ void GatingVariablesParameters::print_parameters()
   }
 }
 
-void GatingVariablesParameters::set_values(tinyxml2::XMLElement* xml_elem)
+void TTPGatingVariablesParameters::set_values(tinyxml2::XMLElement* xml_elem)
 {
   using namespace tinyxml2;
   std::string error_msg = "Unknown " + xml_element_name_ + " XML element '";
