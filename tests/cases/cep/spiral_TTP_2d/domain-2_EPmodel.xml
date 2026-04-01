@@ -9,6 +9,8 @@
 
 <Isotropic_conductivity> 0.1171 </Isotropic_conductivity>
 
+<Myocardial_zone> epicardium </Myocardial_zone>
+
 <TTP_initial_conditions>
     <Initial_states>
         <V>-85.423</V>

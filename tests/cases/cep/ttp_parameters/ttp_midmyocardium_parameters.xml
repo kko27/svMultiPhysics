@@ -4,6 +4,8 @@
 <G_Ks> 0.098 </G_Ks>
 <G_to> 0.294 </G_to>
 
+<Myocardial_zone> myocardium </Myocardial_zone>
+
 <TTP_initial_conditions>
     <Initial_states>
         <V> -85.423 </V>

@@ -105,8 +105,8 @@ class CepModTtp
       /// Maximal I_K1 conductance [nS/pF]
       double G_K1 = 5.405;
 
-      /// Maximal epicardial I_to conductance [nS/pF]
-      Vector<double> G_to = {0.294, 0.073, 0.294};
+      /// Maximal I_to conductance [nS/pF]
+      double G_to = 0.294;
 
       /// Maximal I_Kr conductance [nS/pF]
       double G_Kr = 0.153;
@@ -114,8 +114,8 @@ class CepModTtp
 //     G_Kr for spiral wave breakup
 //      double G_Kr = 0.172;     // units: nS/pF
 
-      /// Maximal epicardial I_Ks conductance [nS/pF]
-      Vector<double> G_Ks = {0.392, 0.392, 0.098};
+      /// Maximal I_Ks conductance [nS/pF]
+      double G_Ks = 0.392;
 
 //     G_Ks for spiral wave breakup (epi)
 //      double G_Ks(3) = (/0.441, 0.392_RKIND, 0.098_RKIND/)
@@ -400,10 +400,10 @@ class CepModTtp
     void actv_strn(const double c_Ca, const double I4f, const double dt, double& gf);
     void actv_strs(const double c_Ca, const double dt, double& Tact, double& epsX);
 
-    void getf(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
+    void getf(const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg,
         Vector<double>& dX, const double I_stim, const double K_sac, Vector<double>& RPAR);
 
-    void getj(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
+    void getj(const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg,
         Array<double>& JAC, const double Ksac);
 
     void init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,

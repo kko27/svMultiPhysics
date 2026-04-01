@@ -68,7 +68,7 @@ void CepModTtp::actv_strs(const double c_Ca, const double dt, double& Tact, doub
 /// Note that is 'i' the myocardium zone id: 1, 2 or 3.
 ///
 /// Reproduces Fortran 'GETF()'.
-void CepModTtp::getf(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, Vector<double>& dX, 
+void CepModTtp::getf(const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, Vector<double>& dX,
     const double I_stim, const double K_sac, Vector<double>& RPAR)
 {
   // Local copies of state variables
@@ -108,8 +108,7 @@ void CepModTtp::getf(const int i, const int nX, const int nG, const Vector<doubl
   double I_Na = G_Na * pow(m,3.0) * h * j * (V - E_Na);
 
   // I_to: transient outward current
-  double I_to = G_to[i-1] * r * s * (V - E_K);
-  //I_to = G_to(i) * r * s * (V - E_K)
+  double I_to = G_to * r * s * (V - E_K);
 
   // I_K1: inward rectifier outward current
   double e1   = exp(0.06*(V - E_K - 200.0));
@@ -126,7 +125,7 @@ void CepModTtp::getf(const int i, const int nX, const int nG, const Vector<doubl
   double I_Kr = G_Kr * sq5 * xr1 * xr2 * (V - E_K);
 
   // I_Ks: slow delayed rectifier current
-  double I_Ks = G_Ks[i-1] * pow(xs,2.0) * (V - E_Ks);
+  double I_Ks = G_Ks * pow(xs,2.0) * (V - E_Ks);
 
   // I_CaL: L-type Ca current
   a = 2.0*(V-15.)/RT;
@@ -229,7 +228,7 @@ void CepModTtp::getf(const int i, const int nX, const int nG, const Vector<doubl
   RPAR(17) = I_xfer;
 }
 
-void CepModTtp::getj(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
+void CepModTtp::getj(const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg,
     Array<double>& JAC, const double Ksac)
 {
 
@@ -276,8 +275,8 @@ void CepModTtp::getj(const int i, const int nX, const int nG, const Vector<doubl
   I_Na_Nai = I_Na_V * (-E_Na_Nai);
 
   // I_to: transient outward current
-  I_to = G_to[i-1] * r * s * (V - E_K);
-  I_to_V  = G_to[i-1] * r * s;
+  I_to = G_to * r * s * (V - E_K);
+  I_to_V  = G_to * r * s;
   I_to_Ki = I_to_V * (-E_K_Ki);
 
   // I_K1: inward rectifier outward current
@@ -303,8 +302,8 @@ void CepModTtp::getj(const int i, const int nX, const int nG, const Vector<doubl
   I_Kr_Ki  = I_Kr_V * (-E_K_Ki);
 
   // I_Ks: slow delayed rectifier current
-  I_Ks = G_Ks[i-1] * pow(xs,2.0) * (V - E_Ks);
-  I_Ks_V   = G_Ks[i-1] * pow(xs,2.0);
+  I_Ks = G_Ks * pow(xs,2.0) * (V - E_Ks);
+  I_Ks_V   = G_Ks * pow(xs,2.0);
   I_Ks_Ki  = I_Ks_V * (-E_Ks_Ki);
   I_Ks_Nai = I_Ks_V * (-E_Ks_Nai);
 
@@ -497,7 +496,7 @@ void CepModTtp::integ_cn2(const int imyo, const int nX, const int nG, Vector<dou
   auto Im = mat_fun::mat_id(nX);
 
   Vector<double> fn(nX);
-  getf(imyo, nX, nG, Xn, Xg, fn, Istim, Ksac, RPAR);
+  getf(nX, nG, Xn, Xg, fn, Istim, Ksac, RPAR);
 
   int k  = 0;
   auto Xk = Xn;
@@ -510,7 +509,7 @@ void CepModTtp::integ_cn2(const int imyo, const int nX, const int nG, Vector<dou
   while (true) {
     k = k + 1;
     Vector<double> fk(nX);
-    getf(imyo, nX, nG, Xn, Xg, fn, Istim, Ksac, RPAR);
+    getf(nX, nG, Xn, Xg, fn, Istim, Ksac, RPAR);
 
     auto rK = Xk - Xn - 0.5*dt*(fk + fn);
 
@@ -533,7 +532,7 @@ void CepModTtp::integ_cn2(const int imyo, const int nX, const int nG, Vector<dou
     }
 
     Array<double> JAC(nX,nX);
-    getj(imyo, nX, nG, Xk, Xg, JAC, Ksac);
+    getj(nX, nG, Xk, Xg, JAC, Ksac);
 
     JAC = Im - 0.5*dt*JAC;
     JAC = mat_fun::mat_inv(JAC, nX);
@@ -544,7 +543,7 @@ void CepModTtp::integ_cn2(const int imyo, const int nX, const int nG, Vector<dou
   Xn = Xk;
 
   update_g(imyo, dt, nX, nG, Xn, Xg);
-  getf(imyo, nX, nG, Xn, Xg, fn, Istim, Ksac, RPAR);
+  getf(nX, nG, Xn, Xg, fn, Istim, Ksac, RPAR);
 
   if (!l2 && !l3) {
     IPAR(1) = IPAR(1) + 1;
@@ -557,7 +556,7 @@ void CepModTtp::integ_fe(const int imyo, const int nX, const int nG, Vector<doub
   Vector<double> f(nX);
 
   // Get time derivatives (RHS)
-  getf(imyo, nX, nG, X, Xg, f, Istim, Ksac, RPAR);
+  getf(nX, nG, X, Xg, f, Istim, Ksac, RPAR);
   //CALL TTP_GETF(imyo, nX, nG, X, Xg, f, Istim, Ksac, RPAR)
 
   // Update gating variables
@@ -577,7 +576,7 @@ void CepModTtp::integ_rk(const int imyo, const int nX, const int nG, Vector<doub
 
   // RK4: 1st pass
   auto Xrk = X;
-  getf(imyo, nX, nG, Xrk, Xg, frk1, Istim, Ksac, RPAR);
+  getf(nX, nG, Xrk, Xg, frk1, Istim, Ksac, RPAR);
 
   // Update gating variables by half-dt
   auto Xgr = Xg;
@@ -585,11 +584,11 @@ void CepModTtp::integ_rk(const int imyo, const int nX, const int nG, Vector<doub
 
   // RK4: 2nd pass
   Xrk = X + 0.5*dt*frk1;
-  getf(imyo, nX, nG, Xrk, Xgr, frk2, Istim, Ksac, RPAR);
+  getf(nX, nG, Xrk, Xgr, frk2, Istim, Ksac, RPAR);
 
   // RK4: 3rd pass
   Xrk = X + 0.5*dt*frk2;
-  getf(imyo, nX, nG, Xrk, Xgr, frk3, Istim, Ksac, RPAR);
+  getf(nX, nG, Xrk, Xgr, frk3, Istim, Ksac, RPAR);
 
   // Update gating variables by full-dt
   Xgr = Xg;
@@ -597,7 +596,7 @@ void CepModTtp::integ_rk(const int imyo, const int nX, const int nG, Vector<doub
 
   // RK4: 4th pass
   Xrk = X + dt*frk3;
-  getf(imyo, nX, nG, Xrk, Xgr, frk4, Istim, Ksac, RPAR);
+  getf(nX, nG, Xrk, Xgr, frk4, Istim, Ksac, RPAR);
 
   X = X + dt6 * (frk1 + 2.0*(frk2 + frk3) + frk4);
   Xg = Xgr;

@@ -1000,25 +1000,18 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
   }
 
   // Set Ttp parameters.
-  // Scalar params
   std::map<Parameter<double>*,double*> simple_ttp_params{
-    {&domain_params->G_Na, &lDmn.cep.ttp.G_Na},
-    {&domain_params->G_Kr, &lDmn.cep.ttp.G_Kr},
-    {&domain_params->G_CaL, &lDmn.cep.ttp.G_CaL}
+    {&domain_params->G_Na,  &lDmn.cep.ttp.G_Na},
+    {&domain_params->G_Kr,  &lDmn.cep.ttp.G_Kr},
+    {&domain_params->G_CaL, &lDmn.cep.ttp.G_CaL},
+    {&domain_params->G_Ks,  &lDmn.cep.ttp.G_Ks},
+    {&domain_params->G_to,  &lDmn.cep.ttp.G_to},
   };
 
   for (auto& [param, value] : simple_ttp_params) {
     if (param->defined()) {
       *value = param->value();
     }
-  }
-
-  // Array params
-  if (domain_params->G_Ks.defined()) {
-    lDmn.cep.ttp.G_Ks[lDmn.cep.imyo - 1] = domain_params->G_Ks.value();
-  }
-  if (domain_params->G_to.defined()) {
-    lDmn.cep.ttp.G_to[lDmn.cep.imyo - 1] = domain_params->G_to.value();
   }
 
   if (domain_params->ttp_initial_conditions.defined()) {
