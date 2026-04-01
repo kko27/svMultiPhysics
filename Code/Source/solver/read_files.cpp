@@ -1021,6 +1021,47 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
     lDmn.cep.ttp.G_to[lDmn.cep.imyo - 1] = domain_params->G_to.value();
   }
 
+  if (domain_params->ttp_initial_conditions.defined()) {
+    auto& ttp_ic = domain_params->ttp_initial_conditions;
+
+    if (ttp_ic.initial_states.defined()) {
+      auto& s = ttp_ic.initial_states;
+      std::map<Parameter<double>*, double*> state_map {
+        {&s.V,     &lDmn.cep.ttp_initial_state.V},
+        {&s.K_i,   &lDmn.cep.ttp_initial_state.K_i},
+        {&s.Na_i,  &lDmn.cep.ttp_initial_state.Na_i},
+        {&s.Ca_i,  &lDmn.cep.ttp_initial_state.Ca_i},
+        {&s.Ca_ss, &lDmn.cep.ttp_initial_state.Ca_ss},
+        {&s.Ca_sr, &lDmn.cep.ttp_initial_state.Ca_sr},
+        {&s.R_bar, &lDmn.cep.ttp_initial_state.R_bar},
+      };
+      for (auto& [param, value] : state_map) {
+        if (param->defined()) { *value = param->value(); lDmn.cep.ttp_user_initial_state = true; }
+      }
+    }
+
+    if (ttp_ic.gating_variables.defined()) {
+      auto& g = ttp_ic.gating_variables;
+      std::map<Parameter<double>*, double*> gating_map {
+        {&g.x_r1_rectifier, &lDmn.cep.ttp_initial_state.x_r1},
+        {&g.x_r2_rectifier, &lDmn.cep.ttp_initial_state.x_r2},
+        {&g.x_s_rectifier,  &lDmn.cep.ttp_initial_state.x_s},
+        {&g.m_fast_Na,      &lDmn.cep.ttp_initial_state.m},
+        {&g.h_fast_Na,      &lDmn.cep.ttp_initial_state.h},
+        {&g.j_fast_Na,      &lDmn.cep.ttp_initial_state.j},
+        {&g.d_slow_in,      &lDmn.cep.ttp_initial_state.d},
+        {&g.f_slow_in,      &lDmn.cep.ttp_initial_state.f},
+        {&g.f2_slow_in,     &lDmn.cep.ttp_initial_state.f2},
+        {&g.fcass_slow_in,  &lDmn.cep.ttp_initial_state.fcass},
+        {&g.s_out,          &lDmn.cep.ttp_initial_state.s},
+        {&g.r_out,          &lDmn.cep.ttp_initial_state.r},
+      };
+      for (auto& [param, value] : gating_map) {
+        if (param->defined()) { *value = param->value(); lDmn.cep.ttp_user_initial_state = true; }
+      }
+    }
+  }
+
   // Set stimulus parameters. 
   //
   lDmn.cep.Istim.A  = 0.0;
