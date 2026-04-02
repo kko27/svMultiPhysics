@@ -5,7 +5,6 @@
 
 #include "mat_fun.h"
 #include <math.h>
-#include <iostream>
 
 const TenTusscherPanfilovState TenTusscherPanfilovState::default_state = {
     .V      = -85.23,
@@ -37,71 +36,6 @@ CepModTtp::~CepModTtp()
 {
 }
 
-namespace TenTusscherPanfilovDefaults {
-
-  const TenTusscherPanfilovState epicardium_state = {
-      .V = -85.23,
-      .K_i =  136.89,     
-      .Na_i =  8.6040,    
-      .Ca_i =  1.26E-4,    
-      .Ca_ss =  3.6E-4,
-      .Ca_sr =  3.64,       
-      .R_bar =  0.9073,     
-      .x_r1 =  6.21E-3,   
-      .x_r2 =  0.4712,     
-      .x_s =  9.5E-3,      
-      .m =  1.72E-3,      
-      .h =  0.7444,       
-      .j =  0.7045,       
-      .d =  3.373E-5,     
-      .f =  0.7888,       
-      .f2 =  0.9755,      
-      .fcass =  0.9953,  
-      .s =  0.999998,     
-      .r =  2.42E-8};   
-
-  const TenTusscherPanfilovState endocardium_state = {
-      .V = -86.709,     
-      .K_i =  138.4,      
-      .Na_i =  10.355,     
-      .Ca_i =  1.3E-4,    
-      .Ca_ss =  3.6E-4,    
-      .Ca_sr =  3.715,      
-      .R_bar =  0.9068,     
-      .x_r1 =  4.48E-3,    
-      .x_r2 =  0.476,      
-      .x_s =  8.7E-3,    
-      .m =  1.55E-3,      
-      .h =  0.7573,     
-      .j =  0.7225,     
-      .d =  3.164E-5,   
-      .f =  0.8009,     
-      .f2 =  0.9778,    
-      .fcass =  0.9953,
-      .s =  0.3212,     
-      .r =  2.235E-8};   
-
-  const TenTusscherPanfilovState midmyocardium_state = {      
-      .V = -85.423,
-      .K_i =  138.52,
-      .Na_i =  10.132,
-      .Ca_i =  1.53E-4,
-      .Ca_ss =  4.2E-4,
-      .Ca_sr =  4.272,
-      .R_bar =  0.8978,
-      .x_r1 =  1.65E-2,
-      .x_r2 =  0.4730,
-      .x_s =  1.74E-2,
-      .m =  1.65E-3,
-      .h =  0.7490,
-      .j =  0.6788,
-      .d =  3.288E-5,
-      .f =  0.7026,
-      .f2 =  0.9526,
-      .fcass =  0.9942,
-      .s =  0.999998,
-      .r =  2.347E-8};
-}
 
 /// @brief Compute macroscopic fiber strain based on sacromere force-length relationship and calcium concentration
 void CepModTtp::actv_strn(const double c_Ca, const double I4f, const double dt, double& gf)
@@ -539,19 +473,6 @@ void CepModTtp::init(const int nX, const int nG, Vector<double>& X, Vector<doubl
   copyStateToVectors(X, Xg);
 }
 
-void CepModTtp::init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
-    Vector<double>& X0, Vector<double>& Xg0)
-{
-  init(nX, nG, X, Xg);
-
-  if (X0.size() != 0) {
-    X = X0;
-  }
-
-  if (Xg0.size() != 0) {
-    Xg = Xg0;
-  }
-}
 
 /// @brief Time integration performed using Crank-Nicholson method
 void CepModTtp::integ_cn2(const int imyo, const int nX, const int nG, Vector<double>& Xn, Vector<double>& Xg, 

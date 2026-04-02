@@ -412,10 +412,6 @@ class CepModTtp
     void init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
         const TenTusscherPanfilovState* user_state = nullptr);
 
-    void init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
-        Vector<double>& X0, Vector<double>& Xg0);
-
-    void copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const;
 
     void integ_cn2(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
         const double Ts, const double dt, const double Istim, const double Ksac, 
