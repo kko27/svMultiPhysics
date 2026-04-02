@@ -6,7 +6,6 @@
 #include "all_fun.h"
 #include "post.h"
 #include "utils.h"
-#include <iostream>
 #include <math.h>
 
 namespace cep_ion {
@@ -42,25 +41,8 @@ void cep_init(Simulation* simulation)
       continue;
     }
 
-    // Warn once on rank 0 if any TTP domain uses default initial conditions.
-    bool any_ttp_defaults = false;
-    for (int iDmn = 0; iDmn < eq.nDmn; iDmn++) {
-      if (eq.dmn[iDmn].cep.cepType == ElectrophysiologyModelType::TTP
-          && !eq.dmn[iDmn].cep.ttp_user_initial_state) {
-        any_ttp_defaults = true;
-        break;
-      }
-    }
-    static bool ttp_default_ic_warning_printed = false;
-    if (any_ttp_defaults && !ttp_default_ic_warning_printed && cm.idcm() == 0) {
-      std::cout << "[WARNING] Default initial conditions are being used for the TTP ionic " 
-      "model (zone-based: epi/endo/mid-myo). To set custom initial conditions, "
-      "specify <TTP_initial_conditions> in the domain XML." << std::endl;
-      ttp_default_ic_warning_printed = true;
-    }
-
     if (com_mod.dmnId.size() != 0) {
-      Vector<double> sA(tnNo); 
+      Vector<double> sA(tnNo);
       Array<double> sF(nXion,tnNo);
 
       for (int a = 0; a < tnNo; a++) {
@@ -662,5 +644,4 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
   }
 }
 
-
-};
+}
