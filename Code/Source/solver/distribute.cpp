@@ -1562,8 +1562,10 @@ void dist_eq(ComMod& com_mod, const CmMod& cm_mod, const cmType& cm, const std::
       cm.bcast(cm_mod, &cep.ttp.G_Na);
       cm.bcast(cm_mod, &cep.ttp.G_CaL);
       cm.bcast(cm_mod, &cep.ttp.G_Kr);
-      cm.bcast(cm_mod, cep.ttp.G_Ks);
-      cm.bcast(cm_mod, cep.ttp.G_to);
+      cm.bcast(cm_mod, &cep.ttp.G_Ks);
+      cm.bcast(cm_mod, &cep.ttp.G_to);
+
+      dist_ttp_initial_state(cm_mod, cm, cep);
 
       // Broadcast per-domain TTP initial state flag and values
       cm.bcast(cm_mod, &cep.ttp_user_initial_state);
@@ -1807,6 +1809,33 @@ void dist_solid_visc_model(const ComMod& com_mod, const CmMod& cm_mod, const cmT
   cm.bcast(cm_mod, &lVis.mu);
 }
 
+void dist_ttp_initial_state(const CmMod& cm_mod, const cmType& cm, cepModelType& cep)
+{
+  cm.bcast(cm_mod, &cep.ttp_user_initial_state);
+
+  if (cep.ttp_user_initial_state) {
+    auto& s = cep.ttp_initial_state;
+    cm.bcast(cm_mod, &s.V);
+    cm.bcast(cm_mod, &s.K_i);
+    cm.bcast(cm_mod, &s.Na_i);
+    cm.bcast(cm_mod, &s.Ca_i);
+    cm.bcast(cm_mod, &s.Ca_ss);
+    cm.bcast(cm_mod, &s.Ca_sr);
+    cm.bcast(cm_mod, &s.R_bar);
+    cm.bcast(cm_mod, &s.x_r1);
+    cm.bcast(cm_mod, &s.x_r2);
+    cm.bcast(cm_mod, &s.x_s);
+    cm.bcast(cm_mod, &s.m);
+    cm.bcast(cm_mod, &s.h);
+    cm.bcast(cm_mod, &s.j);
+    cm.bcast(cm_mod, &s.d);
+    cm.bcast(cm_mod, &s.f);
+    cm.bcast(cm_mod, &s.f2);
+    cm.bcast(cm_mod, &s.fcass);
+    cm.bcast(cm_mod, &s.s);
+    cm.bcast(cm_mod, &s.r);
+  }
+}
 
 void part_face(Simulation* simulation, mshType& lM, faceType& lFa, faceType& gFa, Vector<int>& gmtl)
 {

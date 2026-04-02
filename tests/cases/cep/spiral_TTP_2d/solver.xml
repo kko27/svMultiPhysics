@@ -53,19 +53,27 @@
    <Tolerance> 1e-6 </Tolerance>
 
     <Domain id="1" >
+        <Electrophysiology_model> TTP </Electrophysiology_model>
         <Include_xml> domain-1_EPmodel.xml </Include_xml>
+        <ODE_solver> RK </ODE_solver>
     </Domain>
 
     <Domain id="2" >
+        <Electrophysiology_model> TTP </Electrophysiology_model>
         <Include_xml> domain-2_EPmodel.xml </Include_xml>
+        <ODE_solver> RK </ODE_solver>
     </Domain>
 
    <Domain id="3" >
+        <Electrophysiology_model> TTP </Electrophysiology_model>
         <Include_xml> domain-3_EPmodel.xml </Include_xml>
+        <ODE_solver> RK </ODE_solver>
    </Domain>
 
     <Domain id="4" >
+        <Electrophysiology_model> TTP </Electrophysiology_model>
         <Include_xml> domain-4_EPmodel.xml </Include_xml>
+        <ODE_solver> RK </ODE_solver>
     </Domain>
 
    <Output type="Spatial" >

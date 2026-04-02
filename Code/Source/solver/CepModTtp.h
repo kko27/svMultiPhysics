@@ -17,40 +17,40 @@ T& make_ref(T&& x) { return x; }
 /// @brief This module defines data structures for ten Tusscher-Panfilov
 /// epicardial cellular activation model for cardiac electrophysiology
 ///
-/// The classes defined here duplicate the data structures in the Fortran TPPMOD module defined 
-/// in CEPMOD_TTP.f and PARAMS_TPP.f files. 
-class TenTusscherPanfilovState {
-      public:
-            double V; 
-            double K_i;
-            double Na_i;
-            double Ca_i;
-            double Ca_ss;
-            double Ca_sr;
-            double R_bar;
-            double x_r1; 
-            double x_r2;
-            double x_s;
-            double m;
-            double h;
-            double j;
-            double d;
-            double f;
-            double f2;
-            double fcass;
-            double s; 
-            double r; 
-}; 
+/// The classes defined here duplicate the data structures in the Fortran TPPMOD module defined
+/// in CEPMOD_TTP.f and PARAMS_TPP.f files.
 
-namespace TenTusscherPanfilovDefaults {
-    extern const TenTusscherPanfilovState epicardium_state;
-    extern const TenTusscherPanfilovState endocardium_state;
-    extern const TenTusscherPanfilovState midmyocardium_state;
-}
+/// @brief Stores all TTP state and gating variables in a single typed struct.
+class TenTusscherPanfilovState {
+  public:
+    double V;
+    double K_i;
+    double Na_i;
+    double Ca_i;
+    double Ca_ss;
+    double Ca_sr;
+    double R_bar;
+    double x_r1;
+    double x_r2;
+    double x_s;
+    double m;
+    double h;
+    double j;
+    double d;
+    double f;
+    double f2;
+    double fcass;
+    double s;
+    double r;
+
+    static const TenTusscherPanfilovState default_state;
+};
+
 class CepModTtp
 {
-  private: 
-      TenTusscherPanfilovState initial_state; 
+  private:
+    TenTusscherPanfilovState initial_state;
+
   public:
     CepModTtp();
     ~CepModTtp();
@@ -105,8 +105,8 @@ class CepModTtp
       /// Maximal I_K1 conductance [nS/pF]
       double G_K1 = 5.405;
 
-      /// Maximal epicardial I_to conductance [nS/pF]
-      Vector<double> G_to = {0.294, 0.073, 0.294};
+      /// Maximal I_to conductance [nS/pF]
+      double G_to = 0.294;
 
       /// Maximal I_Kr conductance [nS/pF]
       double G_Kr = 0.153;
@@ -114,8 +114,8 @@ class CepModTtp
 //     G_Kr for spiral wave breakup
 //      double G_Kr = 0.172;     // units: nS/pF
 
-      /// Maximal epicardial I_Ks conductance [nS/pF]
-      Vector<double> G_Ks = {0.392, 0.392, 0.098};
+      /// Maximal I_Ks conductance [nS/pF]
+      double G_Ks = 0.392;
 
 //     G_Ks for spiral wave breakup (epi)
 //      double G_Ks(3) = (/0.441, 0.392_RKIND, 0.098_RKIND/)
@@ -403,17 +403,19 @@ class CepModTtp
     void actv_strn(const double c_Ca, const double I4f, const double dt, double& gf);
     void actv_strs(const double c_Ca, const double dt, double& Tact, double& epsX);
 
-    void getf(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
+    void getf(const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg,
         Vector<double>& dX, const double I_stim, const double K_sac, Vector<double>& RPAR);
 
-    void getj(const int i, const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, 
+    void getj(const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg,
         Array<double>& JAC, const double Ksac);
 
-    void init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg, 
-      const TenTusscherPanfilovState* user_state = nullptr);
+    void init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
+        const TenTusscherPanfilovState* user_state = nullptr);
 
-    void init(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
+    void init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
         Vector<double>& X0, Vector<double>& Xg0);
+
+    void copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const;
 
     void integ_cn2(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
         const double Ts, const double dt, const double Istim, const double Ksac, 

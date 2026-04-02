@@ -1180,8 +1180,8 @@ class FiberReinforcementStressParameters : public ParameterLists
     bool value_set = false;
 };
 
-/// @brief The TTPGatingVariablesParameters class stores parameters for the
-/// 'Gating_variables' XML element under TTP_initial_conditions.
+/// @brief Stores parameters for the 'Gating_variables' XML element
+/// under TTP_initial_conditions.
 class TTPGatingVariablesParameters : public ParameterLists
 {
   public:
@@ -1193,31 +1193,27 @@ class TTPGatingVariablesParameters : public ParameterLists
     void print_parameters();
     void set_values(tinyxml2::XMLElement* xml_elem);
 
-    // Rectifier current gating variables
     Parameter<double> x_r1_rectifier;
     Parameter<double> x_r2_rectifier;
     Parameter<double> x_s_rectifier;
 
-    // Fast sodium current gating variables
     Parameter<double> m_fast_Na;
     Parameter<double> h_fast_Na;
     Parameter<double> j_fast_Na;
 
-    // Slow inward current gating variables
     Parameter<double> d_slow_in;
     Parameter<double> f_slow_in;
     Parameter<double> f2_slow_in;
     Parameter<double> fcass_slow_in;
 
-    // Transient outward current gating variables
     Parameter<double> s_out;
     Parameter<double> r_out;
 
     bool value_set = false;
 };
 
-/// @brief The TTPInitialStatesParameters class stores parameters for the
-/// 'Initial_states' XML element under TTP_initial_conditions.
+/// @brief Stores parameters for the 'Initial_states' XML element
+/// under TTP_initial_conditions.
 class TTPInitialStatesParameters : public ParameterLists
 {
   public:
@@ -1240,8 +1236,8 @@ class TTPInitialStatesParameters : public ParameterLists
     bool value_set = false;
 };
 
-/// @brief The TTPInitialConditionsParameters class stores parameters for the
-/// 'TTP_initial_conditions' XML element under Domain.
+/// @brief Stores parameters for the 'TTP_initial_conditions' XML element
+/// under Domain.
 class TTPInitialConditionsParameters : public ParameterLists
 {
   public:
@@ -1288,7 +1284,7 @@ class DomainParameters : public ParameterLists
     StimulusParameters stimulus;
     FluidViscosityParameters fluid_viscosity;
     SolidViscosityParameters solid_viscosity;
-    TTPInitialConditionsParameters ttp_initial_conditions; 
+    TTPInitialConditionsParameters ttp_initial_conditions;
 
     // Attributes.
     Parameter<std::string> id;
