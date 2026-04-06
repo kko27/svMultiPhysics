@@ -111,14 +111,8 @@ class CepModTtp
       /// Maximal I_Kr conductance [nS/pF]
       double G_Kr = 0.153;
 
-//     G_Kr for spiral wave breakup
-//      double G_Kr = 0.172;     // units: nS/pF
-
       /// Maximal I_Ks conductance [nS/pF]
       double G_Ks = 0.392;
-
-//     G_Ks for spiral wave breakup (epi)
-//      double G_Ks(3) = (/0.441, 0.392_RKIND, 0.098_RKIND/)
 
       /// Relative I_Ks permeability to Na [-]
       double p_KNa = 3.E-2;
@@ -156,14 +150,8 @@ class CepModTtp
       /// Maximal I_pK conductance [nS/pF]
       double G_pK = 1.46E-2;
 
-//     G_pK for spiral wave breakup
-//      double G_pK = 2.19E-3;    // units: nS/pF
-
       /// Maximal I_pCa conductance [pA/pF]
       double G_pCa = 0.1238;
-
-//     G_pCa for spiral wave breakup
-//      double G_pCa = 0.8666;    // units: pA/pF
 
       /// Half-saturation constant of I_pCa [mM]
       double K_pCa = 5.E-4;

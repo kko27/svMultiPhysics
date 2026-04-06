@@ -6,6 +6,8 @@
 #include "mat_fun.h"
 #include <math.h>
 
+// Parameters discussed in https://doi.org/10.1152/ajpheart.00109.2006
+// Default parameters are for epicardium state (source: https://models.cellml.org/e/80d)
 const TenTusscherPanfilovState TenTusscherPanfilovState::default_state = {
     .V      = -85.23,
     .K_i    =  136.89,
