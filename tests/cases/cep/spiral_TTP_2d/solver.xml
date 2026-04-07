@@ -24,33 +24,19 @@
 
 <Add_mesh name="msh" >
 
-  <Mesh_file_path> mesh/mesh-complete.mesh.vtu   </Mesh_file_path>
+   <Mesh_file_path> mesh/mesh-complete.mesh.vtu   </Mesh_file_path>
 
-  <Add_face name="X0">
-      <Face_file_path> mesh/mesh-surfaces/X0.vtp </Face_file_path>
-  </Add_face>
+   <Domain_file_path> mesh/domain_ids.dat </Domain_file_path>
 
-  <Add_face name="X1">
-      <Face_file_path> mesh/mesh-surfaces/X1.vtp </Face_file_path>
-  </Add_face>
-
-  <Add_face name="Y0">
-      <Face_file_path> mesh/mesh-surfaces/Y0.vtp </Face_file_path>
-  </Add_face>
-
-  <Add_face name="Y1">
-      <Face_file_path> mesh/mesh-surfaces/Y1.vtp </Face_file_path>
-  </Add_face>
-
-  <Domain_file_path> mesh/spiral_domain_info.dat </Domain_file_path>
+   <Mesh_scale_factor> 100 </Mesh_scale_factor>
 
 </Add_mesh>                                                         
 
 <Add_equation type="CEP">
    <Coupled> true </Coupled>
    <Min_iterations> 1 </Min_iterations>
-   <Max_iterations> 2 </Max_iterations>
-   <Tolerance> 1e-6 </Tolerance>
+   <Max_iterations> 3 </Max_iterations> 
+   <Tolerance> 1e-11 </Tolerance> 
 
     <Domain id="1" >
         <Electrophysiology_model> TTP </Electrophysiology_model>
@@ -80,11 +66,13 @@
       <Action_potential> true </Action_potential>
    </Output>
 
-   <LS type="CG" >
+   <LS type="GMRES" >
       <Linear_algebra type="fsils" >
-         <Preconditioner> rcs </Preconditioner>
+         <Preconditioner> fsils </Preconditioner>
       </Linear_algebra>
-      <Tolerance> 1e-6 </Tolerance>
+      <Max_iterations> 500 </Max_iterations>
+      <Tolerance> 1e-12 </Tolerance>
+      <Krylov_space_dimension> 50 </Krylov_space_dimension>
    </LS>
 
 </Add_equation>

@@ -59,7 +59,7 @@ class CepModTtp
 //--------------------------------------------------------------------
 //
 //     Constants for TenTusscher-Panfilov Ventricular Myocyte Model.
-//
+//     Default values are for the epicardium state (source: https://models.cellml.org/e/80d)
 //--------------------------------------------------------------------
 
 //     Default model parameters
@@ -411,7 +411,7 @@ class CepModTtp
     void integ_rk(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg, 
         const double Ts, const double dt, const double Istim, const double Ksac, Vector<double>& RPAR);
 
-    void update_g(const int i, const double dt, const int n, const int nG, const Vector<double>& X, 
+    void update_g(const int imyo, const double dt, const int n, const int nG, const Vector<double>& X, 
         Vector<double>& Xg);
 
     void copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const;

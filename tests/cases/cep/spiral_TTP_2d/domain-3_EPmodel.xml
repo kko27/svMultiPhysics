@@ -7,7 +7,7 @@
 <G_Ks> 0.392 </G_Ks>
 <G_to> 0.294 </G_to>
 
-<Isotropic_conductivity> 0.1171 </Isotropic_conductivity>
+<Isotropic_conductivity> 0.1 </Isotropic_conductivity>
 
 <Myocardial_zone> epicardium </Myocardial_zone>
 

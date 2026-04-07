@@ -593,7 +593,7 @@ void CepModTtp::integ_rk(const int imyo, const int nX, const int nG, Vector<doub
 }
 
 /// @brief Update all the gating variables
-void CepModTtp::update_g(const int i, const double dt, const int n, const int nG, const Vector<double>& X, Vector<double>& Xg)
+void CepModTtp::update_g(const int imyo, const double dt, const int n, const int nG, const Vector<double>& X, Vector<double>& Xg)
 {
   V  = X(0);
   Ca_ss = X(4);
@@ -707,10 +707,10 @@ void CepModTtp::update_g(const int i, const double dt, const int n, const int nG
   Xg(9) = fcassi - (fcassi - fcass)*exp(-dt/tau);
 
   // s: inactivation gate for I_to
-  if (i == 1 || i == 3) {
+  if (imyo == 1 || imyo == 3) {
      si = 1.0/(1.0 + exp((20.0+V)/5.0));
      tau = 85.0*exp(-pow(V+45.0,2.0) / 320.0) + 5.0/(1.0+exp((V-20.0)/5.0)) + 3.0;
-  } else if (i  ==  2) {
+  } else if (imyo  ==  2) {
      si = 1.0/(1.0 + exp((28.0+V)/5.0));
      tau = 1000.0*exp(-pow(V+67.0,2.0) /1000.0) + 8.0;
      //tau = 1000.0*exp(-((V+67.0)**2.0) /1000.0) + 8.0;
