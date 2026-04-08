@@ -1672,7 +1672,6 @@ void DomainParameters::print_parameters()
 
   solid_viscosity.print_parameters();
 
-  ttp_initial_conditions.print_parameters();
 }
 
 //------------
@@ -1820,7 +1819,7 @@ const std::string TTPInitialStatesParameters::xml_element_name_ = "Initial_state
 
 TTPInitialStatesParameters::TTPInitialStatesParameters()
 {
-  bool required = false;
+  bool required = true;
 
   set_parameter("V",      -85.23,   required, V);
   set_parameter("K_i",    136.89,   required, K_i);
@@ -1866,6 +1865,8 @@ void TTPInitialStatesParameters::set_values(tinyxml2::XMLElement* xml_elem)
 
     item = item->NextSiblingElement();
   }
+
+  check_required();
 }
 
 //////////////////////////////////////////////////////////
@@ -1876,7 +1877,7 @@ const std::string TTPGatingVariablesParameters::xml_element_name_ = "Gating_vari
 
 TTPGatingVariablesParameters::TTPGatingVariablesParameters()
 {
-  bool required = false;
+  bool required = true;
 
   set_parameter("x_r1_rectifier", 6.21E-3,   required, x_r1_rectifier);
   set_parameter("x_r2_rectifier", 0.4712,    required, x_r2_rectifier);
@@ -1930,6 +1931,8 @@ void TTPGatingVariablesParameters::set_values(tinyxml2::XMLElement* xml_elem)
 
     item = item->NextSiblingElement();
   }
+
+  check_required();
 }
 
 //////////////////////////////////////////////////////////

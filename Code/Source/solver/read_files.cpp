@@ -1014,94 +1014,49 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
     }
   }
 
-  if (domain_params->ttp_initial_conditions.defined()) {
+  if (model_type == ElectrophysiologyModelType::TTP) {
+    if (!domain_params->ttp_initial_conditions.defined()) {
+      throw std::runtime_error("TTP model requires an 'Initial_condition' XML block.");
+    }
+
     auto& ttp_ic = domain_params->ttp_initial_conditions;
 
-    if (ttp_ic.initial_states.defined()) {
-      auto& s = ttp_ic.initial_states;
-      std::map<Parameter<double>*, double*> state_map {
-        {&s.V,     &lDmn.cep.ttp_initial_state.V},
-        {&s.K_i,   &lDmn.cep.ttp_initial_state.K_i},
-        {&s.Na_i,  &lDmn.cep.ttp_initial_state.Na_i},
-        {&s.Ca_i,  &lDmn.cep.ttp_initial_state.Ca_i},
-        {&s.Ca_ss, &lDmn.cep.ttp_initial_state.Ca_ss},
-        {&s.Ca_sr, &lDmn.cep.ttp_initial_state.Ca_sr},
-        {&s.R_bar, &lDmn.cep.ttp_initial_state.R_bar},
-      };
-      for (auto& [param, value] : state_map) {
-        if (param->defined()) { *value = param->value(); lDmn.cep.ttp_user_initial_state = true; }
-      }
+    if (!ttp_ic.initial_states.defined()) {
+      throw std::runtime_error("TTP initial conditions require an 'Initial_states' XML block.");
     }
 
-    if (ttp_ic.gating_variables.defined()) {
-      auto& g = ttp_ic.gating_variables;
-      std::map<Parameter<double>*, double*> gating_map {
-        {&g.x_r1_rectifier, &lDmn.cep.ttp_initial_state.x_r1},
-        {&g.x_r2_rectifier, &lDmn.cep.ttp_initial_state.x_r2},
-        {&g.x_s_rectifier,  &lDmn.cep.ttp_initial_state.x_s},
-        {&g.m_fast_Na,      &lDmn.cep.ttp_initial_state.m},
-        {&g.h_fast_Na,      &lDmn.cep.ttp_initial_state.h},
-        {&g.j_fast_Na,      &lDmn.cep.ttp_initial_state.j},
-        {&g.d_slow_in,      &lDmn.cep.ttp_initial_state.d},
-        {&g.f_slow_in,      &lDmn.cep.ttp_initial_state.f},
-        {&g.f2_slow_in,     &lDmn.cep.ttp_initial_state.f2},
-        {&g.fcass_slow_in,  &lDmn.cep.ttp_initial_state.fcass},
-        {&g.s_out,          &lDmn.cep.ttp_initial_state.s},
-        {&g.r_out,          &lDmn.cep.ttp_initial_state.r},
-      };
-      for (auto& [param, value] : gating_map) {
-        if (param->defined()) { *value = param->value(); lDmn.cep.ttp_user_initial_state = true; }
-      }
-    }
-  }
+    auto& s = ttp_ic.initial_states;
+    lDmn.cep.ttp_initial_state.V     = s.V.value();
+    lDmn.cep.ttp_initial_state.K_i   = s.K_i.value();
+    lDmn.cep.ttp_initial_state.Na_i  = s.Na_i.value();
+    lDmn.cep.ttp_initial_state.Ca_i  = s.Ca_i.value();
+    lDmn.cep.ttp_initial_state.Ca_ss = s.Ca_ss.value();
+    lDmn.cep.ttp_initial_state.Ca_sr = s.Ca_sr.value();
+    lDmn.cep.ttp_initial_state.R_bar = s.R_bar.value();
 
-  if (domain_params->ttp_initial_conditions.defined()) {
-    auto& ttp_ic = domain_params->ttp_initial_conditions;
-
-    if (ttp_ic.initial_states.defined()) {
-      auto& s = ttp_ic.initial_states;
-      std::map<Parameter<double>*, double*> initial_states_params {
-        {&s.V,      &lDmn.cep.ttp_initial_state.V},
-        {&s.K_i,    &lDmn.cep.ttp_initial_state.K_i},
-        {&s.Na_i,   &lDmn.cep.ttp_initial_state.Na_i},
-        {&s.Ca_i,   &lDmn.cep.ttp_initial_state.Ca_i},
-        {&s.Ca_ss,  &lDmn.cep.ttp_initial_state.Ca_ss},
-        {&s.Ca_sr,  &lDmn.cep.ttp_initial_state.Ca_sr},
-        {&s.R_bar,  &lDmn.cep.ttp_initial_state.R_bar},
-      };
-      bool any_set = false;
-      for (auto& [param, value] : initial_states_params) {
-        if (param->defined()) { *value = param->value(); any_set = true; }
-      }
-      lDmn.cep.ttp_user_initial_state = any_set;
+    if (!ttp_ic.gating_variables.defined()) {
+      throw std::runtime_error("TTP initial conditions require a 'Gating_variables' XML block.");
     }
 
-    if (ttp_ic.gating_variables.defined()) {
-      auto& g = ttp_ic.gating_variables;
-      std::map<Parameter<double>*, double*> gating_variables_params {
-        // Rectifier current gating variables
-        {&g.x_r1_rectifier, &lDmn.cep.ttp_initial_state.x_r1},
-        {&g.x_r2_rectifier, &lDmn.cep.ttp_initial_state.x_r2},
-        {&g.x_s_rectifier,  &lDmn.cep.ttp_initial_state.x_s},
-        // Fast sodium current gating variables
-        {&g.m_fast_Na,      &lDmn.cep.ttp_initial_state.m},
-        {&g.h_fast_Na,      &lDmn.cep.ttp_initial_state.h},
-        {&g.j_fast_Na,      &lDmn.cep.ttp_initial_state.j},
-        // Slow inward current gating variables
-        {&g.d_slow_in,      &lDmn.cep.ttp_initial_state.d},
-        {&g.f_slow_in,      &lDmn.cep.ttp_initial_state.f},
-        {&g.f2_slow_in,     &lDmn.cep.ttp_initial_state.f2},
-        {&g.fcass_slow_in,  &lDmn.cep.ttp_initial_state.fcass},
-        // Transient outward current gating variables
-        {&g.s_out,          &lDmn.cep.ttp_initial_state.s},
-        {&g.r_out,          &lDmn.cep.ttp_initial_state.r},
-      };
-      bool any_set = false;
-      for (auto& [param, value] : gating_variables_params) {
-        if (param->defined()) { *value = param->value(); any_set = true; }
-      }
-      if (any_set) lDmn.cep.ttp_user_initial_state = true;
-    }
+    auto& g = ttp_ic.gating_variables;
+    // Rectifier current gating variables
+    lDmn.cep.ttp_initial_state.x_r1   = g.x_r1_rectifier.value();
+    lDmn.cep.ttp_initial_state.x_r2   = g.x_r2_rectifier.value();
+    lDmn.cep.ttp_initial_state.x_s    = g.x_s_rectifier.value();
+    // Fast sodium current gating variables
+    lDmn.cep.ttp_initial_state.m      = g.m_fast_Na.value();
+    lDmn.cep.ttp_initial_state.h      = g.h_fast_Na.value();
+    lDmn.cep.ttp_initial_state.j      = g.j_fast_Na.value();
+    // Slow inward current gating variables
+    lDmn.cep.ttp_initial_state.d      = g.d_slow_in.value();
+    lDmn.cep.ttp_initial_state.f      = g.f_slow_in.value();
+    lDmn.cep.ttp_initial_state.f2     = g.f2_slow_in.value();
+    lDmn.cep.ttp_initial_state.fcass  = g.fcass_slow_in.value();
+    // Transient outward current gating variables
+    lDmn.cep.ttp_initial_state.s      = g.s_out.value();
+    lDmn.cep.ttp_initial_state.r      = g.r_out.value();
+
+    lDmn.cep.ttp_user_initial_state = true;
   }
 
   // Set stimulus parameters. 
