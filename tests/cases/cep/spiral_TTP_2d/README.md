@@ -6,4 +6,4 @@ Another approach to spiral wave initialization is to 'rig' the simulation domain
    <img src="./SpiralWave.jpg" width="600">
 </p>
 
-Initial conditions for the Ten-tusscher-Panfilov (TTP) EP model need to be specified in the solver.xml to override the default variables that are hard-coded inside the solver. Each set of initial conditions parameters are defined in a seperate xml file that is included in the solver.xml via the Include_xml parameter. 
+Each set of initial conditions parameters is defined in a seperate xml file that is included in the solver.xml via the `<Include_xml>` parameter. 
