@@ -8,6 +8,9 @@
 #include "Vector.h"
 #include <array>
 
+class CmMod;
+class cmType;
+
 #include <optional>
 #include <functional>
 
@@ -414,7 +417,12 @@ class CepModTtp
     void update_g(const int imyo, const double dt, const int n, const int nG, const Vector<double>& X, 
         Vector<double>& Xg);
 
-    void copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const;
+    void copy_state_to_vectors(Vector<double>& X, Vector<double>& Xg) const;
+
+    void distribute_conductance(const CmMod& cm_mod, const cmType& cm);
+
+    void distribute_initial_state(const CmMod& cm_mod, const cmType& cm,
+        bool& user_initial_state, TenTusscherPanfilovState& state);
 
 };
 

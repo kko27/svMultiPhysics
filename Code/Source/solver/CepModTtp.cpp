@@ -3,6 +3,7 @@
 
 #include "CepModTtp.h"
 
+#include "CmMod.h"
 #include "mat_fun.h"
 #include <math.h>
 
@@ -67,8 +68,6 @@ void CepModTtp::actv_strs(const double c_Ca, const double dt, double& Tact, doub
 }
 
 /// @brief Compute currents and time derivatives of state variables
-///
-/// Note that is 'i' the myocardium zone id: 1, 2 or 3.
 ///
 /// Reproduces Fortran 'GETF()'.
 void CepModTtp::getf(const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg, Vector<double>& dX,
@@ -468,11 +467,48 @@ void CepModTtp::getj(const int nX, const int nG, const Vector<double>& X, const 
   JAC(6,6) = -(k2*Ca_ss + k4);
 }
 
+void CepModTtp::distribute_conductance(const CmMod& cm_mod, const cmType& cm)
+{
+  cm.bcast(cm_mod, &G_Na);
+  cm.bcast(cm_mod, &G_CaL);
+  cm.bcast(cm_mod, &G_Kr);
+  cm.bcast(cm_mod, &G_Ks);
+  cm.bcast(cm_mod, &G_to);
+}
+
+void CepModTtp::distribute_initial_state(const CmMod& cm_mod, const cmType& cm,
+    bool& user_initial_state, TenTusscherPanfilovState& s)
+{
+  cm.bcast(cm_mod, &user_initial_state);
+
+  if (user_initial_state) {
+    cm.bcast(cm_mod, &s.V);
+    cm.bcast(cm_mod, &s.K_i);
+    cm.bcast(cm_mod, &s.Na_i);
+    cm.bcast(cm_mod, &s.Ca_i);
+    cm.bcast(cm_mod, &s.Ca_ss);
+    cm.bcast(cm_mod, &s.Ca_sr);
+    cm.bcast(cm_mod, &s.R_bar);
+    cm.bcast(cm_mod, &s.x_r1);
+    cm.bcast(cm_mod, &s.x_r2);
+    cm.bcast(cm_mod, &s.x_s);
+    cm.bcast(cm_mod, &s.m);
+    cm.bcast(cm_mod, &s.h);
+    cm.bcast(cm_mod, &s.j);
+    cm.bcast(cm_mod, &s.d);
+    cm.bcast(cm_mod, &s.f);
+    cm.bcast(cm_mod, &s.f2);
+    cm.bcast(cm_mod, &s.fcass);
+    cm.bcast(cm_mod, &s.s);
+    cm.bcast(cm_mod, &s.r);
+  }
+}
+
 void CepModTtp::init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
     const TenTusscherPanfilovState* user_state)
 {
   initial_state = user_state ? *user_state : TenTusscherPanfilovState::default_state;
-  copyStateToVectors(X, Xg);
+  copy_state_to_vectors(X, Xg);
 }
 
 
@@ -724,7 +760,7 @@ void CepModTtp::update_g(const int imyo, const double dt, const int n, const int
   Xg(11) = ri - (ri - r)*exp(-dt/tau);
 }
 
-void CepModTtp::copyStateToVectors(Vector<double>& X, Vector<double>& Xg) const
+void CepModTtp::copy_state_to_vectors(Vector<double>& X, Vector<double>& Xg) const
 {
   X(0) = initial_state.V;
   X(1) = initial_state.K_i;

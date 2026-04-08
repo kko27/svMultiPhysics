@@ -28,8 +28,6 @@ void dist_fluid_visc_model(const ComMod& com_mod, const CmMod& cm_mod, const cmT
 
 void dist_solid_visc_model(const ComMod& com_mod, const CmMod& cm_mod, const cmType& cm, solidViscModelType& lVis);
 
-void dist_ttp_initial_state(const CmMod& cm_mod, const cmType& cm, cepModelType& cep);
-
 void part_face(Simulation* simulation, mshType& lM, faceType& lFa, faceType& gFa, Vector<int>& gmtl);
 
 void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& mtl, int nP, Vector<float>& wgt);
