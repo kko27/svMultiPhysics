@@ -1809,6 +1809,16 @@ void TTPInitialConditionsParameters::set_values(tinyxml2::XMLElement* xml_elem)
 
     item = item->NextSiblingElement();
   }
+
+  if (!initial_states.defined()) {
+    throw std::runtime_error(xml_element_name_ + " requires an '" +
+        TTPInitialStatesParameters::xml_element_name_ + "' XML section.");
+  }
+
+  if (!gating_variables.defined()) {
+    throw std::runtime_error(xml_element_name_ + " requires a '" +
+        TTPGatingVariablesParameters::xml_element_name_ + "' XML section.");
+  }
 }
 
 //////////////////////////////////////////////////////////

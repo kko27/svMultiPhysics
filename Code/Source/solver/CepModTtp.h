@@ -10,6 +10,7 @@
 
 class CmMod;
 class cmType;
+class TTPInitialConditionsParameters;
 
 #include <optional>
 #include <functional>
@@ -389,7 +390,7 @@ class CepModTtp
       double k_casr_sr, k1_casr, O_Casr, O_Cass, O_Rbar;
 
 //      Flag for user defined initial conditions
-      bool user_initial_conditions_defined = false; 
+      bool user_initial_state = false;
 
     void actv_strn(const double c_Ca, const double I4f, const double dt, double& gf);
     void actv_strs(const double c_Ca, const double dt, double& Tact, double& epsX);
@@ -400,9 +401,9 @@ class CepModTtp
     void getj(const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg,
         Array<double>& JAC, const double Ksac);
 
-    void init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
-        const TenTusscherPanfilovState* user_state = nullptr);
+    void init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg);
 
+    void set_initial_conditions(const TTPInitialConditionsParameters& params);
 
     void integ_cn2(const int imyo, const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
         const double Ts, const double dt, const double Istim, const double Ksac, 
@@ -421,8 +422,7 @@ class CepModTtp
 
     void distribute_conductance(const CmMod& cm_mod, const cmType& cm);
 
-    void distribute_initial_state(const CmMod& cm_mod, const cmType& cm,
-        bool& user_initial_state, TenTusscherPanfilovState& state);
+    void distribute_initial_state(const CmMod& cm_mod, const cmType& cm);
 
 };
 

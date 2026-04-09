@@ -1015,48 +1015,7 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
   }
 
   if (model_type == ElectrophysiologyModelType::TTP) {
-    if (!domain_params->ttp_initial_conditions.defined()) {
-      throw std::runtime_error("TTP model requires an 'Initial_condition' XML block.");
-    }
-
-    auto& ttp_ic = domain_params->ttp_initial_conditions;
-
-    if (!ttp_ic.initial_states.defined()) {
-      throw std::runtime_error("TTP initial conditions require an 'Initial_states' XML block.");
-    }
-
-    auto& s = ttp_ic.initial_states;
-    lDmn.cep.ttp_initial_state.V     = s.V.value();
-    lDmn.cep.ttp_initial_state.K_i   = s.K_i.value();
-    lDmn.cep.ttp_initial_state.Na_i  = s.Na_i.value();
-    lDmn.cep.ttp_initial_state.Ca_i  = s.Ca_i.value();
-    lDmn.cep.ttp_initial_state.Ca_ss = s.Ca_ss.value();
-    lDmn.cep.ttp_initial_state.Ca_sr = s.Ca_sr.value();
-    lDmn.cep.ttp_initial_state.R_bar = s.R_bar.value();
-
-    if (!ttp_ic.gating_variables.defined()) {
-      throw std::runtime_error("TTP initial conditions require a 'Gating_variables' XML block.");
-    }
-
-    auto& g = ttp_ic.gating_variables;
-    // Rectifier current gating variables
-    lDmn.cep.ttp_initial_state.x_r1   = g.x_r1_rectifier.value();
-    lDmn.cep.ttp_initial_state.x_r2   = g.x_r2_rectifier.value();
-    lDmn.cep.ttp_initial_state.x_s    = g.x_s_rectifier.value();
-    // Fast sodium current gating variables
-    lDmn.cep.ttp_initial_state.m      = g.m_fast_Na.value();
-    lDmn.cep.ttp_initial_state.h      = g.h_fast_Na.value();
-    lDmn.cep.ttp_initial_state.j      = g.j_fast_Na.value();
-    // Slow inward current gating variables
-    lDmn.cep.ttp_initial_state.d      = g.d_slow_in.value();
-    lDmn.cep.ttp_initial_state.f      = g.f_slow_in.value();
-    lDmn.cep.ttp_initial_state.f2     = g.f2_slow_in.value();
-    lDmn.cep.ttp_initial_state.fcass  = g.fcass_slow_in.value();
-    // Transient outward current gating variables
-    lDmn.cep.ttp_initial_state.s      = g.s_out.value();
-    lDmn.cep.ttp_initial_state.r      = g.r_out.value();
-
-    lDmn.cep.ttp_user_initial_state = true;
+    lDmn.cep.ttp.set_initial_conditions(domain_params->ttp_initial_conditions);
   }
 
   // Set stimulus parameters. 

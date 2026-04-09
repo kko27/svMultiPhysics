@@ -4,6 +4,7 @@
 #include "CepModTtp.h"
 
 #include "CmMod.h"
+#include "Parameters.h"
 #include "mat_fun.h"
 #include <math.h>
 
@@ -467,6 +468,34 @@ void CepModTtp::getj(const int nX, const int nG, const Vector<double>& X, const 
   JAC(6,6) = -(k2*Ca_ss + k4);
 }
 
+void CepModTtp::set_initial_conditions(const TTPInitialConditionsParameters& params)
+{
+  auto& s = params.initial_states;
+  initial_state.V     = s.V.value();
+  initial_state.K_i   = s.K_i.value();
+  initial_state.Na_i  = s.Na_i.value();
+  initial_state.Ca_i  = s.Ca_i.value();
+  initial_state.Ca_ss = s.Ca_ss.value();
+  initial_state.Ca_sr = s.Ca_sr.value();
+  initial_state.R_bar = s.R_bar.value();
+
+  auto& g = params.gating_variables;
+  initial_state.x_r1  = g.x_r1_rectifier.value();
+  initial_state.x_r2  = g.x_r2_rectifier.value();
+  initial_state.x_s   = g.x_s_rectifier.value();
+  initial_state.m     = g.m_fast_Na.value();
+  initial_state.h     = g.h_fast_Na.value();
+  initial_state.j     = g.j_fast_Na.value();
+  initial_state.d     = g.d_slow_in.value();
+  initial_state.f     = g.f_slow_in.value();
+  initial_state.f2    = g.f2_slow_in.value();
+  initial_state.fcass = g.fcass_slow_in.value();
+  initial_state.s     = g.s_out.value();
+  initial_state.r     = g.r_out.value();
+
+  user_initial_state = true;
+}
+
 void CepModTtp::distribute_conductance(const CmMod& cm_mod, const cmType& cm)
 {
   cm.bcast(cm_mod, &G_Na);
@@ -476,38 +505,38 @@ void CepModTtp::distribute_conductance(const CmMod& cm_mod, const cmType& cm)
   cm.bcast(cm_mod, &G_to);
 }
 
-void CepModTtp::distribute_initial_state(const CmMod& cm_mod, const cmType& cm,
-    bool& user_initial_state, TenTusscherPanfilovState& s)
+void CepModTtp::distribute_initial_state(const CmMod& cm_mod, const cmType& cm)
 {
   cm.bcast(cm_mod, &user_initial_state);
 
   if (user_initial_state) {
-    cm.bcast(cm_mod, &s.V);
-    cm.bcast(cm_mod, &s.K_i);
-    cm.bcast(cm_mod, &s.Na_i);
-    cm.bcast(cm_mod, &s.Ca_i);
-    cm.bcast(cm_mod, &s.Ca_ss);
-    cm.bcast(cm_mod, &s.Ca_sr);
-    cm.bcast(cm_mod, &s.R_bar);
-    cm.bcast(cm_mod, &s.x_r1);
-    cm.bcast(cm_mod, &s.x_r2);
-    cm.bcast(cm_mod, &s.x_s);
-    cm.bcast(cm_mod, &s.m);
-    cm.bcast(cm_mod, &s.h);
-    cm.bcast(cm_mod, &s.j);
-    cm.bcast(cm_mod, &s.d);
-    cm.bcast(cm_mod, &s.f);
-    cm.bcast(cm_mod, &s.f2);
-    cm.bcast(cm_mod, &s.fcass);
-    cm.bcast(cm_mod, &s.s);
-    cm.bcast(cm_mod, &s.r);
+    cm.bcast(cm_mod, &initial_state.V);
+    cm.bcast(cm_mod, &initial_state.K_i);
+    cm.bcast(cm_mod, &initial_state.Na_i);
+    cm.bcast(cm_mod, &initial_state.Ca_i);
+    cm.bcast(cm_mod, &initial_state.Ca_ss);
+    cm.bcast(cm_mod, &initial_state.Ca_sr);
+    cm.bcast(cm_mod, &initial_state.R_bar);
+    cm.bcast(cm_mod, &initial_state.x_r1);
+    cm.bcast(cm_mod, &initial_state.x_r2);
+    cm.bcast(cm_mod, &initial_state.x_s);
+    cm.bcast(cm_mod, &initial_state.m);
+    cm.bcast(cm_mod, &initial_state.h);
+    cm.bcast(cm_mod, &initial_state.j);
+    cm.bcast(cm_mod, &initial_state.d);
+    cm.bcast(cm_mod, &initial_state.f);
+    cm.bcast(cm_mod, &initial_state.f2);
+    cm.bcast(cm_mod, &initial_state.fcass);
+    cm.bcast(cm_mod, &initial_state.s);
+    cm.bcast(cm_mod, &initial_state.r);
   }
 }
 
-void CepModTtp::init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg,
-    const TenTusscherPanfilovState* user_state)
+void CepModTtp::init(const int nX, const int nG, Vector<double>& X, Vector<double>& Xg)
 {
-  initial_state = user_state ? *user_state : TenTusscherPanfilovState::default_state;
+  if (!user_initial_state) {
+    initial_state = TenTusscherPanfilovState::default_state;
+  }
   copy_state_to_vectors(X, Xg);
 }
 

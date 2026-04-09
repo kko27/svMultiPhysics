@@ -1561,7 +1561,7 @@ void dist_eq(ComMod& com_mod, const CmMod& cm_mod, const cmType& cm, const std::
 
       // Broadcast domain-specific model parameters
       cep.ttp.distribute_conductance(cm_mod, cm);
-      cep.ttp.distribute_initial_state(cm_mod, cm, cep.ttp_user_initial_state, cep.ttp_initial_state);
+      cep.ttp.distribute_initial_state(cm_mod, cm);
 
       cm.bcast(cm_mod, cep.bo.tau_si);
       cm.bcast(cm_mod, cep.bo.tau_fi);
