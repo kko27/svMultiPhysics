@@ -794,8 +794,9 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
 
       double w = lM.w(g)*Jac;
       auto N = lM.N.col(g);
-      F = mat_fun::mat_id(nsd);
 
+      // Compute Deformation Gradient: F = I + grad(u)
+      F = mat_fun::mat_id(nsd);     
       for (int a = 0; a < eNoN; a++) { 
         if (nsd == 3) {
           F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
@@ -815,9 +816,11 @@ void fib_strech(Simulation* simulation, const int iEq, const mshType& lM, const 
         }
       }
 
+      // Compute fiber stretch based on 4th invariant: I_{4,f} = F.fN.F.fN
       auto fl = mat_fun::mat_mul(F, lM.fN.rows(0,nsd-1,e));
       double I4f = utils::norm(fl);
 
+      // L2 projection of I4f from integration points to nodes
       for (int a = 0; a < eNoN; a++) { 
         int Ac = lM.IEN(a,e);
         sA(Ac) = sA(Ac) + w*N(a);
