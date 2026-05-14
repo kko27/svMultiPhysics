@@ -17,9 +17,6 @@
 
 namespace mat_models {
 
-void actv_strain(const ComMod& com_mod, const CepMod& cep_mod, const double gf, 
-    const int nfd, const Array<double>& fl, Array<double>& Fa);
-
 void cc_to_voigt(const int nsd, const Tensor4<double>& CC, Array<double>& Dm);
 
 void voigt_to_cc(const int nsd, const Array<double>& Dm, Tensor4<double>& CC);

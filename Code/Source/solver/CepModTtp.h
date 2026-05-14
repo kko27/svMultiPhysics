@@ -223,56 +223,6 @@ class CepModTtp
       /// Resting potential [mV]
       double Vrest = -85.23;
 
-//     Electromechanics coupling parameters: active stress model
-      /// Resting Ca concentration [mM]
-      double Ca_rest = 5.E-5;
-
-      /// Critical Ca concentration [mM]
-      double Ca_crit = 8.E-4;
-
-      /// Saturation of concentration [MPa/mM]
-      double eta_T = 12.5;
-
-      /// Minimum activation [ms^{-1}]
-      double eps_0 = 0.1;
-
-      /// Maximum activation [ms^{-1}]
-      double eps_i = 1. ;
-
-      /// Transition rate [mM^{-1}]
-      double xi_T = 4.E3;
-
-//     Electromechanics coupling parameters: active strain model
-//
-
-      /// Active force of sacromere [-mM^{-2}]
-      double alFa = -4.E6;
-
-      /// Resting Ca concentration [mM]
-      double c_Ca0 = 2.155E-4;
-
-      /// Viscous-type constant [ms-mM^{-2}]
-      double mu_Ca = 5.E6;
-
-//     Force-length relationship parameters
-      /// Initial length of sacromeres [um]
-      double SL0 = 1.95;
-
-      /// Min. length of sacromeres [um]
-      double SLmin = 1.7;
-
-      /// Max. length of sacromeres [um]
-      double SLmax = 2.6;
-
-      /// Fourier coefficients
-      double f0  = -4333.618335582119;
-      double fc1 =  2570.395355352195;
-      double fs1 = -2051.827278991976;
-      double fc2 =  1329.53611689133;
-      double fs2 =  302.216784558222;
-      double fc3 =  104.943770305116;
-      double fs3 =  218.375174229422;
-
 //-----------------------------------------------------------------------
 //     Scaling factors
       /// Voltage scaling
@@ -391,9 +341,6 @@ class CepModTtp
 
 //      Flag for user defined initial conditions
       bool user_initial_state = false;
-
-    void actv_strn(const double c_Ca, const double I4f, const double dt, double& gf);
-    void actv_strs(const double c_Ca, const double dt, double& Tact, double& epsX);
 
     void getf(const int nX, const int nG, const Vector<double>& X, const Vector<double>& Xg,
         Vector<double>& dX, const double I_stim, const double K_sac, Vector<double>& RPAR);

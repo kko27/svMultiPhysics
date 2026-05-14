@@ -24,32 +24,6 @@ using Tensor = Eigen::TensorFixedSize<double, Eigen::Sizes<nsd, nsd, nsd, nsd>>;
 
 
 
-/// @brief Compute active component of deformation gradient tensor for
-/// electromechanics coupling based on active strain formulation
-///
-/// Reproduces Fortran 'ACTVSTRAIN'.
-//
-void actv_strain(const ComMod& com_mod, const CepMod& cep_mod, const double gf, 
-    const int nfd, const Array<double>& fl, Array<double>& Fa) 
-{
-  using namespace mat_fun;
-
-  int nsd = com_mod.nsd;
-  auto af = fl.col(0);
-  auto as = fl.col(1);
-  auto an = utils::cross(fl);
-
-  double gn = 4.0 * gf;
-  double gs = 1.0 / ((1.0+gf) * (1.0+gn)) - 1.0;
-
-  auto IDm = mat_id(nsd);
-  auto Hf = mat_dyad_prod(af, af, nsd);
-  auto Hs = mat_dyad_prod(as, as, nsd);
-  auto Hn = mat_dyad_prod(an, an, nsd);
-
-  Fa = IDm + gf*Hf + gs*Hs + gn*Hn;
-}
-
 void cc_to_voigt(const int nsd, const Tensor4<double>& CC, Array<double>& Dm)
 {
   if (nsd == 3) {
@@ -408,12 +382,10 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
   Matrix<nsd> Fa = Matrix<nsd>::Identity();
   Matrix<nsd> Fai = Fa;
 
-  // This commented block implements the active strain formulation, taken from svFSI
-  // It is commented out because the active strain formulation is not used in the 
-  // current implementation. However, it is left here for reference when we decide to
-  // implement it.
+  // Active strain: compute F_a from gamma_f (ya) and apply multiplicative split.
+  // Currently disabled; enable once CEM XML input is wired up.
   // if (cep_mod.cem.aStrain) {
-  //   actv_strain(com_mod, cep_mod, ya, nfd, fl, Fa);
+  //   cep_mod.cem.compute_Fa(nsd, ya, fl, Fa);
   //   Fai = Fa.inverse();
   //   Fe = F * Fai;
   // }

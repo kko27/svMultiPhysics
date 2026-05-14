@@ -12,6 +12,7 @@
 #ifndef CEP_MOD_H 
 #define CEP_MOD_H 
 
+#include "CemMod.h"
 #include "CepModAp.h"
 #include "CepModBo.h"
 #include "CepModFn.h"
@@ -179,29 +180,7 @@ class cepModelType
     CepModTtp ttp;
 };
 
-/// @brief Cardiac electromechanics model type
-class cemModelType
-{
-  public:
-    /// @brief  Whether electrophysiology and mechanics are coupled
-    bool cpld = false;
-    //bool cpld = .FALSE.
-
-    /// @brief  Whether active stress formulation is employed
-    bool aStress = false;
-    //bool aStress = .FALSE.
-
-    /// @brief  Whether active strain formulation is employed
-    bool aStrain = false;
-    //bool aStrain = .FALSE.
-
-    /// @brief  Local variable integrated in time
-    ///    := activation force for active stress model
-    ///    := fiber stretch for active strain model
-    Vector<double> Ya;
-};
-
-class CepMod 
+class CepMod
 {
   public:
 
@@ -214,8 +193,8 @@ class CepMod
     /// @brief Unknowns stored at all nodes
     Array<double> Xion;
 
-    /// @brief Cardiac electromechanics type
-    cemModelType cem;
+    /// @brief Cardiac electromechanics model
+    CemMod cem;
 
     /// @brief Interface for Aliev-Panfilov cellular activation model.
     CepModAp ap;

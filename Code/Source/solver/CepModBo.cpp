@@ -15,36 +15,6 @@ CepModBo::~CepModBo()
 {
 }
 
-/// @brief Compute macroscopic fiber strain based on sacromere force-length
-/// relationship and slow inward current variable (s)
-void CepModBo::actv_strn(const double c, const double I4f, const double dt, double& gf)
-{
-  //  fiber length
-  double SL = I4f * SL0;
-
-  // Sacromere force-length relationship
-  if (SL >= SLmin && SL <= SLmax) {
-     SL = 0.5*f0 + fc1*cos(SL) + fs1*sin(SL) + fc2*cos(2.0*SL) + fs2*sin(2.0*SL)  + fc3*cos(3.0*SL) + fs3*sin(3.0*SL);
-  } else { 
-     SL = 0.0;
-  }
-
-  // Active force
-  double Fa = alFa * (c-c0)*(c-c0) * SL;
-
-  double rtmp = 2.0*I4f*(1.0/ pow(1.0+gf,3.0) - 1.0);
-  gf = gf + dt*(Fa + rtmp)/(mu_C * c * c);
-}
-
-/// @brief Compute activation force for electromechanics based on active stress model
-void CepModBo::actv_strs(const double X, const double dt, double& Tact, double& epsX)
-{
-  epsX = exp(-exp(-xi_T*(X - Vcrit)));
-  epsX = eps_0 + (eps_i - eps_0)*epsX;
-  double nr   = Tact + epsX*dt*eta_T*(X - Vrest);
-  Tact = nr / (1.0 + epsX*dt);
-}
-
 double CepModBo::delta(const double r)
 {
   double result{0.0};

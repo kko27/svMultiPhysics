@@ -41,33 +41,6 @@ CepModTtp::~CepModTtp()
 }
 
 
-/// @brief Compute macroscopic fiber strain based on sacromere force-length relationship and calcium concentration
-void CepModTtp::actv_strn(const double c_Ca, const double I4f, const double dt, double& gf)
-{
-  // fiber length
-  double SL = I4f * SL0;
-
-  //  Sacromere force-length relationship
-  if (SL >= SLmin && SL <= SLmax) {
-    SL = 0.5*f0 + fc1*cos(SL) + fs1*sin(SL) + fc2*cos(2.0*SL) + fs2*sin(2.0*SL)  + fc3*cos(3.0*SL) + fs3*sin(3.0*SL);
-  } else { 
-    SL = 0.0;
-  } 
-
-  // Active force
-  double Fa = alFa * (c_Ca-c_Ca0)*(c_Ca-c_Ca0) * SL;
-  double rtmp = 2.0*I4f*(1.0/ pow(1.0+gf,3.0) - 1.0);
-  gf = gf + dt*(Fa + rtmp)/(mu_Ca * c_Ca * c_Ca);
-}
-
-void CepModTtp::actv_strs(const double c_Ca, const double dt, double& Tact, double& epsX)
-{
-  epsX = exp(-exp(-xi_T*(c_Ca - Ca_crit)));
-  epsX = eps_0 + (eps_i - eps_0)*epsX;
-  double nr  = Tact + epsX*dt*eta_T*(c_Ca - Ca_rest);
-  Tact = nr / (1.0 + epsX*dt);
-}
-
 /// @brief Compute currents and time derivatives of state variables
 ///
 /// Reproduces Fortran 'GETF()'.

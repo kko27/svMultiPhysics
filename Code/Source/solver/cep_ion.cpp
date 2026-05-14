@@ -384,14 +384,12 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
               Istim = 0.0;
             }
             cep.ap.integ_fe(nX, X, t, cep.dt, Istim, Ksac);
-  
-            // Electromechanics excitation-activation
+
             if (cem.aStress) {
-              double epsX;
-              cep.ap.actv_strs(X(0), cep.dt, yl, epsX);
+              cem.actv_strs_si(X(0), cep.dt, yl);
             }
           }
-        } break; 
+        } break;
 
         case TimeIntegratioType::RK4: {
           for (int i = 0; i < nt; i++) {
@@ -404,13 +402,11 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             }
             cep.ap.integ_rk(nX, X, t, cep.dt, Istim, Ksac);
 
-            //  Electromechanics excitation-activation
             if (cem.aStress) {
-              double epsX;
-              cep.ap.actv_strs(X(0), cep.dt, yl, epsX);
+              cem.actv_strs_rk(X(0), cep.dt, yl);
             }
           }
-        } break; 
+        } break;
 
         case TimeIntegratioType::CN2: {
           for (int i = 0; i < nt; i++) {
@@ -421,18 +417,15 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             } else {
               Istim = 0.0;
             }
-
             cep.ap.integ_cn2(nX, X, t, cep.dt, Istim, Ksac, IPAR, RPAR);
 
-            // Electromechanics excitation-activation
             if (cem.aStress) {
-              double epsX;
-              cep.ap.actv_strs(X(0), cep.dt, yl, epsX);
+              cem.actv_strs_si(X(0), cep.dt, yl);
             }
           }
-        } break; 
-      } 
-    } break; 
+        } break;
+      }
+    } break;
 
     case ElectrophysiologyModelType::BO: {
       Vector<int> IPAR(2); 
@@ -452,15 +445,12 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             } else {
               Istim = 0.0;
             }
-
             cep.bo.integ_fe(cep.imyo, nX, X, t, cep.dt, Istim, Ksac, RPAR);
 
-            // Electromechanics excitation-activation
             if (cem.aStress) {
-              double epsX;
-              cep.bo.actv_strs(X(0), cep.dt, yl, epsX);
+              cem.actv_strs_si(X(0), cep.dt, yl);
             } else if (cem.aStrain) {
-              cep.bo.actv_strn(X(3), I4f, cep.dt, yl);
+              cem.actv_strn_fe(X(3), I4f, cep.dt, yl);
             }
           }
         } break;
@@ -474,15 +464,12 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             } else {
               Istim = 0.0;
             }
-
             cep.bo.integ_rk(cep.imyo, nX, X, t, cep.dt, Istim, Ksac, RPAR);
 
-            // Electromechanics excitation-activation
             if (cem.aStress) {
-              double epsX;
-              cep.bo.actv_strs(X(0), cep.dt, yl, epsX);
+              cem.actv_strs_rk(X(0), cep.dt, yl);
             } else if (cem.aStrain) {
-              cep.bo.actv_strn(X(3), I4f, cep.dt, yl);
+              cem.actv_strn_rk(X(3), I4f, cep.dt, yl);
             }
           }
         } break;
@@ -496,20 +483,17 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             } else {
               Istim = 0.0;
             }
-
             cep.bo.integ_cn2(cep.imyo, nX, X, t, cep.dt, Istim, Ksac, IPAR, RPAR);
 
-            // Electromechanics excitation-activation
             if (cem.aStress) {
-              double epsX;
-              cep.bo.actv_strs(X(0), cep.dt, yl, epsX);
+              cem.actv_strs_si(X(0), cep.dt, yl);
             } else if (cem.aStrain) {
-              cep.bo.actv_strn(X(3), I4f, cep.dt, yl);
+              cem.actv_strn_fe(X(3), I4f, cep.dt, yl);
             }
           }
         } break;
-      } 
-    } break; 
+      }
+    } break;
 
     case ElectrophysiologyModelType::FN: {
       Vector<int> IPAR(2); 
@@ -582,12 +566,10 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             }
             cep.ttp.integ_fe(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, RPAR);
 
-            // Electromechanics excitation-activation
             if (cem.aStress) {
-              double epsX;
-              cep.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              cem.actv_strs_si(X(3), cep.dt, yl);
             } else if (cem.aStrain) {
-              cep.ttp.actv_strn(X(3), I4f, cep.dt, yl);
+              cem.actv_strn_fe(X(3), I4f, cep.dt, yl);
             }
           }
         } break;
@@ -601,15 +583,12 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             } else {
               Istim = 0.0;
             }
-
             cep.ttp.integ_rk(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, RPAR);
 
-            // Electromechanics excitation-activation
             if (cem.aStress) {
-              double epsX;
-              cep.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              cem.actv_strs_rk(X(3), cep.dt, yl);
             } else if (cem.aStrain) {
-              cep.ttp.actv_strn(X(3), I4f, cep.dt, yl);
+              cem.actv_strn_rk(X(3), I4f, cep.dt, yl);
             }
           }
         } break;
@@ -623,15 +602,12 @@ void cep_integ_l(CepMod& cep_mod, cepModelType& cep, int nX, int nG, Vector<doub
             } else {
               Istim = 0.0;
             }
-
             cep.ttp.integ_cn2(cep.imyo, nX, nG, X, Xg, t, cep.dt, Istim, Ksac, IPAR, RPAR);
 
-            // Electromechanics excitation-activation
             if (cem.aStress) {
-              double epsX;
-              cep.ttp.actv_strs(X(3), cep.dt, yl, epsX);
+              cem.actv_strs_si(X(3), cep.dt, yl);
             } else if (cem.aStrain) {
-              cep.ttp.actv_strn(X(3), I4f, cep.dt, yl);
+              cem.actv_strn_fe(X(3), I4f, cep.dt, yl);
             }
           }
         } break;

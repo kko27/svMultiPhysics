@@ -14,17 +14,6 @@ CepModAp::~CepModAp()
 {
 }
 
-/// @brief Compute activation force for electromechanics based on active stress model
-///
-/// Replicates 'SUBROUTINE AP_ACTVSTRS(X, dt, Tact, epsX)' defined in 'CEPMOD_AP.f'.
-void CepModAp::actv_strs(const double X, const double dt, double& Tact, double& epsX)
-{
-  epsX = exp(-exp(-xi_T*(X - Vcrit)));
-  epsX = eps_0 + (eps_i - eps_0)*epsX;
-  double nr = Tact + epsX*dt*eta_T*(X - Vrest);
-  Tact = nr / (1.0 + epsX*dt);
-}
-
 void CepModAp::getf(const int n, const Vector<double>& X, Vector<double>& f, const double fext)
 {
   f(0) = X(0)*(c*(X(0)-alpha)*(1.0-X(0)) - X(1)) + fext;

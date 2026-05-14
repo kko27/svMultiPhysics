@@ -62,43 +62,8 @@ class CepModBo
     BoModelParam tau_winf = {7.E-2, 2.73E-2, 1.E-2};
     BoModelParam ws_inf = {0.940, 0.78, 0.5};
 
-    // Electromechanics coupling parameters: active stress model
-    /// Resting voltage (mV)
+    /// Resting voltage [mV] — used as SAC reversal potential: Isac = Ksac*(Vrest - V)
     double Vrest = -84.0;
-    /// Critical voltage (mV)
-    double Vcrit = -30.0;
-    /// Saturation potential
-    double eta_T = 5.E-3;
-    /// Minimum activation (ms^{-1})
-    double eps_0 = 0.10;
-    /// Maximum activation (ms^{-1})
-    double eps_i = 1.0;
-    /// Transition rate (mV^{-1})
-    double xi_T = 1.0;
-
-    // Electromechanics coupling parameters: active strain model
-    /// Active force of sacromere (-mM^{-2})
-    double alFa = -4.E+6;
-    /// Resting Ca concentration (mM) := slow inward current variable (s)
-    double c0 = 2.155E-4;
-    /// Viscous-type constant (ms-mM^{-2})
-    double mu_C = 5.E+6;
-
-    // Force-length relationship parameters
-    /// Initial length of sacromeres (um)
-    double SL0 = 1.950;
-    /// Min. length of sacromeres (um)
-    double SLmin = 1.70;
-    /// Max. length of sacromeres (um)
-    double SLmax = 2.60;
-    /// Fourier coefficients
-    double f0  = -4333.6183355821190;
-    double fc1 =  2570.3953553521950;
-    double fs1 = -2051.8272789919760;
-    double fc2 =  1329.536116891330;
-    double fs2 =  302.2167845582220;
-    double fc3 =  104.9437703051160;
-    double fs3 =  218.3751742294220;
 
     /// Cm: Cell capacitance per unit surface area
     double Cm  = 1.0;
@@ -106,9 +71,6 @@ class CepModBo
     double sV  = 1.0;
     /// rho: Cellular resistivity
     double rho = 1.0;
-
-    void actv_strn(const double c, const double I4f, const double dt, double& gf);
-    void actv_strs(const double X, const double dt, double& Tact, double& epsX);
 
     double delta(const double r);
 

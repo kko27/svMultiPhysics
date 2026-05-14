@@ -210,6 +210,7 @@ set(CSRCS
   ris.h ris.cpp
   uris.h uris.cpp
 
+  CemMod.h CemMod.cpp
   CepMod.h CepMod.cpp
   CepModAp.h CepModAp.cpp
   CepModBo.h CepModBo.cpp

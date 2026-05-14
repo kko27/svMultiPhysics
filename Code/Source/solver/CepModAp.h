@@ -36,24 +36,8 @@ class CepModAp
     double mu1   = 0.20;
     double mu2   = 0.30;
 
-    // Electromechanics coupling parameters: active stress model
-    /// Resting voltage (mV)
+    /// Resting voltage [mV] — used as SAC reversal potential: Isac = Ksac*(Vrest - V)
     double Vrest = -80.0;
-
-    /// Critical voltage (mV)
-    double Vcrit = -30.0;
-
-    /// Saturation potential
-    double eta_T = 5.E-3;
-
-    /// Minimum activation (ms^{-1})
-    double eps_0 = 0.10;
-
-    /// Maximum activation (ms^{-1})
-    double eps_i = 1.0;
-
-    /// Transition rate (mV^{-1})
-    double xi_T  = 1.0;
 
     /// Cm: Cell capacitance per unit surface area
     double Cm  = 1.0;
@@ -63,8 +47,6 @@ class CepModAp
 
     /// rho: Cellular resistivity
     double rho = 1.0;
-
-    void actv_strs(const double X, const double dt, double& Tact, double& epsX);
 
     void getf(const int n, const Vector<double>& X, Vector<double>& f, const double fext);
     void getj(const int n, const Vector<double>& X, Array<double>& Jac, const double Ksac);
