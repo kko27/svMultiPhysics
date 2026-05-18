@@ -75,6 +75,7 @@
 
    <Output type="Spatial" >
      <Displacement> true </Displacement>
+     <Velocity> true </Velocity>
      <Jacobian> true </Jacobian>
      <Strain> true </Strain>
      <Stress> true </Stress>
