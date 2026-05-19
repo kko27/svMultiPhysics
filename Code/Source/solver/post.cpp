@@ -750,7 +750,7 @@ static void compute_fib_stretch(Simulation* simulation, const int iEq, const msh
   auto& com_mod = simulation->com_mod;
   auto& eq = com_mod.eq[iEq];
 
-  int nsd  = com_mod.nsd;
+  int nsd = com_mod.nsd;
   int tnNo = com_mod.tnNo;
   int tDof = com_mod.tDof;
   int eNoN = lM.eNoN;
