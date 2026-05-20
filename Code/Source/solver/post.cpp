@@ -742,7 +742,7 @@ void fib_dir_post(Simulation* simulation, const mshType& lM, const int nFn, Arra
 
 /// @brief L2-project nodal fiber stretch λ = sqrt(I_{4,f}) from a given displacement field.
 //
-static void compute_fib_stretch(Simulation* simulation, const int iEq, const mshType& lM,
+void compute_fib_stretch(Simulation* simulation, const int iEq, const mshType& lM,
     const Array<double>& lD, Vector<double>& res)
 {
   using namespace consts;
