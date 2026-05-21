@@ -3,6 +3,7 @@
 
 #include "post.h"
 
+#include "FE/Common/FEException.h"
 #include "all_fun.h"
 #include "fluid.h"
 #include "fs.h"
@@ -43,6 +44,9 @@ namespace post {
       }   
       return F;
     }
+
+    void compute_fib_stretch(const ComMod& com_mod, const int iEq, const mshType& lM,
+        const Array<double>& lD, Vector<double>& res);
   }
 
 void all_post(Simulation* simulation, Array<double>& res, const SolutionStates& solutions,
@@ -717,23 +721,48 @@ void fib_dir_post(Simulation* simulation, const mshType& lM, const int nFn, Arra
 
 }
 
-/// @brief Compute fiber stretch λ = sqrt(I_{4,f}) from a given displacement field.
+/// @brief Compute fiber stretch based on 4th invariant: λ = sqrt(I_{4,f})
 //
-void compute_fib_stretch(Simulation* simulation, const int iEq, const mshType& lM,
+void fib_stretch(Simulation* simulation, const int iEq, const mshType& lM, const SolutionStates& solutions, Vector<double>& res)
+{
+  compute_fib_stretch(simulation->com_mod, iEq, lM, solutions.current.get_displacement(), res);
+}
+
+/// @brief Compute fiber stretch rate dλ/dt via backward finite difference.
+//
+void fib_stretch_rate(Simulation* simulation, const int iEq, const mshType& lM, const SolutionStates& solutions, Vector<double>& res)
+{
+  auto& com_mod = simulation->com_mod;
+  const double dt = com_mod.dt;
+  int nNo = lM.nNo;
+
+  if (res.size() != nNo) {
+    svmp::raise<svmp::FE::InvalidArgumentException>(
+        SVMP_HERE,
+        "[fib_stretch_rate] Expected res size " + std::to_string(nNo) + ", but got " + std::to_string(res.size()) + ".");
+  }
+
+  Vector<double> lambda_old(nNo);
+
+  compute_fib_stretch(simulation->com_mod, iEq, lM, solutions.current.get_displacement(), res);
+  compute_fib_stretch(simulation->com_mod, iEq, lM, solutions.old.get_displacement(),     lambda_old);
+
+  res = (res - lambda_old) / dt; 
+}
+
+namespace {
+/// @brief Compute fiber stretch lambda = sqrt(I_{4,f}) from a given displacement field.
+void compute_fib_stretch(const ComMod& com_mod, const int iEq, const mshType& lM,
     const Array<double>& lD, Vector<double>& res)
 {
   using namespace consts;
 
-  auto& com_mod = simulation->com_mod;
   auto& eq = com_mod.eq[iEq];
-
   int nsd = com_mod.nsd;
   int tnNo = com_mod.tnNo;
   int tDof = com_mod.tDof;
   int eNoN = lM.eNoN;
   int i = eq.s;
-  int j = i + 1;
-  int k = j + 1;
 
   Vector<double> sA(tnNo);
   Vector<double> sF(tnNo);
@@ -762,9 +791,6 @@ void compute_fib_stretch(Simulation* simulation, const int iEq, const mshType& l
         nn::gnn(eNoN, nsd, nsd, Nxi, xl, Nx, Jac, ksix);
       }
 
-      double w = lM.w(g)*Jac;
-      auto N = lM.N.col(g);
-
       // Compute Deformation Gradient: F = I + grad(u)
       F = deformation_gradient(Nx, dl, nsd, eNoN, i);
 
@@ -773,6 +799,8 @@ void compute_fib_stretch(Simulation* simulation, const int iEq, const mshType& l
       double lambda = sqrt(utils::norm(fl));
 
       // L2 projection from integration points to nodes
+      double w = lM.w(g)*Jac;
+      auto N = lM.N.col(g);
       for (int a = 0; a < eNoN; a++) {
         int Ac = lM.IEN(a,e);
         sA(Ac) = sA(Ac) + w*N(a);
@@ -793,42 +821,7 @@ void compute_fib_stretch(Simulation* simulation, const int iEq, const mshType& l
     }
   }
 }
-
-
-/// @brief Compute fiber stretch based on 4th invariant: λ = sqrt(I_{4,f})
-//
-void fib_stretch(Simulation* simulation, const int iEq, const mshType& lM, const SolutionStates& solutions, Vector<double>& res)
-{
-  auto& com_mod = simulation->com_mod;
-  auto& eq = com_mod.eq[iEq];
-  com_mod.dof = eq.dof;
-  compute_fib_stretch(simulation, iEq, lM, solutions.current.get_displacement(), res);
 }
-
-
-/// @brief Compute fiber stretch rate dλ/dt via backward finite difference.
-//
-void fib_stretch_rate(Simulation* simulation, const int iEq, const mshType& lM, const SolutionStates& solutions, Vector<double>& res)
-{
-  auto& com_mod = simulation->com_mod;
-  auto& eq = com_mod.eq[iEq];
-  com_mod.dof = eq.dof;
-
-  const double dt = com_mod.dt;
-  int nNo = lM.nNo;
-
-  Vector<double> lambda_curr(nNo);
-  Vector<double> lambda_old(nNo);
-
-  compute_fib_stretch(simulation, iEq, lM, solutions.current.get_displacement(), lambda_curr);
-  compute_fib_stretch(simulation, iEq, lM, solutions.old.get_displacement(),     lambda_old);
-
-  res = 0.0;
-  for (int a = 0; a < nNo; a++) {
-    res(a) = (lambda_curr(a) - lambda_old(a)) / dt;
-  }
-}
-
 
 void post(Simulation* simulation, const mshType& lM, Array<double>& res, const SolutionStates& solutions,
     consts::OutputNameType outGrp, const int iEq)
