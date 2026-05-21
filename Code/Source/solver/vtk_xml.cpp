@@ -1301,7 +1301,7 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
             tmpV.resize(consts::maxNSD,msh.nNo);
           break;
 
-          case OutputNameType::outGrp_I4f: {
+          case OutputNameType::outGrp_fibStretch: {
             Vector<double> res(msh.nNo);
             if (msh.nFn != 0) {
               post::fib_stretch(simulation, iEq, msh, solutions, res);
@@ -1311,7 +1311,7 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
             }
           } break;
 
-          case OutputNameType::outGrp_I4fRate: {
+          case OutputNameType::outGrp_fibStretchRate: {
             Vector<double> res(msh.nNo);
             if (msh.nFn != 0) {
               post::fib_stretch_rate(simulation, iEq, msh, solutions, res);
@@ -1553,4 +1553,3 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
 }
 
 };
-

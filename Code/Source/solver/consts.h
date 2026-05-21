@@ -345,8 +345,8 @@ enum class OutputNameType
   outGrp_C = 524,
   outGrp_I1 = 525,
   outGrp_ionicState = 526,
-  outGrp_I4f = 527,
-  outGrp_I4fRate = 528,
+  outGrp_fibStretch = 527,
+  outGrp_fibStretchRate = 528,
 
   out_velocity = 599,
   out_pressure = 598, 
@@ -501,4 +501,3 @@ enum class LinearAlgebraType {
 };
 
 #endif
-

@@ -5,6 +5,11 @@ The plot below shows the analytical and computed fiber stretch.
    <img src="./fiberstretch.png" width="600">
 </p>
 
+The analytical and computed fiber stretch rates are provided below. 
+<p align="center">
+   <img src="./fiberstretchrate.png" width="600">
+</p>
+
 The resulting deformation and the fiber stretch values are shown in the video below:
 <p align="center">
    <img src="./BlockStretch.gif" width="600">
