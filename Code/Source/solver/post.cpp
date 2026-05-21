@@ -17,6 +17,34 @@
 
 namespace post {
 
+  namespace {
+
+    Array<double> deformation_gradient(const Array<double>& Nx, const Array<double>& dl,
+        int nsd, int nNo, int eq_start)
+    {
+      auto F = mat_fun::mat_id(nsd);
+      for (int a = 0; a < nNo; a++) {
+        if (nsd == 3) {
+          F(0,0) = F(0,0) + Nx(0,a)*dl(eq_start,a);
+          F(0,1) = F(0,1) + Nx(1,a)*dl(eq_start,a);
+          F(0,2) = F(0,2) + Nx(2,a)*dl(eq_start,a);
+          F(1,0) = F(1,0) + Nx(0,a)*dl(eq_start+1,a);
+          F(1,1) = F(1,1) + Nx(1,a)*dl(eq_start+1,a);
+          F(1,2) = F(1,2) + Nx(2,a)*dl(eq_start+1,a);
+          F(2,0) = F(2,0) + Nx(0,a)*dl(eq_start+2,a);
+          F(2,1) = F(2,1) + Nx(1,a)*dl(eq_start+2,a);
+          F(2,2) = F(2,2) + Nx(2,a)*dl(eq_start+2,a);
+        } else {
+          F(0,0) = F(0,0) + Nx(0,a)*dl(eq_start,a);
+          F(0,1) = F(0,1) + Nx(1,a)*dl(eq_start,a);
+          F(1,0) = F(1,0) + Nx(0,a)*dl(eq_start+1,a);
+          F(1,1) = F(1,1) + Nx(1,a)*dl(eq_start+1,a);
+        }
+      }   
+      return F;
+    }
+  }
+
 void all_post(Simulation* simulation, Array<double>& res, const SolutionStates& solutions,
     consts::OutputNameType outGrp, const int iEq) 
 {
@@ -443,17 +471,8 @@ void div_post(Simulation* simulation, const mshType& lM, Array<double>& res, con
             vx(2,0) = vx(2,0) + Nx(0,a)*yl(k,a);
             vx(2,1) = vx(2,1) + Nx(1,a)*yl(k,a);
             vx(2,2) = vx(2,2) + Nx(2,a)*yl(k,a);
-
-            F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-            F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-            F(0,2) = F(0,2) + Nx(2,a)*dl(i,a);
-            F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-            F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
-            F(1,2) = F(1,2) + Nx(2,a)*dl(j,a);
-            F(2,0) = F(2,0) + Nx(0,a)*dl(k,a);
-            F(2,1) = F(2,1) + Nx(1,a)*dl(k,a);
-            F(2,2) = F(2,2) + Nx(2,a)*dl(k,a);
           }
+          F = deformation_gradient(Nx, dl, nsd, eNoN, i);
 
           auto Fi = mat_fun::mat_inv(F,3);
 
@@ -468,12 +487,8 @@ void div_post(Simulation* simulation, const mshType& lM, Array<double>& res, con
             vx(0,1) = vx(0,1) + Nx(1,a)*yl(i,a);
             vx(1,0) = vx(1,0) + Nx(0,a)*yl(j,a);
             vx(1,1) = vx(1,1) + Nx(1,a)*yl(j,a);
-
-            F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-            F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-            F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-            F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
           }
+          F = deformation_gradient(Nx, dl, nsd, eNoN, i);
 
           auto Fi =  mat_fun::mat_inv(F,2);
           VxFi(0) = vx(0,0)*Fi(0,0) + vx(0,1)*Fi(1,0);
@@ -567,26 +582,7 @@ void fib_algn_post(Simulation* simulation, const mshType& lM, Array<double>& res
       }
 
       double w = lM.w(g)*Jac;
-      auto F = mat_fun::mat_id(nsd); 
-
-      for (int a = 0; a < eNoN; a++) {
-        if (nsd == 3) {
-          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-          F(0,2) = F(0,2) + Nx(2,a)*dl(i,a);
-          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
-          F(1,2) = F(1,2) + Nx(2,a)*dl(j,a);
-          F(2,0) = F(2,0) + Nx(0,a)*dl(k,a);
-          F(2,1) = F(2,1) + Nx(1,a)*dl(k,a);
-          F(2,2) = F(2,2) + Nx(2,a)*dl(k,a);
-        } else {
-          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
-        }
-      }
+      auto F = deformation_gradient(Nx, dl, nsd, eNoN, i);
       for (int iFn = 0; iFn < 2; iFn++) {
         for (int i = 0; i < nsd; i++) {
           auto fN_col = fN.col(iFn);
@@ -684,26 +680,7 @@ void fib_dir_post(Simulation* simulation, const mshType& lM, const int nFn, Arra
 
       double w = lM.w(g) * Jac;
       N = lM.N.col(g);
-      F = mat_fun::mat_id(nsd); 
-
-      for (int a = 0; a < eNoN; a++) {
-        if (nsd == 3) {
-          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-          F(0,2) = F(0,2) + Nx(2,a)*dl(i,a);
-          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
-          F(1,2) = F(1,2) + Nx(2,a)*dl(j,a);
-          F(2,0) = F(2,0) + Nx(0,a)*dl(k,a);
-          F(2,1) = F(2,1) + Nx(1,a)*dl(k,a);
-          F(2,2) = F(2,2) + Nx(2,a)*dl(k,a);
-        } else {
-          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
-        }
-      }
+      F = deformation_gradient(Nx, dl, nsd, eNoN, i);
 
       for (int iFn = 0; iFn < lM.nFn; iFn++) {
         for (int i = 0; i < nsd; i++) {
@@ -789,25 +766,7 @@ void compute_fib_stretch(Simulation* simulation, const int iEq, const mshType& l
       auto N = lM.N.col(g);
 
       // Compute Deformation Gradient: F = I + grad(u)
-      F = mat_fun::mat_id(nsd);
-      for (int a = 0; a < eNoN; a++) {
-        if (nsd == 3) {
-          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-          F(0,2) = F(0,2) + Nx(2,a)*dl(i,a);
-          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
-          F(1,2) = F(1,2) + Nx(2,a)*dl(j,a);
-          F(2,0) = F(2,0) + Nx(0,a)*dl(k,a);
-          F(2,1) = F(2,1) + Nx(1,a)*dl(k,a);
-          F(2,2) = F(2,2) + Nx(2,a)*dl(k,a);
-        } else {
-          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
-        }
-      }
+      F = deformation_gradient(Nx, dl, nsd, eNoN, i);
 
       // Compute fiber stretch based on 4th invariant: I_{4,f} = F.fN.F.fN
       auto fl = mat_fun::mat_mul(F, lM.fN.rows(0,nsd-1,e));
@@ -1834,26 +1793,7 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
       Je = Je + w;
 
       auto Im = mat_fun::mat_id(nsd); 
-      auto F = Im;
-
-      for (int a = 0; a < fs.eNoN; a++) {
-        if (nsd == 3) {
-          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-          F(0,2) = F(0,2) + Nx(2,a)*dl(i,a);
-          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
-          F(1,2) = F(1,2) + Nx(2,a)*dl(j,a);
-          F(2,0) = F(2,0) + Nx(0,a)*dl(k,a);
-          F(2,1) = F(2,1) + Nx(1,a)*dl(k,a);
-          F(2,2) = F(2,2) + Nx(2,a)*dl(k,a);
-        } else {
-          F(0,0) = F(0,0) + Nx(0,a)*dl(i,a);
-          F(0,1) = F(0,1) + Nx(1,a)*dl(i,a);
-          F(1,0) = F(1,0) + Nx(0,a)*dl(j,a);
-          F(1,1) = F(1,1) + Nx(1,a)*dl(j,a);
-        }
-      }
+      auto F = deformation_gradient(Nx, dl, nsd, fs.eNoN, i);
 
       double detF = mat_fun::mat_det(F, nsd);
 
