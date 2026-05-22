@@ -740,7 +740,12 @@ void fib_stretch(const ComMod& com_mod, const int iEq, const mshType& lM,
   Array<double> Nx(nsd,eNoN);
 
   for (int e = 0; e < lM.nEl; e++) {
-    all_fun::domain(com_mod, lM, iEq, e);
+    int cDmn = all_fun::domain(com_mod, lM, iEq, e);
+    auto cPhys = eq.dmn[cDmn].phys;
+    if (cPhys != EquationType::phys_struct && cPhys != EquationType::phys_ustruct) {
+      continue;
+    }
+
     if (lM.eType == ElementType::NRB) {
       //CALL NRBNNX(lM, e)
     }
@@ -754,10 +759,10 @@ void fib_stretch(const ComMod& com_mod, const int iEq, const mshType& lM,
     for (int g = 0; g < lM.nG; g++) {
       double Jac = 0.0;
       Array<double> F(nsd,nsd);
-      Array<double> ksix(nsd,nsd);
       if (g == 0 || !lM.lShpF) {
         auto Nxi = lM.Nx.slice(g);
-        nn::gnn(eNoN, nsd, nsd, Nxi, xl, Nx, Jac, ksix);
+        Array<double> dummy_ksix(nsd,nsd);
+        nn::gnn(eNoN, nsd, nsd, Nxi, xl, Nx, Jac, dummy_ksix);
       }
 
       // Compute Deformation Gradient: F = I + grad(u)
