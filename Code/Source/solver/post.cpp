@@ -45,8 +45,6 @@ namespace post {
       return F;
     }
 
-    void compute_fib_stretch(const ComMod& com_mod, const int iEq, const mshType& lM,
-        const Array<double>& lD, Vector<double>& res);
   }
 
 void all_post(Simulation* simulation, Array<double>& res, const SolutionStates& solutions,
@@ -723,36 +721,7 @@ void fib_dir_post(Simulation* simulation, const mshType& lM, const int nFn, Arra
 
 /// @brief Compute fiber stretch based on 4th invariant: λ = sqrt(I_{4,f})
 //
-void fib_stretch(Simulation* simulation, const int iEq, const mshType& lM, const SolutionStates& solutions, Vector<double>& res)
-{
-  compute_fib_stretch(simulation->com_mod, iEq, lM, solutions.current.get_displacement(), res);
-}
-
-/// @brief Compute fiber stretch rate dλ/dt via backward finite difference.
-//
-void fib_stretch_rate(Simulation* simulation, const int iEq, const mshType& lM, const SolutionStates& solutions, Vector<double>& res)
-{
-  auto& com_mod = simulation->com_mod;
-  const double dt = com_mod.dt;
-  int nNo = lM.nNo;
-
-  if (res.size() != nNo) {
-    svmp::raise<svmp::FE::InvalidArgumentException>(
-        SVMP_HERE,
-        "[fib_stretch_rate] Expected res size " + std::to_string(nNo) + ", but got " + std::to_string(res.size()) + ".");
-  }
-
-  Vector<double> lambda_old(nNo);
-
-  compute_fib_stretch(simulation->com_mod, iEq, lM, solutions.current.get_displacement(), res);
-  compute_fib_stretch(simulation->com_mod, iEq, lM, solutions.old.get_displacement(),     lambda_old);
-
-  res = (res - lambda_old) / dt; 
-}
-
-namespace {
-/// @brief Compute fiber stretch lambda = sqrt(I_{4,f}) from a given displacement field.
-void compute_fib_stretch(const ComMod& com_mod, const int iEq, const mshType& lM,
+void fib_stretch(const ComMod& com_mod, const int iEq, const mshType& lM,
     const Array<double>& lD, Vector<double>& res)
 {
   using namespace consts;
@@ -821,6 +790,26 @@ void compute_fib_stretch(const ComMod& com_mod, const int iEq, const mshType& lM
     }
   }
 }
+
+/// @brief Compute fiber stretch rate dλ/dt via backward finite difference.
+//
+void fib_stretch_rate(const ComMod& com_mod, const int iEq, const mshType& lM, const SolutionStates& solutions, Vector<double>& res)
+{
+  const double dt = com_mod.dt;
+  int nNo = lM.nNo;
+
+  if (res.size() != nNo) {
+    svmp::raise<svmp::FE::InvalidArgumentException>(
+        SVMP_HERE,
+        "[fib_stretch_rate] Expected res size " + std::to_string(nNo) + ", but got " + std::to_string(res.size()) + ".");
+  }
+
+  Vector<double> lambda_old(nNo);
+
+  fib_stretch(com_mod, iEq, lM, solutions.current.get_displacement(), res);
+  fib_stretch(com_mod, iEq, lM, solutions.old.get_displacement(), lambda_old);
+
+  res = (res - lambda_old) / dt; 
 }
 
 void post(Simulation* simulation, const mshType& lM, Array<double>& res, const SolutionStates& solutions,

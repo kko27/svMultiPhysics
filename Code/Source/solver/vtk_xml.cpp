@@ -1304,7 +1304,7 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
           case OutputNameType::outGrp_fibStretch: {
             Vector<double> res(msh.nNo);
             if (msh.nFn != 0) {
-              post::fib_stretch(simulation, iEq, msh, solutions, res);
+              post::fib_stretch(simulation->com_mod, iEq, msh, solutions.current.get_displacement(), res);
             }
             for (int a = 0; a < msh.nNo; a++) {
               d[iM].x(is,a) = res(a);
@@ -1314,7 +1314,7 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
           case OutputNameType::outGrp_fibStretchRate: {
             Vector<double> res(msh.nNo);
             if (msh.nFn != 0) {
-              post::fib_stretch_rate(simulation, iEq, msh, solutions, res);
+              post::fib_stretch_rate(simulation->com_mod, iEq, msh, solutions, res);
             }
             for (int a = 0; a < msh.nNo; a++) {
               d[iM].x(is,a) = res(a);
