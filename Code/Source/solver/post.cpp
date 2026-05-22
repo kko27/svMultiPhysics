@@ -579,8 +579,8 @@ void fib_algn_post(Simulation* simulation, const mshType& lM, Array<double>& res
       double Jac = 0.0;
 
       if (g == 0 || !lM.lShpF) {
-        auto Nx = lM.Nx.slice(g);
-        nn::gnn(eNoN, nsd, nsd, Nx, xl, Nx, Jac, F);
+        auto Nxi = lM.Nx.slice(g);
+        nn::gnn(eNoN, nsd, nsd, Nxi, xl, Nx, Jac, F);
       }
 
       double w = lM.w(g)*Jac;
@@ -797,6 +797,12 @@ void fib_stretch_rate(const ComMod& com_mod, const int iEq, const mshType& lM, c
 {
   const double dt = com_mod.dt;
   int nNo = lM.nNo;
+
+  if (dt <= 0.0) {
+    svmp::raise<svmp::FE::InvalidArgumentException>(
+        SVMP_HERE,
+        "[fib_stretch_rate] Expected com_mod.dt > 0, but got " + std::to_string(dt) + ".");
+  }
 
   if (res.size() != nNo) {
     svmp::raise<svmp::FE::InvalidArgumentException>(
