@@ -861,6 +861,15 @@ void initialize(Simulation* simulation, Vector<double>& timeP)
   temp_solutions.current.get_velocity() = Yo;
   temp_solutions.current.get_displacement() = Do;
   set_bc::set_bc_dir(com_mod, temp_solutions);
+
+  auto& general_params = simulation->parameters.general_simulation_parameters;
+  if (general_params.save_boundary_conditions_debug_vtk.value()) {
+    const auto file_name_prefix =
+        simulation->get_chnl_mod().appPath +
+        general_params.boundary_conditions_debug_vtk_file_name_prefix.value();
+    vtk_xml::write_boundary_condition_debug_vtu(simulation, temp_solutions, file_name_prefix);
+  }
+
   // Copy back modified values
   Ao = temp_solutions.current.get_acceleration();
   Yo = temp_solutions.current.get_velocity();
@@ -959,4 +968,3 @@ void zero_init(Simulation* simulation, SolutionStates& solutions)
      }
   }
 }
-

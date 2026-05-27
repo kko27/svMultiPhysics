@@ -24,6 +24,152 @@ namespace vtk_xml {
 #define dbg_vtk_xml
 #define n_dbg_read_vtu_pdata 
 
+namespace {
+
+bool has_effective_direction(const bcType& bc, const int nsd)
+{
+  for (int i = 0; i < nsd; i++) {
+    if (bc.eDrn(i) != 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void write_debug_mesh_data(
+    ComMod& com_mod,
+    const CmMod& cm_mod,
+    std::vector<dataType>& mesh_data,
+    const int nsd,
+    const std::string& file_name_prefix)
+{
+  const int num_meshes = com_mod.nMsh;
+  auto& cm = com_mod.cm;
+
+  int total_nodes = 0;
+  int total_elements = 0;
+
+  for (int iM = 0; iM < num_meshes; iM++) {
+    int_msh_data(com_mod, cm_mod, com_mod.msh[iM], mesh_data[iM], 5*nsd, 0);
+    total_nodes += mesh_data[iM].nNo;
+    total_elements += mesh_data[iM].nEl;
+  }
+
+  if (cm.slv(cm_mod)) {
+    return;
+  }
+
+  auto vtk_writer = VtkData::create_writer(file_name_prefix + ".vtu");
+
+  Array<double> points(consts::maxNSD, total_nodes);
+  points = 0.0;
+
+  int node_shift = 0;
+  for (int iM = 0; iM < num_meshes; iM++) {
+    for (int a = 0; a < mesh_data[iM].nNo; a++) {
+      for (int i = 0; i < nsd; i++) {
+        points(i, a + node_shift) = mesh_data[iM].gx(i, a);
+      }
+    }
+    node_shift += mesh_data[iM].nNo;
+  }
+  vtk_writer->set_points(points);
+
+  node_shift = 0;
+  for (int iM = 0; iM < num_meshes; iM++) {
+    Array<int> connectivity(mesh_data[iM].eNoN, mesh_data[iM].nEl);
+    for (int e = 0; e < mesh_data[iM].nEl; e++) {
+      for (int i = 0; i < mesh_data[iM].eNoN; i++) {
+        connectivity(i, e) = mesh_data[iM].IEN(i, e) + node_shift;
+      }
+    }
+    vtk_writer->set_connectivity(nsd, connectivity);
+    node_shift += mesh_data[iM].nNo;
+  }
+
+  const std::vector<std::pair<std::string, int>> debug_fields = {
+      {"BC_Dirichlet_displacement", nsd},
+      {"BC_Dirichlet_velocity", 2*nsd},
+      {"BC_Dirichlet_acceleration", 3*nsd}};
+
+  for (const auto& [name, start] : debug_fields) {
+    Array<double> values(nsd, total_nodes);
+    values = 0.0;
+
+    int node_shift = 0;
+    for (int iM = 0; iM < num_meshes; iM++) {
+      for (int a = 0; a < mesh_data[iM].nNo; a++) {
+        for (int i = 0; i < nsd; i++) {
+          values(i, a + node_shift) = mesh_data[iM].gx(start + i, a);
+        }
+      }
+      node_shift += mesh_data[iM].nNo;
+    }
+
+    vtk_writer->set_point_data(name, values);
+  }
+
+  Array<int> mask(nsd, total_nodes);
+  mask = 0;
+
+  node_shift = 0;
+  for (int iM = 0; iM < num_meshes; iM++) {
+    for (int a = 0; a < mesh_data[iM].nNo; a++) {
+      for (int i = 0; i < nsd; i++) {
+        mask(i, a + node_shift) = static_cast<int>(mesh_data[iM].gx(4*nsd + i, a));
+      }
+    }
+    node_shift += mesh_data[iM].nNo;
+  }
+
+  vtk_writer->set_point_data("BC_Dirichlet_mask", mask);
+
+  if (com_mod.dmnId.size() != 0 || !com_mod.savedOnce || num_meshes > 1) {
+    Array<int> element_data(1, total_elements);
+    int element_shift = 0;
+    int element_slot = 0;
+
+    if (com_mod.dmnId.size() != 0) {
+      for (int iM = 0; iM < num_meshes; iM++) {
+        for (int e = 0; e < mesh_data[iM].nEl; e++) {
+          element_data(0, element_shift++) = static_cast<int>(mesh_data[iM].xe(e, element_slot));
+        }
+      }
+      vtk_writer->set_element_data("Domain_ID", element_data);
+      element_shift = 0;
+      element_slot += 1;
+    }
+
+    if (!com_mod.savedOnce) {
+      if (!cm.seq()) {
+        for (int iM = 0; iM < num_meshes; iM++) {
+          for (int e = 0; e < mesh_data[iM].nEl; e++) {
+            element_data(0, element_shift++) = static_cast<int>(mesh_data[iM].xe(e, element_slot));
+          }
+        }
+        vtk_writer->set_element_data("Proc_ID", element_data);
+      }
+      element_shift = 0;
+      element_slot += 1;
+    }
+
+    if (num_meshes > 1) {
+      for (int iM = 0; iM < num_meshes; iM++) {
+        for (int e = 0; e < mesh_data[iM].nEl; e++) {
+          element_data(0, element_shift++) = iM;
+        }
+      }
+      vtk_writer->set_element_data("Mesh_ID", element_data);
+    }
+  }
+
+  vtk_writer->write();
+  delete vtk_writer;
+}
+
+}
+
 void do_test()
 {
 
@@ -107,6 +253,76 @@ void do_test()
     }
   }
 
+}
+
+void write_boundary_condition_debug_vtu(
+    Simulation* simulation,
+    const SolutionStates& solutions,
+    const std::string& file_name_prefix)
+{
+  using namespace consts;
+
+  auto& com_mod = simulation->com_mod;
+  auto& cm_mod = simulation->cm_mod;
+  const auto& acceleration = solutions.current.get_acceleration();
+  const auto& velocity = solutions.current.get_velocity();
+  const auto& displacement = solutions.current.get_displacement();
+  const int nsd = com_mod.nsd;
+  const int num_meshes = com_mod.nMsh;
+
+  std::vector<dataType> mesh_data(num_meshes);
+
+  for (int iM = 0; iM < num_meshes; iM++) {
+    auto& mesh = com_mod.msh[iM];
+    mesh_data[iM].x.resize(5*nsd, mesh.nNo);
+    mesh_data[iM].xe.resize(0, mesh.nEl);
+    mesh_data[iM].x = 0.0;
+
+    for (int a = 0; a < mesh.nNo; a++) {
+      const int Ac = mesh.gN(a);
+      for (int i = 0; i < nsd; i++) {
+        mesh_data[iM].x(i, a) = com_mod.x(i, Ac) / mesh.scF;
+      }
+    }
+  }
+
+  for (int iEq = 0; iEq < com_mod.nEq; iEq++) {
+    const auto& eq = com_mod.eq[iEq];
+    const int s = eq.s;
+
+    for (int iBc = 0; iBc < eq.nBc; iBc++) {
+      const auto& bc = eq.bc[iBc];
+      if (bc.weakDir || !utils::btest(bc.bType, enum_int(BoundaryConditionType::bType_Dir))) {
+        continue;
+      }
+
+      auto& mesh = com_mod.msh[bc.iM];
+      auto& face = mesh.fa[bc.iFa];
+      auto& debug_data = mesh_data[bc.iM];
+      const bool use_effective_direction = has_effective_direction(bc, nsd);
+
+      for (int a = 0; a < face.nNo; a++) {
+        const int Ac = face.gN(a);
+        const int local_node = mesh.lN(Ac);
+        if (local_node < 0) {
+          continue;
+        }
+
+        for (int i = 0; i < nsd; i++) {
+          if (use_effective_direction && (bc.eDrn(i) == 0)) {
+            continue;
+          }
+
+          debug_data.x(nsd + i, local_node) = displacement(s + i, Ac) / mesh.scF;
+          debug_data.x(2*nsd + i, local_node) = velocity(s + i, Ac);
+          debug_data.x(3*nsd + i, local_node) = acceleration(s + i, Ac);
+          debug_data.x(4*nsd + i, local_node) = 1.0;
+        }
+      }
+    }
+  }
+
+  write_debug_mesh_data(com_mod, cm_mod, mesh_data, nsd, file_name_prefix);
 }
 
 /// @brief This routine prepares data array of a regular mesh

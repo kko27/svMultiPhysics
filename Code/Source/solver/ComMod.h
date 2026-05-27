@@ -162,6 +162,15 @@ class bcType
     // Defined steady value
     double g = 0.0;
 
+    // Optional affine transform for steady/unsteady Dirichlet values:
+    // imposed_value = temporal_values_scale * value(t)
+    //               + value_offset
+    //               + reference_coordinate_scale * X_ref
+    double temporal_values_scale = 1.0;
+    bool temporal_values_as_multiplier = false;
+    double reference_coordinate_scale = 0.0;
+    double value_offset = 0.0;
+
     // Neu: defined resistance
     double r = 0.0;
 
@@ -1862,4 +1871,3 @@ class ComMod {
 };
 
 #endif
-

@@ -1,0 +1,275 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{booktabs}
+
+\title{Contact Problem in the Current svMultiPhysics Solver}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Purpose and Scope}
+
+This note documents the \emph{current} contact treatment implemented in the solver source tree, based on the files
+\texttt{Code/Source/solver/contact.cpp},
+\texttt{Code/Source/solver/read\_msh.cpp},
+\texttt{Code/Source/solver/Integrator.cpp},
+and the contact-related data structures in
+\texttt{Code/Source/solver/ComMod.h}.
+
+At present, the implemented model is a \textbf{penalty-based contact model for shell problems}. It is activated through the XML \texttt{<Contact>} block and is intended for detecting possible contact between \textbf{different shell meshes}. The current implementation adds a contact force contribution to the global residual vector. It does \textbf{not} assemble a consistent contact tangent matrix in the current code path.
+
+\section{How Contact is Activated}
+
+The input is specified through an XML block of the form
+\begin{verbatim}
+<Contact model="penalty">
+   <Penalty_constant> 1.0e5 </Penalty_constant>
+   <Desired_separation> 0.05 </Desired_separation>
+   <Closest_gap_to_activate_penalty> 1.0 </Closest_gap_to_activate_penalty>
+   <Min_norm_of_face_normals> 0.7 </Min_norm_of_face_normals>
+</Contact>
+\end{verbatim}
+
+In the valve shell test case, this appears in
+\texttt{tests/cases/shell/valve/solver.xml}.
+
+The parameter parsing is handled by the \texttt{ContactParameters} class. The currently supported fields are listed in Table~\ref{tab:params}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+XML field & Internal symbol & Meaning \\
+\midrule
+\texttt{model} & \texttt{cntctM.cType} & Contact model type \\
+\texttt{Penalty\_constant} & $k$ & Penalty magnitude \\
+\texttt{Desired\_separation} & $h$ & Target separation scale \\
+\texttt{Closest\_gap\_to\_activate\_penalty} & $c$ & Search/activation distance \\
+\texttt{Min\_norm\_of\_face\_normals} & $\alpha_{\min}$ & Normal alignment threshold \\
+\bottomrule
+\end{tabular}
+\caption{Current contact parameters in the solver.}
+\label{tab:params}
+\end{table}
+
+The defaults currently defined in the parser are
+\[
+k = 10^5,\qquad h = 0.05,\qquad c = 1.0,\qquad \alpha_{\min} = 0.7.
+\]
+
+The code also enforces
+\[
+c \ge h,
+\]
+and throws an error otherwise.
+
+\section{Where the Contact Force Enters the Solver}
+
+Once contact is enabled, the global flag \texttt{com\_mod.iCntct} is set. During residual assembly, the integrator calls
+\begin{verbatim}
+contact::construct_contact_pnlty(com_mod, cm_mod, solutions_)
+\end{verbatim}
+after Neumann, CMM, and weak Dirichlet boundary-condition contributions have been added.
+
+Inside that routine, contact is applied only if the current equation physics is
+\texttt{phys\_shell}. The reader also checks that contact is used only for shell equations and requires multiple meshes in the problem setup.
+
+\section{Implemented Contact Algorithm}
+
+\subsection{Current Configuration}
+
+The contact routine works in the deformed configuration. Let $\bm{X}_A$ be the reference coordinate of node $A$, and let $\bm{u}_A$ be the current displacement taken from the intermediate solution state. The current nodal position is
+\[
+\bm{x}_A = \bm{X}_A + \bm{u}_A.
+\]
+
+All contact checks and force evaluations are performed using these current positions.
+
+\subsection{Nodal Shell Normals}
+
+The first stage of the algorithm constructs a nodal normal vector for each shell node:
+\begin{enumerate}[leftmargin=*]
+\item For each shell element, the code computes a unit normal at the current configuration.
+\item At each quadrature point, that normal is distributed to the element nodes with the shape functions and quadrature weight.
+\item The accumulated normal contribution at each node is divided by the accumulated weighted area measure.
+\item The resulting nodal vector is normalized again.
+\end{enumerate}
+
+If we denote the final nodal unit normal by $\bm{n}_A$, then the contact logic uses $\bm{n}_A$ as the local shell normal at node $A$.
+
+\subsection{Neighbor Search by Bounding Boxes}
+
+The current search procedure is simple and entirely nodal:
+\begin{enumerate}[leftmargin=*]
+\item For every shell node $A$ on mesh $i$, form an axis-aligned box centered at $\bm{x}_A$ with half-width $c$ in each Cartesian direction.
+\item Search nodes $B$ from every \emph{other} shell mesh $j \ne i$.
+\item If $\bm{x}_B$ lies inside the box, store node $B$ as a possible neighbor of node $A$.
+\end{enumerate}
+
+Important consequences of the current implementation:
+\begin{itemize}[leftmargin=*]
+\item Contact is searched \textbf{between different shell meshes only}. Nodes from the same mesh are explicitly skipped.
+\item The search is \textbf{node-to-node}, not node-to-segment or surface-to-surface.
+\item The neighbor list has a dynamically enlarged storage cap, but the logic is still based on storing nearby nodes rather than projecting to opposing elements.
+\end{itemize}
+
+\subsection{Contact Eligibility Test}
+
+For each candidate pair $(A,B)$, the code computes:
+\[
+\bm{x}_{AB} = \bm{x}_A - \bm{x}_B,
+\qquad
+c_{AB} = \|\bm{x}_{AB}\|,
+\qquad
+\alpha_{AB} = \sqrt{\left| \bm{n}_A \cdot \bm{n}_B \right|}.
+\]
+
+The pair is considered for penalty loading only if
+\[
+c_{AB} \le c
+\qquad \text{and} \qquad
+\alpha_{AB} \ge \alpha_{\min}.
+\]
+
+The second condition is a normal-alignment filter. Because the code uses
+\[
+\sqrt{|\bm{n}_A \cdot \bm{n}_B|},
+\]
+it does not distinguish between parallel and anti-parallel normals; it only measures the magnitude of alignment.
+
+\subsection{Gap Measure Used in the Code}
+
+For an eligible pair, the scalar gap-like quantity is
+\[
+d_{AB} = (\bm{x}_A - \bm{x}_B)\cdot \bm{n}_B.
+\]
+
+This is a signed projection of the relative position onto the normal of node $B$. The implemented logic then uses the following interpretation:
+\begin{itemize}[leftmargin=*]
+\item If $d_{AB} < -h$, no penalty is applied.
+\item If $-h \le d_{AB} < 0$, a quadratic transition law is used.
+\item If $d_{AB} \ge 0$, a linear law is used.
+\end{itemize}
+
+\section{Penalty Law}
+
+The scalar contact penalty magnitude for a candidate pair is
+\[
+p_k(d) =
+\begin{cases}
+0, & d < -h, \\[6pt]
+\dfrac{1}{2}\dfrac{k}{h}(d+h)^2, & -h \le d < 0, \\[10pt]
+\dfrac{1}{2}k(h+d), & d \ge 0.
+\end{cases}
+\]
+
+This law is continuous at $d=0$ and also at $d=-h$.
+
+The force contribution assembled at node $A$ is directed along the negative nodal normal at $A$:
+\[
+\bm{r}^{\,c}_{A \leftarrow B} = -\,p_k(d_{AB})\,\bm{n}_A.
+\]
+
+If node $A$ has several active neighbors, the code averages the accumulated contribution over the number of active neighbors:
+\[
+\bm{r}^{\,c}_A =
+\frac{1}{N_A^{\mathrm{act}}}
+\sum_{B \in \mathcal{N}_A^{\mathrm{act}}}
+\left(-\,p_k(d_{AB})\,\bm{n}_A\right).
+\]
+
+This averaged vector is then added directly to the global residual at node $A$.
+
+\section{Interpretation of the Parameters}
+
+\subsection{\texttt{Penalty\_constant}}
+
+This is the main stiffness-like factor $k$. Larger values increase the contact restoring force and reduce interpenetration, but they also make the nonlinear problem stiffer.
+
+\subsection{\texttt{Desired\_separation}}
+
+This is the parameter $h$. In the current code, it is not a hard geometric gap constraint. Instead, it sets the width of the transition region of the penalty law.
+
+\subsection{\texttt{Closest\_gap\_to\_activate\_penalty}}
+
+This is the parameter $c$. It serves two roles in the current implementation:
+\begin{enumerate}[leftmargin=*]
+\item It defines the half-width of the axis-aligned search box around each node.
+\item It is also used as a radial distance threshold via $c_{AB} \le c$.
+\end{enumerate}
+
+So, in the current solver, this parameter controls both search range and activation range.
+
+\subsection{\texttt{Min\_norm\_of\_face\_normals}}
+
+This is the threshold $\alpha_{\min}$. It filters candidate pairs whose nodal normals are not sufficiently aligned in magnitude.
+
+\section{What the Current Solver Does Not Yet Do}
+
+The present implementation is useful to understand as an engineering penalty model, but it is important to keep its current limitations in mind:
+\begin{itemize}[leftmargin=*]
+\item It is \textbf{shell-only}.
+\item It currently acts only for \textbf{inter-mesh} contact, not self-contact within a single mesh.
+\item The search and interaction are \textbf{node-based}, not mortar, segment-based, or surface-to-surface.
+\item The force is added to the residual only; there is no matching consistent contact Jacobian assembled in the visible code path.
+\item There is no friction model in this routine.
+\item There is no explicit master/slave surface projection step; the signed distance uses the neighbor node normal directly.
+\item The alternate XML model name \texttt{potential} is recognized by the enum map, but it is not implemented and will trigger an error if selected.
+\end{itemize}
+
+\section{Practical Consequences for Nonlinear Convergence}
+
+Because the contact contribution is residual-only and the underlying law is penalty-based, the method is usually expected to behave like a nonlinear load that may require:
+\begin{itemize}[leftmargin=*]
+\item sufficiently small time steps near first contact,
+\item enough nonlinear iterations per step,
+\item a penalty constant large enough to control penetration but not so large that the solve becomes excessively stiff.
+\end{itemize}
+
+For shell leaflet problems such as the valve example, the normal filter and the contact search distance are often as important as the penalty constant itself, because they strongly affect which nodal pairs actually contribute.
+
+\section{Valve Example in This Repository}
+
+The shell valve case in
+\texttt{tests/cases/shell/valve/solver.xml}
+uses
+\[
+k = 10^5,\qquad
+h = 0.05,\qquad
+c = 1.0,\qquad
+\alpha_{\min} = 0.7.
+\]
+
+This means:
+\begin{itemize}[leftmargin=*]
+\item only shell nodes from different meshes within distance $1.0$ are candidates,
+\item only candidates with sufficiently aligned normals are considered,
+\item the penalty activates smoothly once the projected signed distance enters the band $[-0.05,\,0]$,
+\item for $d \ge 0$, the linear branch of the penalty law is used.
+\end{itemize}
+
+\section{Summary}
+
+The current solver implements a \textbf{nodal penalty contact model for multiple shell meshes}. The algorithm:
+\begin{enumerate}[leftmargin=*]
+\item computes nodal shell normals in the deformed configuration,
+\item searches nearby nodes on other shell meshes using a box-based filter,
+\item checks distance and normal alignment,
+\item evaluates a piecewise penalty law from a projected signed gap,
+\item adds the resulting averaged nodal force to the global residual.
+\end{enumerate}
+
+This is a practical contact treatment for shell problems such as valve leaflet interaction, but it should be interpreted as a relatively lightweight penalty algorithm rather than a full surface-contact formulation.
+
+\end{document}

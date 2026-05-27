@@ -805,6 +805,7 @@ class BoundaryConditionParameters : public ParameterLists
     Parameter<double> penalty_parameter_tangential;
     Parameter<std::string> prestress_file_path;
     Parameter<std::string> profile;
+    Parameter<double> reference_coordinate_scale;
     Parameter<bool> ramp_function;
 
     Parameter<std::string> cst_shell_bc_type;
@@ -814,6 +815,8 @@ class BoundaryConditionParameters : public ParameterLists
 
     Parameter<std::string> temporal_and_spatial_values_file_path;
     Parameter<std::string> temporal_values_file_path;
+    Parameter<bool> temporal_values_as_multiplier;
+    Parameter<double> temporal_values_scale;
     Parameter<std::string> time_dependence;
     Parameter<std::string> traction_values_file_path;
     Parameter<double> traction_multiplier;
@@ -821,6 +824,7 @@ class BoundaryConditionParameters : public ParameterLists
 
     Parameter<bool> undeforming_neu_face;
     Parameter<double> value;
+    Parameter<double> value_offset;
     Parameter<bool> weakly_applied;
     Parameter<bool> zero_out_perimeter;
 
@@ -1586,6 +1590,7 @@ class GeneralSimulationParameters : public ParameterLists
     Parameter<bool> convert_bin_to_vtk_format;
     Parameter<bool> debug;
     Parameter<bool> overwrite_restart_file;
+    Parameter<bool> save_boundary_conditions_debug_vtk;
     Parameter<bool> save_averaged_results;
     Parameter<bool> save_results_to_vtk_format;
     Parameter<bool> simulation_requires_remeshing;
@@ -1605,6 +1610,7 @@ class GeneralSimulationParameters : public ParameterLists
     Parameter<int> starting_time_step;
     Parameter<int> number_of_time_steps;
 
+    Parameter<std::string> boundary_conditions_debug_vtk_file_name_prefix;
     Parameter<std::string> name_prefix_of_saved_vtk_files;
     Parameter<std::string> restart_file_name; 
     Parameter<std::string> searched_file_name_to_trigger_stop; 

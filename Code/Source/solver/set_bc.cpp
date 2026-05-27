@@ -1059,6 +1059,7 @@ void set_bc_dir_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa, Array
   int nEq = com_mod.nEq;
 
   double dirY, dirA;
+  const bool use_reference_coordinate = !utils::is_zero(lBc.reference_coordinate_scale);
 
   if (utils::btest(lBc.bType, enum_int(BoundaryConditionType::bType_gen))) {
     #ifdef debug_set_bc_dir_l
@@ -1085,21 +1086,73 @@ void set_bc_dir_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa, Array
     dirY = lBc.g;
   }
 
+  const double temporal_value = dirY;
+  const double temporal_acceleration = dirA;
+  dirA *= lBc.temporal_values_scale;
+  dirY = lBc.temporal_values_scale * dirY + lBc.value_offset;
+
+  int reference_dir = -1;
+  if (use_reference_coordinate) {
+    for (int i = 0; i < nsd; i++) {
+      if (lBc.eDrn(i) == 0) {
+        continue;
+      }
+      if (reference_dir != -1) {
+        throw std::runtime_error(
+            "[set_bc_dirl] Reference_coordinate_scale is only supported for single-direction Dirichlet BCs.");
+      }
+      reference_dir = i;
+    }
+
+    if (reference_dir == -1) {
+      throw std::runtime_error("[set_bc_dirl] Reference_coordinate_scale requires Effective_direction.");
+    }
+
+    if (lDof != 1) {
+      throw std::runtime_error(
+          "[set_bc_dirl] Reference_coordinate_scale is only supported for single-direction Dirichlet BCs.");
+    }
+  }
+
   if (lDof == nsd) {
     for (int a = 0; a < lFa.nNo; a++) {
+      double reference_term = 0.0;
+      if (use_reference_coordinate) {
+        int Ac = lFa.gN(a);
+        reference_term = lBc.reference_coordinate_scale * com_mod.x(reference_dir, Ac);
+      }
+
+      double imposed_value = dirY + reference_term;
+      double imposed_acceleration = dirA;
+      if (lBc.temporal_values_as_multiplier) {
+        imposed_value = lBc.temporal_values_scale * temporal_value * (lBc.value_offset + reference_term);
+        imposed_acceleration = lBc.temporal_values_scale * temporal_acceleration * (lBc.value_offset + reference_term);
+      }
 
       for (int i = 0; i < lA.nrows(); i++) {
         double nV = lFa.nV(i,a);
-        lA(i,a) = dirA * lBc.gx(a) * nV;
-        lY(i,a) = dirY * lBc.gx(a) * nV;
+        lA(i,a) = imposed_acceleration * lBc.gx(a) * nV;
+        lY(i,a) = imposed_value * lBc.gx(a) * nV;
       }
     }
 
   } else {
     for (int a = 0; a < lFa.nNo; a++) {
+      double reference_term = 0.0;
+      if (use_reference_coordinate) {
+        int Ac = lFa.gN(a);
+        reference_term = lBc.reference_coordinate_scale * com_mod.x(reference_dir, Ac);
+      }
+
+      double imposed_value = dirY + reference_term;
+      double imposed_acceleration = dirA;
+      if (lBc.temporal_values_as_multiplier) {
+        imposed_value = lBc.temporal_values_scale * temporal_value * (lBc.value_offset + reference_term);
+        imposed_acceleration = lBc.temporal_values_scale * temporal_acceleration * (lBc.value_offset + reference_term);
+      }
       for (int i = 0; i < lDof; i++) {
-        lA(i,a) = dirA*lBc.gx(a);
-        lY(i,a) = dirY*lBc.gx(a);
+        lA(i,a) = imposed_acceleration*lBc.gx(a);
+        lY(i,a) = imposed_value*lBc.gx(a);
       }
     }
   }
@@ -1992,5 +2045,3 @@ void set_bc_undef_neu_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa)
 }
 
 };
-
-

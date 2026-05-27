@@ -203,7 +203,25 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
     lBc.eDrn[i] = effective_direction[i];
   }
 
+  lBc.temporal_values_scale = bc_params->temporal_values_scale.value();
+  lBc.temporal_values_as_multiplier = bc_params->temporal_values_as_multiplier.value();
+  lBc.reference_coordinate_scale = bc_params->reference_coordinate_scale.value();
+  lBc.value_offset = bc_params->value_offset.value();
+
+  if (!utils::is_zero(lBc.reference_coordinate_scale) &&
+      !utils::btest(lBc.bType, enum_int(BoundaryConditionType::bType_Dir))) {
+    throw std::runtime_error("[read_bc] Reference_coordinate_scale is only supported for Dirichlet BCs.");
+  }
+
+  if (!utils::is_zero(lBc.reference_coordinate_scale) && effective_direction.empty()) {
+    throw std::runtime_error("[read_bc] Reference_coordinate_scale requires Effective_direction for Dirichlet BCs.");
+  }
+
   auto ctmp = bc_params->time_dependence.value();
+
+  if (lBc.temporal_values_as_multiplier && ctmp != "Unsteady") {
+    throw std::runtime_error("[read_bc] Temporal_values_as_multiplier is only supported for Unsteady Dirichlet BCs.");
+  }
 
   if (ctmp == "Steady") { 
     lBc.bType = utils::ibset(lBc.bType, enum_int(BoundaryConditionType::bType_std)); 
@@ -3318,4 +3336,3 @@ void set_equation_properties(Simulation* simulation, EquationParameters* eq_para
 }
 
 };
-

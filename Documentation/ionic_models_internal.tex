@@ -1,0 +1,405 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+
+\title{Internal Note: How Electrophysiology Ionic Models Are Coded in svMultiPhysics}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Purpose and Scope}
+
+This note documents how the electrophysiology ionic models are implemented in the current C++ codebase. The focus is on the code architecture and data flow, not on the physiology of each model.
+
+The main files involved are:
+\begin{itemize}[leftmargin=*]
+\item \texttt{Code/Source/solver/ionic\_model.h} and \texttt{ionic\_model.cpp}
+\item \texttt{Code/Source/solver/cep\_ion.h} and \texttt{cep\_ion.cpp}
+\item \texttt{Code/Source/solver/CepMod.h} and \texttt{CepMod.cpp}
+\item \texttt{Code/Source/solver/read\_files.cpp}
+\item \texttt{Code/Source/solver/Parameters.h} and \texttt{Parameters.cpp}
+\item the concrete model files:
+  \texttt{ionic\_aliev\_panfilov.*},
+  \texttt{ionic\_bueno\_orovio.*},
+  \texttt{ionic\_fitzhugh\_nagumo.*},
+  \texttt{ionic\_ttp.*}
+\end{itemize}
+
+At the time of writing, the registered ionic models are:
+\begin{itemize}[leftmargin=*]
+\item Aliev--Panfilov (\texttt{AP})
+\item Bueno--Orovio (\texttt{BO})
+\item FitzHugh--Nagumo (\texttt{FN})
+\item ten Tusscher--Panfilov 2006 (\texttt{TTP})
+\end{itemize}
+
+\section{High-Level Design}
+
+The code separates electrophysiology into two layers:
+\begin{enumerate}[leftmargin=*]
+\item a \textbf{global CEP layer}, which stores nodal ionic unknowns, copies the solved transmembrane potential into the local ionic state, loops over all nodes, and manages domain averaging and optional electromechanics coupling;
+\item a \textbf{local ionic-model layer}, which advances the ODE system for one node and one time step.
+\end{enumerate}
+
+The global layer lives mainly in \texttt{cep\_ion.cpp}. The local layer is represented by the abstract base class \texttt{IonicModel}.
+
+Conceptually, the local model solves
+\[
+\frac{\partial v}{\partial t} + I_{\mathrm{ion}}(v,\mathbf{w}) = I_{\mathrm{ext}},
+\qquad
+\frac{\partial \mathbf{w}}{\partial t} = \mathbf{f}(v,\mathbf{w}),
+\]
+where \texttt{X} stores the non-gating state variables and \texttt{Xg} stores the gating variables.
+
+\section{Core Data Structures}
+
+\subsection{\texttt{IonicModel}}
+
+\texttt{IonicModel} is the shared interface for all ionic models. It owns:
+\begin{itemize}[leftmargin=*]
+\item the initial values for state variables, \texttt{initial\_X};
+\item the initial values for gating variables, \texttt{initial\_Xg};
+\item voltage/time scaling constants:
+  \texttt{Vrest}, \texttt{Vscale}, \texttt{Tscale}, and \texttt{Voffset}.
+\end{itemize}
+
+The important public methods are:
+\begin{itemize}[leftmargin=*]
+\item \texttt{init(X, Xg)}: fills local vectors with the model's initial conditions;
+\item \texttt{integ(...)}: advances the model by one local ODE time step;
+\item \texttt{read\_parameters(...)} and \texttt{distribute\_parameters(...)}: populate model parameters from parsed XML and broadcast them in parallel;
+\item \texttt{get\_calcium\_index()}: returns the state index used as the calcium or calcium-proxy output for electromechanics coupling;
+\item \texttt{get\_output\_variables()}: controls which ionic state variables can be exported.
+\end{itemize}
+
+The important protected virtual methods are:
+\begin{itemize}[leftmargin=*]
+\item \texttt{update\_g(...)}: update the gating variables analytically;
+\item \texttt{getf(...)}: evaluate the right-hand side of the state equations;
+\item \texttt{getj(...)}: evaluate the Jacobian used by the implicit Crank--Nicolson solver.
+\end{itemize}
+
+\subsection{\texttt{cepModelType} and \texttt{CepMod}}
+
+\texttt{cepModelType} stores the domain-level setup for one electrophysiology region:
+\begin{itemize}[leftmargin=*]
+\item selected model type (\texttt{cepType});
+\item counts \texttt{nX} and \texttt{nG};
+\item myocardial zone id \texttt{imyo};
+\item local ODE step size \texttt{dt};
+\item stretch-activated-current coefficient \texttt{Ksac};
+\item stimulus definition \texttt{Istim};
+\item ODE integration options \texttt{odes};
+\item the actual model instance, \texttt{ionic\_model}.
+\end{itemize}
+
+\texttt{CepMod} stores equation-wide CEP data. The most important field here is
+\texttt{Xion}, an array of size
+\[
+\texttt{nXion} \times \texttt{tnNo},
+\]
+where \texttt{tnNo} is the total node count and \texttt{nXion} is the maximum number of ionic unknowns over all CEP domains. Each node column stores:
+\[
+[\text{state variables } X \; | \; \text{gating variables } X_g].
+\]
+
+This is a key implementation choice: every node uses the same global storage width, even if different domains use ionic models with different numbers of variables.
+
+\section{How Models Are Selected and Constructed}
+
+\subsection{String-to-model mapping}
+
+The XML-facing model names are translated into the internal enum
+\texttt{ElectrophysiologyModelType} in \texttt{CepMod.cpp}. For example:
+\begin{itemize}[leftmargin=*]
+\item \texttt{ap} or \texttt{aliev-panfilov} $\rightarrow$ \texttt{AP}
+\item \texttt{bo} or \texttt{bueno-orovio} $\rightarrow$ \texttt{BO}
+\item \texttt{fn} or \texttt{fitzhugh-nagumo} $\rightarrow$ \texttt{FN}
+\item \texttt{ttp} or \texttt{tentusscher-panfilov} $\rightarrow$ \texttt{TTP}
+\end{itemize}
+
+\subsection{Factory registration}
+
+Concrete ionic models self-register with \texttt{IonicModelFactory} using the macro
+\begin{verbatim}
+REGISTER_IONIC_MODEL("AP", AlievPanfilov);
+\end{verbatim}
+or the equivalent label for the other models.
+
+This means the parser does not hard-code constructors for each ionic model. Instead, \texttt{read\_cep\_domain(...)} calls
+\begin{verbatim}
+IonicModelFactory::create_model(model_name)
+\end{verbatim}
+to build the domain's model object.
+
+\section{How Parameters Are Parsed}
+
+\subsection{Per-model parameter objects}
+
+Each ionic model defines a nested \texttt{Parameters} class derived from \texttt{IonicModelParameters}. That object declares:
+\begin{itemize}[leftmargin=*]
+\item the XML element name for that model;
+\item scalar parameters through \texttt{add\_parameter(label, default, required)};
+\item vector parameters for zone-dependent data when needed;
+\item the labels and defaults of the initial states and initial gating variables.
+\end{itemize}
+
+For example:
+\begin{itemize}[leftmargin=*]
+\item \texttt{AP} and \texttt{FN} use scalar parameters;
+\item \texttt{BO} stores many parameters as length-3 vectors for epi/endo/myo;
+\item \texttt{TTP} exposes a large number of scalar physical parameters.
+\end{itemize}
+
+\subsection{How the domain parser sees all models}
+
+When a \texttt{DomainParameters} object is constructed, it iterates over the registered ionic models and asks each model for a parameter object through
+\begin{verbatim}
+model.get_parameters()
+\end{verbatim}
+The resulting objects are stored in
+\begin{verbatim}
+std::map<std::string, std::unique_ptr<IonicModelParameters>> ionic_models;
+\end{verbatim}
+
+As a result, the XML parser is ready to recognize sub-sections for every registered model, even before it knows which one the domain will actually use.
+
+\subsection{What \texttt{read\_cep\_domain(...)} does}
+
+The CEP domain reader in \texttt{read\_files.cpp} performs the following steps:
+\begin{enumerate}[leftmargin=*]
+\item read \texttt{<Electrophysiology\_model>};
+\item instantiate the matching \texttt{IonicModel};
+\item call \texttt{ionic\_model->read\_parameters(...)} using the model-specific parsed parameter object;
+\item set \texttt{nX} and \texttt{nG} from the created model instance;
+\item update the global \texttt{cep\_mod.nXion} if this domain has the largest ionic state count seen so far;
+\item read conductivity, anisotropy, stimulus, ODE solver choice, local ODE time step, myocardial zone, and stretch feedback coefficient.
+\end{enumerate}
+
+\section{Global Runtime Flow}
+
+\subsection{Initialization}
+
+\texttt{cep\_ion::cep\_init(...)} initializes \texttt{CepMod::Xion}. For each CEP node:
+\begin{enumerate}[leftmargin=*]
+\item the relevant domain ionic model is asked to fill local vectors \texttt{Xl} and \texttt{Xgl};
+\item these values are written into the node's column of \texttt{Xion};
+\item if multiple CEP domains overlap a node, their ionic states are averaged.
+\end{enumerate}
+
+This averaging behavior is already present in the implementation and is important if multiple domain definitions contribute to one node.
+
+\subsection{Per-time-step update}
+
+\texttt{cep\_ion::cep\_integ(...)} performs one electrophysiology update after the diffusion solve. The main sequence is:
+\begin{enumerate}[leftmargin=*]
+\item optionally compute fiber stretch if electromechanics coupling is enabled;
+\item copy the solved action potential from the global solution vector into \texttt{Xion(0,Ac)} for each node, except on the very first pass where \texttt{Xion} is already initialized;
+\item for each CEP node and each applicable CEP domain, slice local vectors \texttt{Xl} and \texttt{Xgl} out of \texttt{Xion};
+\item call \texttt{cep\_integ\_l(...)} to advance the local ionic ODE system;
+\item write the updated local state back into \texttt{Xion};
+\item copy the updated first state variable back into the global solution vector.
+\end{enumerate}
+
+Again, if several CEP domains contribute at a node, the updated states are averaged.
+
+\subsection{Local ODE stepping}
+
+\texttt{cep\_ion::cep\_integ\_l(...)} is the bridge between the global CEP equation and the local ionic model. It:
+\begin{itemize}[leftmargin=*]
+\item computes the stretch feedback coefficient
+\[
+K_{\mathrm{sac}} =
+\begin{cases}
+\texttt{cep.Ksac}\,(\sqrt{I4f}-1), & I4f > 1, \\
+0, & \text{otherwise},
+\end{cases}
+\]
+\item computes the number of local substeps as
+\[
+\texttt{nt} = \lfloor \texttt{dt} / \texttt{cep.dt} \rfloor,
+\]
+where the outer solver step is \texttt{dt} and the ionic-model step is \texttt{cep.dt};
+\item constructs the stimulus window from \texttt{Ts}, \texttt{Td}, and \texttt{CL};
+\item calls
+\begin{verbatim}
+cep.ionic_model->integ(...)
+\end{verbatim}
+once per local substep.
+\end{itemize}
+
+One practical implication is that ionic models support subcycling relative to the main solver time step.
+
+\section{What Happens Inside \texttt{IonicModel::integ}}
+
+The \texttt{integ(...)} method dispatches to one of three schemes:
+\begin{itemize}[leftmargin=*]
+\item Forward Euler (\texttt{FE})
+\item classical fourth-order Runge--Kutta (\texttt{RK4})
+\item Crank--Nicolson with Newton iteration (\texttt{CN2})
+\end{itemize}
+
+\subsection{State versus gating variables}
+
+The code explicitly separates:
+\begin{itemize}[leftmargin=*]
+\item \texttt{X}: the main state variables, including the transmembrane potential at index 0;
+\item \texttt{Xg}: the gating variables.
+\end{itemize}
+
+The integration logic assumes that \texttt{update\_g(...)} can advance \texttt{Xg} analytically or semi-analytically from the current state. The TTP model uses this pathway extensively. The AP, BO, and FN models have no separate gating-variable vector, so their \texttt{update\_g(...)} implementation is empty and all unknowns live in \texttt{X}.
+
+\subsection{Scaling conventions}
+
+Before evaluating the model equations, the base class may rescale voltage and time using the per-model constants:
+\begin{itemize}[leftmargin=*]
+\item \texttt{Vscale}
+\item \texttt{Tscale}
+\item \texttt{Voffset}
+\end{itemize}
+
+This is why some models can be coded in dimensionless form while still receiving dimensional inputs from the surrounding solver. For example:
+\begin{itemize}[leftmargin=*]
+\item AP uses \texttt{Vscale = 100.0}, \texttt{Tscale = 12.90}, \texttt{Voffset = -80.0};
+\item BO uses \texttt{Vscale = 85.70}, \texttt{Tscale = 1.0}, \texttt{Voffset = -84.0};
+\item FN and TTP are effectively used without such rescaling.
+\end{itemize}
+
+\subsection{Stretch-activated current}
+
+The base class converts the scalar stretch coefficient into an additive current
+\[
+I_{\mathrm{sac}} = K_{\mathrm{sac}} \, (V_{\mathrm{rest}} - V).
+\]
+This current is scaled consistently with the model's voltage/time scaling and then passed to \texttt{getf(...)}.
+
+\subsection{Implicit integration}
+
+For \texttt{CN2}, the base class:
+\begin{enumerate}[leftmargin=*]
+\item evaluates the old-time residual;
+\item performs Newton iterations on the state vector \texttt{X};
+\item calls \texttt{getj(...)} for the Jacobian;
+\item updates the gating variables only after the nonlinear solve.
+\end{enumerate}
+
+Models that do not override \texttt{getj(...)} will throw a \texttt{NotImplementedException}. In the current code, AP, BO, FN, and TTP all implement a Jacobian, but \texttt{read\_cep\_domain(...)} explicitly blocks implicit integration for TTP because it can give unexpected results.
+
+\section{Patterns Used by the Concrete Models}
+
+\subsection{Aliev--Panfilov and FitzHugh--Nagumo}
+
+These two are the simplest implementations:
+\begin{itemize}[leftmargin=*]
+\item all unknowns are stored in \texttt{X};
+\item \texttt{Xg} is empty;
+\item \texttt{update\_g(...)} does nothing;
+\item \texttt{getf(...)} and \texttt{getj(...)} are short closed-form expressions.
+\end{itemize}
+
+This is the easiest pattern to copy when adding a simple phenomenological model.
+
+\subsection{Bueno--Orovio}
+
+Bueno--Orovio is still coded with all unknowns in \texttt{X}, but its parameters are zone-dependent. The \texttt{zone\_id} passed into \texttt{getf(...)} and \texttt{getj(...)} is used as a 1-based selector for the epi/endo/myo parameter vectors.
+
+This is an important coding convention:
+\begin{itemize}[leftmargin=*]
+\item \texttt{zone\_id == 1} means epicardium;
+\item \texttt{zone\_id == 2} means endocardium or Purkinje;
+\item \texttt{zone\_id == 3} means mid-myocardium.
+\end{itemize}
+
+\subsection{ten Tusscher--Panfilov}
+
+TTP is the most detailed implementation and best illustrates the intended split between \texttt{X} and \texttt{Xg}:
+\begin{itemize}[leftmargin=*]
+\item \texttt{X} stores voltage, ionic concentrations, and the ryanodine-receptor state;
+\item \texttt{Xg} stores gating variables for the channel kinetics;
+\item \texttt{update\_g(...)} performs exact exponential gate updates;
+\item \texttt{getf(...)} computes the current balance and calcium handling terms;
+\item \texttt{getj(...)} provides the full Jacobian for the state equations.
+\end{itemize}
+
+This is the main example to follow for a biophysically richer model.
+
+\section{Initial Conditions and Outputs}
+
+\subsection{Initial conditions}
+
+Every model declares its initial state labels and default values as static lists of
+\begin{verbatim}
+std::pair<std::string, double>
+\end{verbatim}
+These labels are used both for documentation and for XML parsing of model-specific
+\texttt{<Initial\_states>} and \texttt{<Initial\_gating\_variables>} blocks.
+
+\subsection{Exported ionic outputs}
+
+By default, \texttt{IonicModel::get\_output\_variables()} exports one variable named \texttt{Calcium}, mapped to \texttt{get\_calcium\_index()}.
+
+This is slightly overloaded in the phenomenological models:
+\begin{itemize}[leftmargin=*]
+\item in AP and FN, the ``calcium'' output is actually the recovery variable \texttt{w};
+\item in BO, it is the slow inward gate \texttt{s};
+\item in TTP, it is the actual intracellular calcium concentration \texttt{Ca\_i}.
+\end{itemize}
+
+The dynamic output registration happens in \texttt{read\_files.cpp} when the user requests spatial output of ionic state variables.
+
+\section{How to Add a New Ionic Model}
+
+To add a new model consistent with the current design:
+\begin{enumerate}[leftmargin=*]
+\item create \texttt{ionic\_<name>.h/.cpp} with a class derived from \texttt{IonicModel};
+\item define the model label, initial state lists, and calcium index;
+\item add a nested \texttt{Parameters} class derived from \texttt{IonicModelParameters};
+\item override \texttt{get\_parameters()}, \texttt{read\_parameters()}, and \texttt{distribute\_parameters()};
+\item implement \texttt{update\_g(...)} if the model uses separately stored gating variables;
+\item implement \texttt{getf(...)} and, if implicit stepping is desired, \texttt{getj(...)};
+\item register the model with \texttt{REGISTER\_IONIC\_MODEL};
+\item extend the enum/string maps in \texttt{CepMod.h} and \texttt{CepMod.cpp};
+\item ensure the model label is exposed to the XML parser through the factory-driven parameter creation path.
+\end{enumerate}
+
+In practice, the existing implementations suggest two common templates:
+\begin{itemize}[leftmargin=*]
+\item use AP or FN as the pattern for a simple phenomenological model;
+\item use TTP as the pattern for a model with separate gating dynamics.
+\end{itemize}
+
+\section{Implementation Notes and Caveats}
+
+\begin{itemize}[leftmargin=*]
+\item The first entry of \texttt{X} is assumed to be the transmembrane potential throughout the CEP pipeline.
+\item The code can average ionic states over overlapping CEP domains at a node.
+\item The subcycling count is computed with integer truncation of \texttt{dt / cep.dt}. If the ratio is not an integer, the remainder is discarded.
+\item The implicit solver checks absolute and relative residual norms, but reaching the maximum Newton iteration count does not itself trigger an error.
+\item TTP has a Jacobian implementation, but the parser deliberately rejects implicit use of TTP.
+\item The calcium output is a physiological calcium concentration only for some models; in reduced models it is a coupling proxy.
+\end{itemize}
+
+\section{Summary}
+
+The ionic-model implementation is built around a small, fairly clean abstraction:
+\begin{itemize}[leftmargin=*]
+\item \texttt{cep\_ion.cpp} manages nodal storage and calls the local model;
+\item \texttt{IonicModel} owns the common integration and scaling machinery;
+\item concrete model classes provide only model-specific equations, parameters, and optional gate updates;
+\item the factory and parameter system make new models pluggable with limited changes outside the model files and CEP enum maps.
+\end{itemize}
+
+That split is the main thing to keep in mind when navigating or extending the electrophysiology implementation in this codebase.
+
+\end{document}

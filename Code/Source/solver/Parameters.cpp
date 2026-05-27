@@ -535,6 +535,7 @@ BoundaryConditionParameters::BoundaryConditionParameters()
   set_parameter("Penalty_parameter_tangential", 0.0, !required, penalty_parameter_tangential);
   set_parameter("Prestress_file_path", "", !required, prestress_file_path);
   set_parameter("Profile", "Flat", !required, profile);
+  set_parameter("Reference_coordinate_scale", 0.0, !required, reference_coordinate_scale);
 
   set_parameter("Ramp_function", false, !required, ramp_function);
 
@@ -545,6 +546,8 @@ BoundaryConditionParameters::BoundaryConditionParameters()
 
   set_parameter("Temporal_and_spatial_values_file_path", "", !required, temporal_and_spatial_values_file_path);
   set_parameter("Temporal_values_file_path", "", !required, temporal_values_file_path);
+  set_parameter("Temporal_values_as_multiplier", false, !required, temporal_values_as_multiplier);
+  set_parameter("Temporal_values_scale", 1.0, !required, temporal_values_scale);
   set_parameter("Time_dependence", "Steady", !required, time_dependence);
   set_parameter("Traction_values_file_path", "", !required, traction_values_file_path);
   set_parameter("Traction_multiplier", 1.0, !required, traction_multiplier);
@@ -552,6 +555,7 @@ BoundaryConditionParameters::BoundaryConditionParameters()
 
   set_parameter("Undeforming_neu_face", false, !required, undeforming_neu_face);
   set_parameter("Value", 0.0, !required, value);
+  set_parameter("Value_offset", 0.0, !required, value_offset);
 
   set_parameter("Weakly_applied", false, !required, weakly_applied);
   set_parameter("Zero_out_perimeter", false, !required, zero_out_perimeter);
@@ -2511,6 +2515,8 @@ GeneralSimulationParameters::GeneralSimulationParameters()
   bool required = true;
 
   set_parameter("Check_IEN_order", true, !required, check_ien_order);
+  set_parameter("Boundary_conditions_debug_VTK_file_name_prefix", "boundary_conditions_debug", !required,
+      boundary_conditions_debug_vtk_file_name_prefix);
   set_parameter("Continue_previous_simulation", false, required, continue_previous_simulation);
   set_parameter("Convert_BIN_to_VTK_format", false, !required, convert_bin_to_vtk_format);
 
@@ -2530,6 +2536,7 @@ GeneralSimulationParameters::GeneralSimulationParameters()
   set_parameter("Restart_file_name", "stFile", !required, restart_file_name);
 
   set_parameter("Save_averaged_results", false, !required, save_averaged_results);
+  set_parameter("Save_boundary_conditions_debug_VTK", false, !required, save_boundary_conditions_debug_vtk);
   set_parameter("Save_results_in_folder", "", !required, save_results_in_folder);
   set_parameter("Save_results_to_VTK_format", false, required, save_results_to_vtk_format);
   set_parameter("Searched_file_name_to_trigger_stop", "", !required, searched_file_name_to_trigger_stop);

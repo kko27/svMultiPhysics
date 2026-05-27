@@ -35,10 +35,14 @@ void write_vtu(ComMod& com_mod, mshType& lM, const std::string& fName);
 
 void write_vtu_debug(ComMod& com_mod, mshType& lM, const std::string& fName);
 
+void write_boundary_condition_debug_vtu(
+    Simulation* simulation,
+    const SolutionStates& solutions,
+    const std::string& file_name_prefix);
+
 void write_vtus(Simulation* simulation, const SolutionStates& solutions, const bool lAve);
 
 };
 
 #endif
-
 
