@@ -1,0 +1,255 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{verbatim}
+\usepackage{hyperref}
+
+\title{Documentation for \texttt{RigidPlaneBoundaryCondition}}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Purpose and Scope}
+
+The \texttt{RigidPlanePenalty} boundary condition implements a unilateral rigid-plane
+contact model for displacement-based solid problems. In the current code, it is
+supported only for \texttt{struct} and \texttt{ustruct} equations, and it is
+assembled as a Neumann-type boundary contribution. The class
+\texttt{RigidPlaneBoundaryCondition.cpp} itself stores and validates the rigid-plane
+data, while the actual weak-form contribution is assembled elsewhere in the solver.
+
+\section{User Input Parameters}
+
+A boundary is recognized as a rigid-plane penalty boundary when the
+boundary-condition type is one of
+\begin{verbatim}
+RigidPlanePenalty
+RigidPlane
+Rigid_Plane_Penalty
+\end{verbatim}
+as parsed in \texttt{Code/Source/solver/read\_files.cpp}.
+
+The following user parameters are required:
+
+\begin{itemize}[leftmargin=*]
+\item \texttt{<Type>}:
+must be \texttt{RigidPlanePenalty}, \texttt{RigidPlane}, or
+\texttt{Rigid\_Plane\_Penalty}.
+
+\item \texttt{<Time\_dependence>}:
+must be \texttt{Unsteady}.
+
+\item \texttt{<Temporal\_values\_file\_path>}:
+required. The implementation expects a scalar temporal history, which is
+interpreted as the rigid-plane displacement amplitude in time.
+
+\item \texttt{<Penalty\_factor>}:
+required, must be strictly positive.
+
+\item \texttt{<Plane\_point>}:
+required vector of size \texttt{nsd}. This is one point on the reference rigid
+plane.
+
+\item \texttt{<Plane\_normal>}:
+required vector of size \texttt{nsd}. This defines the plane normal and is
+normalized internally by the constructor in
+\texttt{RigidPlaneBoundaryCondition.cpp}.
+\end{itemize}
+
+The following restrictions are enforced in \texttt{read\_files.cpp}:
+
+\begin{itemize}[leftmargin=*]
+\item The boundary condition is allowed only for \texttt{struct} and
+\texttt{ustruct}.
+\item It cannot be mixed with Robin-specific parameters such as
+\texttt{<Spatial\_values\_file\_path>}, \texttt{<Stiffness>},
+\texttt{<Damping>}, or \texttt{<Apply\_along\_normal\_direction>}.
+\item The temporal history must be scalar.
+\item \texttt{Plane\_point} and \texttt{Plane\_normal} must each have exactly
+\texttt{nsd} entries.
+\end{itemize}
+
+A representative input block is
+
+\begin{verbatim}
+<Add_BC>
+  <Type> RigidPlanePenalty </Type>
+  <Time_dependence> Unsteady </Time_dependence>
+  <Temporal_values_file_path> rigid_plane_motion.dat </Temporal_values_file_path>
+  <Penalty_factor> 1.0e6 </Penalty_factor>
+  <Plane_point> 0.0 0.0 0.0 </Plane_point>
+  <Plane_normal> 0.0 1.0 0.0 </Plane_normal>
+</Add_BC>
+\end{verbatim}
+
+Here, \texttt{rigid\_plane\_motion.dat} provides the scalar plane motion in time,
+and the plane is defined by
+\[
+\mathbf{x}_p = \texttt{Plane\_point},
+\qquad
+\mathbf{n} = \frac{\texttt{Plane\_normal}}{\|\texttt{Plane\_normal}\|}.
+\]
+
+\section{What \texttt{RigidPlaneBoundaryCondition.cpp} Does}
+
+The file \texttt{Code/Source/solver/RigidPlaneBoundaryCondition.cpp} is
+responsible for
+
+\begin{itemize}[leftmargin=*]
+\item validating the penalty factor,
+\item checking that \texttt{Plane\_point} and \texttt{Plane\_normal} are
+non-empty and dimensionally consistent,
+\item normalizing the plane normal,
+\item storing the rigid-plane data,
+\item broadcasting the data to all ranks through \texttt{distribute()}.
+\end{itemize}
+
+It does not assemble the residual or tangent contributions itself.
+
+\section{Where the Variational Form Is Modified}
+
+The actual weak-form modification is performed in
+\[
+\texttt{Code/Source/solver/set\_bc.cpp}
+\]
+inside the function
+\[
+\texttt{set\_bc\_rigid\_plane\_l(...)}.
+\]
+
+The call chain is:
+
+\begin{enumerate}[leftmargin=*]
+\item The boundary condition is parsed in \texttt{read\_files.cpp}.
+\item During boundary assembly, \texttt{set\_bc\_neu\_l(...)} checks whether
+\texttt{lBc.rigid\_plane\_bc.is\_initialized()} is true.
+\item If true, it dispatches to \texttt{set\_bc\_rigid\_plane\_l(...)} and
+returns.
+\end{enumerate}
+
+Therefore, the rigid-plane contact term is assembled in place of the usual
+Neumann traction treatment for that boundary face.
+
+\section{Kinematic Definition Used in the Code}
+
+At each boundary quadrature point, the current position is computed as
+\[
+\mathbf{y} = \sum_{a=1}^{n_{en}} N_a \left(\mathbf{x}_a + \mathbf{d}_a\right),
+\]
+where \(\mathbf{x}_a\) are nodal reference coordinates and \(\mathbf{d}_a\) are
+the interpolated displacements taken from the intermediate displacement state.
+
+The scalar plane motion is read from the temporal function and denoted by
+\[
+u_p(t).
+\]
+
+The code then defines the contact gap as
+\[
+g = \mathbf{n}\cdot(\mathbf{y}-\mathbf{x}_p) - u_p(t).
+\]
+
+This is the quantity implemented in \texttt{set\_bc.cpp} through
+\begin{verbatim}
+gap = -plane_displacement + plane_normal · (y - plane_point)
+\end{verbatim}
+
+The contact condition is unilateral:
+\[
+g \le 0 \quad \Longrightarrow \quad \text{no contribution},
+\]
+\[
+g > 0 \quad \Longrightarrow \quad \text{penalty traction is applied}.
+\]
+
+\section{Penalty Traction and Weak Form}
+
+When the constraint is active (\(g>0\)), the code defines the traction vector
+\[
+\mathbf{h} = k_p\, g\, \mathbf{n},
+\]
+where \(k_p = \texttt{Penalty\_factor}\).
+
+The corresponding boundary residual contribution is assembled as
+\[
+\mathbf{R}_{\Gamma_c}
+= \int_{\Gamma_c^{\text{active}}} \mathbf{N}^T \mathbf{h}\, d\Gamma
+= \int_{\Gamma_c^{\text{active}}} \mathbf{N}^T
+\left(k_p\, g\, \mathbf{n}\right)\, d\Gamma.
+\]
+
+In index form, the element residual contribution is
+\[
+R_{ia}^{(c)}
+= \int_{\Gamma_c^{\text{active}}}
+N_a\, k_p\, g\, n_i\, d\Gamma.
+\]
+
+This is assembled in \texttt{set\_bc\_rigid\_plane\_l(...)} through the local
+array \texttt{lR}.
+
+\section{Consistent Linearization Used by the Code}
+
+The code also forms the tensor
+\[
+\mathbf{n}\otimes\mathbf{n},
+\qquad
+(\mathbf{n}\otimes\mathbf{n})_{ij} = n_i n_j,
+\]
+stored locally as \texttt{nDn(i,j)}.
+
+For the standard structural case, the boundary tangent contribution is of the
+form
+\[
+\mathbf{K}_{\Gamma_c}
+= \int_{\Gamma_c^{\text{active}}}
+k_p\, a_{fu}\, N_a N_b \, (\mathbf{n}\otimes\mathbf{n})\, d\Gamma,
+\]
+where the generalized-\(\alpha\) factor used in the implementation is
+\[
+a_{fu} = \texttt{eq.af * eq.beta * dt * dt}.
+\]
+
+Thus, the penalty contact adds a rank-one normal-direction stiffness on the
+active part of the boundary.
+
+For \texttt{ustruct}, the implementation separates the contribution into
+\texttt{lKd} and \texttt{lK}, and the final assembly is passed through
+\[
+\texttt{ustruct::ustruct\_do\_assem(...)}.
+\]
+For the standard structural case, the contribution is assembled directly through
+\[
+\texttt{eq.linear\_algebra->assemble(...)}.
+\]
+
+\section{Summary}
+
+In summary:
+
+\begin{itemize}[leftmargin=*]
+\item \texttt{RigidPlaneBoundaryCondition.cpp} validates, normalizes, stores,
+and distributes the rigid-plane data.
+\item The user must provide \texttt{Penalty\_factor}, \texttt{Plane\_point},
+\texttt{Plane\_normal}, \texttt{Time\_dependence = Unsteady}, and
+\texttt{Temporal\_values\_file\_path}.
+\item The actual weak-form modification is assembled in \texttt{set\_bc.cpp},
+function \texttt{set\_bc\_rigid\_plane\_l(...)}.
+\item The added term is a unilateral penalty traction
+\[
+\mathbf{h}=k_p g \mathbf{n}
+\]
+active only when
+\[
+g=\mathbf{n}\cdot(\mathbf{y}-\mathbf{x}_p)-u_p(t) > 0.
+\]
+\end{itemize}
+
+\end{document}

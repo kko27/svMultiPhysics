@@ -234,6 +234,7 @@ set(CSRCS
 
   BoundaryCondition.h BoundaryCondition.cpp
   RobinBoundaryCondition.h RobinBoundaryCondition.cpp
+  RigidPlaneBoundaryCondition.h RigidPlaneBoundaryCondition.cpp
   CoupledBoundaryCondition.h CoupledBoundaryCondition.cpp
 )
 

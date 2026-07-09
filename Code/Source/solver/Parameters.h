@@ -803,6 +803,9 @@ class BoundaryConditionParameters : public ParameterLists
     Parameter<double> penalty_parameter;
     Parameter<double> penalty_parameter_normal;
     Parameter<double> penalty_parameter_tangential;
+    Parameter<double> penalty_factor;
+    VectorParameter<double> plane_normal;
+    VectorParameter<double> plane_point;
     Parameter<std::string> prestress_file_path;
     Parameter<std::string> profile;
     Parameter<bool> ramp_function;

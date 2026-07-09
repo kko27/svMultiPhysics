@@ -1430,6 +1430,11 @@ void set_bc_neu_l(ComMod& com_mod, const CmMod& cm_mod, const bcType& lBc, const
   Vector<double> h(1), rtmp(1);
   Vector<double> tmpA(nNo); 
 
+  if (lBc.rigid_plane_bc.is_initialized()) {
+    set_bc_rigid_plane_l(com_mod, lBc, lFa, lBc.rigid_plane_bc, solutions);
+    return;
+  }
+
   // Geting the contribution of Neu BC
   //
   if (utils::btest(lBc.bType,iBC_cpl) || utils::btest(lBc.bType,iBC_RCR) || utils::btest(lBc.bType,iBC_Coupled)) {
@@ -1774,8 +1779,210 @@ void set_bc_rbnl(ComMod& com_mod, const faceType& lFa, const RobinBoundaryCondit
       eq.linear_algebra->assemble(com_mod, eNoN, ptr, lK, lR);
     }
 
-  } // for int e = 0; e < lFa.nEl; e++
+} // for int e = 0; e < lFa.nEl; e++
 
+}
+
+void set_bc_rigid_plane_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa,
+  const RigidPlaneBoundaryCondition& rigid_plane_bc, const SolutionStates& solutions)
+{
+  const auto& Dg = solutions.intermediate.get_displacement();
+
+  using namespace consts;
+
+  const int cEq = com_mod.cEq;
+  const auto& eq = com_mod.eq[cEq];
+  const double dt = com_mod.dt;
+  const int nsd = com_mod.nsd;
+  const int dof = com_mod.dof;
+  auto& cDmn = com_mod.cDmn;
+
+  const int s = eq.s;
+  const double afv = eq.af * eq.gam * dt;
+  const double afu = eq.af * eq.beta * dt * dt;
+  const double afm = afv / eq.am;
+
+  const int iM = lFa.iM;
+  const int eNoN = lFa.eNoN;
+  const double penalty = rigid_plane_bc.get_penalty_factor();
+  const auto& plane_point = rigid_plane_bc.get_plane_point();
+  const auto& plane_normal = rigid_plane_bc.get_plane_normal();
+
+  Vector<double> prescribed_plane_displacement(1);
+  Vector<double> prescribed_plane_velocity(1);
+  ifft(com_mod, lBc.gt, prescribed_plane_displacement, prescribed_plane_velocity);
+  const double plane_displacement = prescribed_plane_displacement(0);
+
+  Vector<double> N(eNoN);
+  Vector<int> ptr(eNoN);
+  Array<double> xl(nsd,eNoN), dl(nsd,eNoN), lR(dof,eNoN);
+  Array3<double> lK(dof*dof,eNoN,eNoN), lKd(nsd*dof,eNoN,eNoN);
+
+  for (int e = 0; e < lFa.nEl; e++) {
+    cDmn = all_fun::domain(com_mod, com_mod.msh[iM], cEq, lFa.gE(e));
+    auto cPhys = eq.dmn[cDmn].phys;
+
+    for (int a = 0; a < eNoN; a++) {
+      int Ac = lFa.IEN(a,e);
+      ptr(a) = Ac;
+
+      for (int i = 0; i < nsd; i++) {
+        xl(i,a) = com_mod.x(i,Ac);
+        dl(i,a) = Dg(i+s,Ac);
+      }
+    }
+
+    lK = 0.0;
+    lR = 0.0;
+    lKd = 0.0;
+
+    for (int g = 0; g < lFa.nG; g++) {
+      Vector<double> nV(nsd);
+      auto Nx = lFa.Nx.slice(g);
+      nn::gnnb(com_mod, lFa, e, g, nsd, nsd-1, eNoN, Nx, nV, solutions,
+          consts::MechanicalConfigurationType::reference);
+      double Jac = utils::norm(nV);
+      double w = lFa.w(g) * Jac;
+      N = lFa.N.col(g);
+
+      Vector<double> y(nsd), h(nsd);
+      Array<double> nDn(nsd, nsd);
+      nDn = 0.0;
+
+      for (int a = 0; a < eNoN; a++) {
+        for (int i = 0; i < nsd; i++) {
+          y(i) += N(a) * (xl(i,a) + dl(i,a));
+        }
+      }
+
+      double gap = -plane_displacement;
+      for (int i = 0; i < nsd; i++) {
+        gap += plane_normal(i) * (y(i) - plane_point(i));
+      }
+
+      if (gap <= 0.0) {
+        continue;
+      }
+
+      for (int i = 0; i < nsd; i++) {
+        h(i) = penalty * gap * plane_normal(i);
+        for (int j = 0; j < nsd; j++) {
+          nDn(i,j) = plane_normal(i) * plane_normal(j);
+        }
+      }
+
+      if (nsd == 3) {
+        for (int a = 0; a < eNoN; a++) {
+          lR(0,a) += w * N(a) * h(0);
+          lR(1,a) += w * N(a) * h(1);
+          lR(2,a) += w * N(a) * h(2);
+        }
+
+        if (cPhys == EquationType::phys_ustruct) {
+          double wl = w * afv;
+
+          for (int a = 0; a < eNoN; a++) {
+            for (int b = 0; b < eNoN; b++) {
+              double T1 = wl * N(a) * N(b);
+              double T2 = afm * penalty * T1;
+              T1 *= penalty;
+
+              lKd(0,a,b) += T1 * nDn(0,0);
+              lK(0,a,b)  += T2 * nDn(0,0);
+
+              lKd(1,a,b) += T1 * nDn(0,1);
+              lK(1,a,b)  += T2 * nDn(0,1);
+
+              lKd(2,a,b) += T1 * nDn(0,2);
+              lK(2,a,b)  += T2 * nDn(0,2);
+
+              lKd(3,a,b) += T1 * nDn(1,0);
+              lK(4,a,b)  += T2 * nDn(1,0);
+
+              lKd(4,a,b) += T1 * nDn(1,1);
+              lK(5,a,b)  += T2 * nDn(1,1);
+
+              lKd(5,a,b) += T1 * nDn(1,2);
+              lK(6,a,b)  += T2 * nDn(1,2);
+
+              lKd(6,a,b) += T1 * nDn(2,0);
+              lK(8,a,b)  += T2 * nDn(2,0);
+
+              lKd(7,a,b) += T1 * nDn(2,1);
+              lK(9,a,b)  += T2 * nDn(2,1);
+
+              lKd(8,a,b) += T1 * nDn(2,2);
+              lK(10,a,b) += T2 * nDn(2,2);
+            }
+          }
+        } else {
+          double wl = w * penalty * afu;
+
+          for (int a = 0; a < eNoN; a++) {
+            for (int b = 0; b < eNoN; b++) {
+              double T1 = N(a) * N(b);
+              lK(0,a,b)       += wl * T1 * nDn(0,0);
+              lK(1,a,b)       += wl * T1 * nDn(0,1);
+              lK(2,a,b)       += wl * T1 * nDn(0,2);
+              lK(dof+0,a,b)   += wl * T1 * nDn(1,0);
+              lK(dof+1,a,b)   += wl * T1 * nDn(1,1);
+              lK(dof+2,a,b)   += wl * T1 * nDn(1,2);
+              lK(2*dof+0,a,b) += wl * T1 * nDn(2,0);
+              lK(2*dof+1,a,b) += wl * T1 * nDn(2,1);
+              lK(2*dof+2,a,b) += wl * T1 * nDn(2,2);
+            }
+          }
+        }
+      } else if (nsd == 2) {
+        for (int a = 0; a < eNoN; a++) {
+          lR(0,a) += w * N(a) * h(0);
+          lR(1,a) += w * N(a) * h(1);
+        }
+
+        if (cPhys == EquationType::phys_ustruct) {
+          double wl = w * afv;
+
+          for (int a = 0; a < eNoN; a++) {
+            for (int b = 0; b < eNoN; b++) {
+              double T1 = wl * N(a) * N(b);
+              double T2 = afm * penalty * T1;
+              T1 *= penalty;
+
+              lKd(0,a,b) += T1 * nDn(0,0);
+              lK(0,a,b)  += T2 * nDn(0,0);
+
+              lKd(1,a,b) += T1 * nDn(0,1);
+              lK(1,a,b)  += T2 * nDn(0,1);
+
+              lKd(2,a,b) += T1 * nDn(1,0);
+              lK(3,a,b)  += T2 * nDn(1,0);
+
+              lKd(3,a,b) += T1 * nDn(1,1);
+              lK(4,a,b)  += T2 * nDn(1,1);
+            }
+          }
+        } else {
+          double wl = w * penalty * afu;
+
+          for (int a = 0; a < eNoN; a++) {
+            for (int b = 0; b < eNoN; b++) {
+              double T1 = N(a) * N(b);
+              lK(0,a,b)     += wl * T1 * nDn(0,0);
+              lK(1,a,b)     += wl * T1 * nDn(0,1);
+              lK(dof+0,a,b) += wl * T1 * nDn(1,0);
+              lK(dof+1,a,b) += wl * T1 * nDn(1,1);
+            }
+          }
+        }
+      }
+    }
+
+    if (cPhys == EquationType::phys_ustruct) {
+      ustruct::ustruct_do_assem(com_mod, eNoN, ptr, lKd, lK, lR);
+    } else {
+      eq.linear_algebra->assemble(com_mod, eNoN, ptr, lK, lR);
+    }
+  }
 }
 
 /// @brief Set Traction BC
@@ -1992,5 +2199,4 @@ void set_bc_undef_neu_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa)
 }
 
 };
-
 

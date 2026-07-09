@@ -783,6 +783,13 @@ void dist_bc(ComMod& com_mod, const CmMod& cm_mod, const cmType& cm, bcType& lBc
     lBc.robin_bc.distribute(com_mod, cm_mod, cm, com_mod.msh[lBc.iM].fa[lBc.iFa]);
   }
 
+  bool has_rigid_plane_bc = lBc.rigid_plane_bc.is_initialized();
+  cm.bcast(cm_mod, &has_rigid_plane_bc);
+
+  if (has_rigid_plane_bc) {
+    lBc.rigid_plane_bc.distribute(cm_mod, cm, com_mod.nsd);
+  }
+
   // Communicating Coupled BC
   //
   if (utils::btest(lBc.bType, static_cast<int>(BoundaryConditionType::bType_Coupled))) {

@@ -177,6 +177,10 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
     lBc.bType = utils::ibset(lBc.bType, enum_int(BoundaryConditionType::bType_Robin)); 
     lBc.bType = utils::ibset(lBc.bType, enum_int(BoundaryConditionType::bType_Neu)); 
 
+  } else if (std::set<std::string>{"RigidPlanePenalty", "RigidPlane", "Rigid_Plane_Penalty"}.count(bc_type)) {
+    lBc.bType = utils::ibset(lBc.bType, enum_int(BoundaryConditionType::bType_RigidPlanePenalty));
+    lBc.bType = utils::ibset(lBc.bType, enum_int(BoundaryConditionType::bType_Neu));
+
   } else if (std::set<std::string>{"Coupled Momentum","CMM"}.count(bc_type)) {
     lBc.bType = utils::ibset(lBc.bType, enum_int(BoundaryConditionType::bType_CMM)); 
 
@@ -400,6 +404,51 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
                                             com_mod.msh[lBc.iM].fa[lBc.iFa],
                                             simulation->logger);
     }
+  }
+
+  if (utils::btest(lBc.bType, enum_int(BoundaryConditionType::bType_RigidPlanePenalty))) {
+    if (lEq.phys != Equation_struct && lEq.phys != Equation_ustruct) {
+      throw std::runtime_error("[read_bc] RigidPlanePenalty is only supported for struct and ustruct equations.");
+    }
+
+    if (bc_params->time_dependence.value() != "Unsteady") {
+      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Time_dependence> Unsteady </Time_dependence>.");
+    }
+
+    if (!bc_params->temporal_values_file_path.defined()) {
+      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Temporal_values_file_path>.");
+    }
+
+    if (!bc_params->penalty_factor.defined()) {
+      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Penalty_factor>.");
+    }
+
+    if (!bc_params->plane_point.defined()) {
+      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Plane_point>.");
+    }
+
+    if (!bc_params->plane_normal.defined()) {
+      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Plane_normal>.");
+    }
+
+    if (bc_params->spatial_values_file_path.defined() || bc_params->stiffness.defined() ||
+        bc_params->damping.defined() || bc_params->apply_along_normal_direction.defined()) {
+      throw std::runtime_error("[read_bc] RigidPlanePenalty cannot be mixed with Robin-specific parameters.");
+    }
+
+    if (lBc.gt.d != 1) {
+      throw std::runtime_error("[read_bc] RigidPlanePenalty requires a scalar temporal history.");
+    }
+
+    auto plane_point = bc_params->plane_point.value();
+    auto plane_normal = bc_params->plane_normal.value();
+    if (plane_point.size() != static_cast<size_t>(com_mod.nsd) ||
+        plane_normal.size() != static_cast<size_t>(com_mod.nsd)) {
+      throw std::runtime_error("[read_bc] Plane_point and Plane_normal must match the number of spatial dimensions.");
+    }
+
+    lBc.rigid_plane_bc = RigidPlaneBoundaryCondition(bc_params->penalty_factor.value(),
+      plane_point, plane_normal, simulation->logger);
   }
 
   
