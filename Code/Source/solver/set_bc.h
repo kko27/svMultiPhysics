@@ -34,6 +34,9 @@ void set_bc_dir_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa, Array
 void set_bc_dir_w(ComMod& com_mod, const SolutionStates& solutions);
 void set_bc_dir_wl(ComMod& com_mod, const bcType& lBc, const mshType& lM, const faceType& lFa, const SolutionStates& solutions);
 
+void reset_rigid_plane_traction(ComMod& com_mod);
+void finalize_rigid_plane_traction(ComMod& com_mod);
+
 void set_bc_neu(ComMod& com_mod, const CmMod& cm_mod, const SolutionStates& solutions);
 void set_bc_neu_l(ComMod& com_mod, const CmMod& cm_mod, const bcType& lBc, const faceType& lFa, const SolutionStates& solutions);
 

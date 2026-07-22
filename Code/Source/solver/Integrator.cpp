@@ -250,6 +250,7 @@ void Integrator::assemble_equations() {
 void Integrator::apply_boundary_conditions() {
   auto& com_mod = simulation_->com_mod;
   auto& cm_mod = simulation_->cm_mod;
+  auto& eq = com_mod.eq[com_mod.cEq];
 
   #ifdef debug_integrator_step
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
@@ -257,6 +258,11 @@ void Integrator::apply_boundary_conditions() {
   solutions_.intermediate.get_velocity().write("Yg_vor_neu" + istr_);
   solutions_.intermediate.get_displacement().write("Dg_vor_neu" + istr_);
   #endif
+
+  if (eq.phys == consts::EquationType::phys_struct ||
+      eq.phys == consts::EquationType::phys_ustruct) {
+    set_bc::reset_rigid_plane_traction(com_mod);
+  }
 
   // Apply Neumann or Traction boundary conditions
   set_bc::set_bc_neu(com_mod, cm_mod, solutions_);

@@ -22,6 +22,8 @@ void fib_algn_post(Simulation* simulation, const mshType& lM, Array<double>& res
 
 void fib_dir_post(Simulation* simulation, const mshType& lM, const int nFn, Array<double>& res, const SolutionStates& solutions, const int iEq);
 
+void rigid_plane_traction_post(Simulation* simulation, const mshType& lM, Array<double>& res);
+
 void fib_stretch(const ComMod& com_mod, const int iEq, const mshType& lM, const Array<double>& lD, Vector<double>& res);
 
 void fib_stretch_rate(const ComMod& com_mod, const int iEq, const mshType& lM, const SolutionStates& solutions, Vector<double>& res);

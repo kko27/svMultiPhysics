@@ -271,6 +271,7 @@ void txt(Simulation* simulation, const bool init_write, const SolutionStates& so
         case OutputNameType::outGrp_WSS: 
         case OutputNameType::outGrp_vort: 
         case OutputNameType::outGrp_trac:
+        case OutputNameType::outGrp_rigidPlaneTraction:
           post::all_post(simulation, tmpV, solutions, oGrp, iEq);
           for (int a = 0; a < tnNo; a++) {
             auto vec = tmpV.col(a, {0,nsd-1});

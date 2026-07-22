@@ -1865,6 +1865,18 @@ class ComMod {
     /// @brief CMM-variable wall properties: 1-thickness, 2-Elasticity modulus
     Array<double>  varWallProps;
 
+    /// @brief Accumulated nodal rigid-plane traction before communication/normalization
+    Array<double> rigid_plane_traction_accum;
+
+    /// @brief Final nodal rigid-plane traction used for output
+    Array<double> rigid_plane_traction;
+
+    /// @brief Nodal quadrature weights used to average rigid-plane traction
+    Vector<double> rigid_plane_traction_weight;
+
+    /// @brief Whether rigid-plane traction has been communicated and normalized
+    bool rigid_plane_traction_finalized = false;
+
     //------------------------
     // DERIVED TYPE VARIABLES
     //------------------------

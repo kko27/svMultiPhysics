@@ -552,17 +552,19 @@ SetEquationPropertiesMapType set_equation_props = {
   read_domain(simulation, eq_params, lEq, propL);
 
   if (eq_params->prestress.defined() && eq_params->prestress.value()) { 
-    nDOP = {4,2,0,0};
-    outPuts = {OutputNameType::out_displacement, OutputNameType::out_stress, OutputNameType::out_cauchy, OutputNameType::out_strain};
+    nDOP = {5,2,0,0};
+    outPuts = {OutputNameType::out_displacement, OutputNameType::out_stress, OutputNameType::out_cauchy,
+      OutputNameType::out_strain, OutputNameType::out_rigidPlaneTraction};
     //simulation->com_mod.pstEq = true;
   } else {
-    nDOP = {14,2,0,0};
+    nDOP = {15,2,0,0};
     outPuts = {
       OutputNameType::out_displacement, OutputNameType::out_mises, OutputNameType::out_stress,
       OutputNameType::out_cauchy, OutputNameType::out_strain, OutputNameType::out_jacobian,
       OutputNameType::out_defGrad, OutputNameType::out_integ, OutputNameType::out_fibDir,
       OutputNameType::out_fibAlign, OutputNameType::out_velocity, OutputNameType::out_acceleration,
-      OutputNameType::out_fibStretch, OutputNameType::out_fibStretchRate
+      OutputNameType::out_fibStretch, OutputNameType::out_fibStretchRate,
+      OutputNameType::out_rigidPlaneTraction
     };
   }
 
@@ -597,7 +599,7 @@ SetEquationPropertiesMapType set_equation_props = {
 
   read_domain(simulation, eq_params, lEq, propL);
 
-  nDOP = {16, 2, 0, 0};
+  nDOP = {17, 2, 0, 0};
   outPuts = {
     OutputNameType::out_displacement,
     OutputNameType::out_mises,
@@ -614,7 +616,8 @@ SetEquationPropertiesMapType set_equation_props = {
     OutputNameType::out_acceleration,
     OutputNameType::out_divergence,
     OutputNameType::out_fibStretch,
-    OutputNameType::out_fibStretchRate
+    OutputNameType::out_fibStretchRate,
+    OutputNameType::out_rigidPlaneTraction
   };
 
   // Set solver parameters.
@@ -622,4 +625,3 @@ SetEquationPropertiesMapType set_equation_props = {
 
 } },
 };
-

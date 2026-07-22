@@ -1158,6 +1158,15 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
             }
           break;
 
+          case OutputNameType::outGrp_rigidPlaneTraction:
+            post::rigid_plane_traction_post(simulation, msh, tmpV);
+            for (int a = 0; a < msh.nNo; a++) {
+              for (int i = 0; i < l; i++) {
+                d[iM].x(i+is,a) = tmpV(i,a);
+              }
+            }
+          break;
+
           case OutputNameType::outGrp_vort: 
           case OutputNameType::outGrp_eFlx: 
           case OutputNameType::outGrp_hFlx: 

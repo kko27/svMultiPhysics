@@ -12,6 +12,7 @@
 #include "mat_models.h"
 #include "nn.h"
 #include "shells.h"
+#include "set_bc.h"
 #include "utils.h"
 #include "vtk_xml.h"
 #include <math.h>
@@ -74,6 +75,13 @@ void all_post(Simulation* simulation, Array<double>& res, const SolutionStates& 
         res.set_col(Ac, tmpV.col(a));
       }
 
+    } else if (outGrp == OutputNameType::outGrp_rigidPlaneTraction) {
+      rigid_plane_traction_post(simulation, msh, tmpV);
+      for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
+        int Ac = msh.gN(a);
+        res.set_col(Ac, tmpV.col(a));
+      }
+
     } else if (outGrp == OutputNameType::outGrp_J) {
       Array<double> tmpV(1,msh.nNo); 
       Vector<double> tmpVe(msh.nEl);
@@ -110,6 +118,24 @@ void all_post(Simulation* simulation, Array<double>& res, const SolutionStates& 
          res.set_col(Ac, tmpV.col(a));
         }
      }
+  }
+}
+
+void rigid_plane_traction_post(Simulation* simulation, const mshType& lM, Array<double>& res)
+{
+  auto& com_mod = simulation->com_mod;
+  const int nsd = com_mod.nsd;
+
+  set_bc::finalize_rigid_plane_traction(com_mod);
+  res = 0.0;
+
+  for (int a = 0; a < lM.nNo; a++) {
+    int Ac = lM.gN(a);
+    for (int i = 0; i < nsd; i++) {
+      // Report the force applied to the solid, which is opposite the
+      // penalty traction vector used in the residual assembly.
+      res(i,a) = -com_mod.rigid_plane_traction(i,Ac);
+    }
   }
 }
 

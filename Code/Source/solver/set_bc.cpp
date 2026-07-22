@@ -1783,6 +1783,68 @@ void set_bc_rbnl(ComMod& com_mod, const faceType& lFa, const RobinBoundaryCondit
 
 }
 
+void reset_rigid_plane_traction(ComMod& com_mod)
+{
+  const int nsd = com_mod.nsd;
+  const int tnNo = com_mod.tnNo;
+
+  if (com_mod.rigid_plane_traction_accum.nrows() != nsd ||
+      com_mod.rigid_plane_traction_accum.ncols() != tnNo) {
+    com_mod.rigid_plane_traction_accum.resize(nsd, tnNo);
+  }
+
+  if (com_mod.rigid_plane_traction.nrows() != nsd ||
+      com_mod.rigid_plane_traction.ncols() != tnNo) {
+    com_mod.rigid_plane_traction.resize(nsd, tnNo);
+  }
+
+  if (com_mod.rigid_plane_traction_weight.size() != tnNo) {
+    com_mod.rigid_plane_traction_weight.resize(tnNo);
+  }
+
+  com_mod.rigid_plane_traction_accum = 0.0;
+  com_mod.rigid_plane_traction = 0.0;
+  com_mod.rigid_plane_traction_weight = 0.0;
+  com_mod.rigid_plane_traction_finalized = false;
+}
+
+void finalize_rigid_plane_traction(ComMod& com_mod)
+{
+  const int nsd = com_mod.nsd;
+  const int tnNo = com_mod.tnNo;
+
+  if (com_mod.rigid_plane_traction_finalized) {
+    return;
+  }
+
+  if (com_mod.rigid_plane_traction_accum.nrows() != nsd ||
+      com_mod.rigid_plane_traction_accum.ncols() != tnNo ||
+      com_mod.rigid_plane_traction_weight.size() != tnNo) {
+    reset_rigid_plane_traction(com_mod);
+    com_mod.rigid_plane_traction_finalized = true;
+    return;
+  }
+
+  com_mod.rigid_plane_traction = com_mod.rigid_plane_traction_accum;
+  all_fun::commu(com_mod, com_mod.rigid_plane_traction);
+  all_fun::commu(com_mod, com_mod.rigid_plane_traction_weight);
+
+  for (int a = 0; a < tnNo; a++) {
+    double weight = com_mod.rigid_plane_traction_weight(a);
+    if (!utils::is_zero(weight)) {
+      for (int i = 0; i < nsd; i++) {
+        com_mod.rigid_plane_traction(i,a) /= weight;
+      }
+    } else {
+      for (int i = 0; i < nsd; i++) {
+        com_mod.rigid_plane_traction(i,a) = 0.0;
+      }
+    }
+  }
+
+  com_mod.rigid_plane_traction_finalized = true;
+}
+
 void set_bc_rigid_plane_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa,
   const RigidPlaneBoundaryCondition& rigid_plane_bc, const SolutionStates& solutions)
 {
@@ -1868,6 +1930,15 @@ void set_bc_rigid_plane_l(ComMod& com_mod, const bcType& lBc, const faceType& lF
         h(i) = penalty * gap * plane_normal(i);
         for (int j = 0; j < nsd; j++) {
           nDn(i,j) = plane_normal(i) * plane_normal(j);
+        }
+      }
+
+      for (int a = 0; a < eNoN; a++) {
+        int Ac = lFa.IEN(a,e);
+        double wa = w * N(a);
+        com_mod.rigid_plane_traction_weight(Ac) += wa;
+        for (int i = 0; i < nsd; i++) {
+          com_mod.rigid_plane_traction_accum(i,Ac) += wa * h(i);
         }
       }
 
@@ -2199,4 +2270,3 @@ void set_bc_undef_neu_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa)
 }
 
 };
-

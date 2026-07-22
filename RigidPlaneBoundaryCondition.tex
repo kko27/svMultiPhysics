@@ -252,4 +252,131 @@ g=\mathbf{n}\cdot(\mathbf{y}-\mathbf{x}_p)-u_p(t) > 0.
 \]
 \end{itemize}
 
+\section{Special Case: Motion Only Along the Global \texorpdfstring{$y$}{y}-Direction}
+
+It is possible to prescribe a displacement only along the global \(y\)-direction,
+but this is interpreted correctly only when the plane normal is aligned with the
+\(y\)-axis. The code always interprets \texttt{Temporal\_values\_file\_path} as a
+scalar displacement along the plane normal, not as a full Cartesian displacement
+vector.
+
+For example, if
+\[
+\texttt{Plane\_normal} = (0,1,0),
+\]
+then the moving plane is
+\[
+y_{\text{plane}}(t) = y_0 + u_p(t),
+\]
+where \(y_0\) is the \(y\)-coordinate of \texttt{Plane\_point} and \(u_p(t)\) is
+the scalar value read from the temporal file.
+
+A representative setup is
+
+\begin{verbatim}
+<Add_BC>
+  <Type> RigidPlanePenalty </Type>
+  <Time_dependence> Unsteady </Time_dependence>
+  <Temporal_values_file_path> rigid_plane_y_motion.dat </Temporal_values_file_path>
+  <Penalty_factor> 1.0e6 </Penalty_factor>
+  <Plane_point> 0.0 0.02 0.0 </Plane_point>
+  <Plane_normal> 0.0 1.0 0.0 </Plane_normal>
+</Add_BC>
+\end{verbatim}
+
+In this special case, the code reduces to
+\[
+g = y - y_0 - u_p(t),
+\]
+so the temporal file acts exactly like a prescribed scalar \(y\)-shift of the
+plane.
+
+\section{Sign Convention for the Temporal Plane Motion}
+
+The temporal file \texttt{rigid\_plane\_y\_motion.dat} does not need to contain
+only positive values. Its sign determines the motion direction relative to the
+chosen \texttt{Plane\_normal}. Positive values move the plane along the normal;
+negative values move it opposite to the normal.
+
+\subsection*{Case 1: \texttt{Plane\_normal} = \texorpdfstring{$(0,1,0)$}{(0,1,0)}}
+
+The code uses
+\[
+g = y - y_0 - u_p(t),
+\qquad
+y_{\text{plane}}(t) = y_0 + u_p(t).
+\]
+
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\texttt{u\_p(t)} value & Plane motion & Code gap \(g\) & Traction applied? \\
+\hline
+positive & plane moves upward in \(+y\) & \(y - y_{\text{plane}}\) & yes if \(y > y_{\text{plane}}\) \\
+\hline
+zero & plane stays at \(y_0\) & \(y - y_0\) & yes if \(y > y_0\) \\
+\hline
+negative & plane moves downward in \(-y\) & \(y - y_{\text{plane}}\) & yes if \(y > y_{\text{plane}}\) \\
+\hline
+\end{tabular}
+\end{center}
+
+With \texttt{Plane\_normal} \(= (0,1,0)\), the active side is the side with
+larger \(y\).
+
+\subsection*{Case 2: \texttt{Plane\_normal} = \texorpdfstring{$(0,-1,0)$}{(0,-1,0)}}
+
+The code uses
+\[
+g = -(y - y_0) - u_p(t) = y_0 - y - u_p(t).
+\]
+
+This can be rewritten as
+\[
+y_{\text{plane}}(t) = y_0 - u_p(t),
+\]
+with traction active when
+\[
+y < y_{\text{plane}}.
+\]
+
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\texttt{u\_p(t)} value & Plane motion & Code gap \(g\) & Traction applied? \\
+\hline
+positive & plane moves downward in \(-y\) & \(y_{\text{plane}} - y\) & yes if \(y < y_{\text{plane}}\) \\
+\hline
+zero & plane stays at \(y_0\) & \(y_0 - y\) & yes if \(y < y_0\) \\
+\hline
+negative & plane moves upward in \(+y\) & \(y_{\text{plane}} - y\) & yes if \(y < y_{\text{plane}}\) \\
+\hline
+\end{tabular}
+\end{center}
+
+With \texttt{Plane\_normal} \(= (0,-1,0)\), the active side is the side with
+smaller \(y\).
+
+\subsection*{Practical Takeaway}
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+Goal & Recommended \texttt{Plane\_normal} & Interpretation of positive \texttt{u\_p(t)} \\
+\hline
+Contact from above, acting on nodes with \(y > y_{\text{plane}}\) & \texttt{(0, 1, 0)} & moves plane upward \\
+\hline
+Contact from below, acting on nodes with \(y < y_{\text{plane}}\) & \texttt{(0, -1, 0)} & moves plane downward \\
+\hline
+\end{tabular}
+\end{center}
+
+The most important point is that the sign of the temporal file is not inherently
+correct or incorrect by itself. Its meaning depends on the chosen plane normal:
+
+\begin{itemize}[leftmargin=*]
+\item a positive value means motion along the chosen normal,
+\item a negative value means motion opposite to the chosen normal.
+\end{itemize}
+
 \end{document}
