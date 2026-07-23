@@ -1520,6 +1520,9 @@ public:
   /// Get the active tension coefficient along sheet normals.
   double get_eta_n() const;
 
+  /// Get the stabilization flag for Regazzoni-style active tension stabilization.
+  bool get_use_stabilization() const;
+
   /// Get the parameters for a given active stress model.
   const ActiveStressModelParameters &
   get_parameters(const std::string &model_name) const;
@@ -1530,6 +1533,9 @@ public:
 protected:
   /// Parameter for the model name.
   Parameter<std::string> model_name;
+
+  /// Flag for Regazzoni-style active tension stabilization 
+  Parameter<bool> use_stabilization; 
 
   /// Parameters for the directional distribution of active tension.
   DirectionalDistributionParameters directional_distribution;

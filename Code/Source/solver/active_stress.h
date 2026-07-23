@@ -228,6 +228,28 @@ protected:
    */
   virtual double
   compute_active_tension_local(const Vector<double> &state) const = 0;
+  
+  /** 
+   * @brief Compute the active stabilization stiffness for a single node. 
+   */
+  virtual double 
+  compute_active_stiffness_local(const Vector<double> &state, 
+                                 const double fiber_stretch, 
+                                 const double fiber_stretch_rate) const {
+    return 0.0;
+  }
+
+  /**
+   * @brief Apply stabilization to the active tension for a single node. 
+   */
+  virtual double apply_stabilization_local(const double raw_tension, 
+                                           const double active_stiffness,
+                                           const double fiber_stretch, 
+                                           const double previous_fiber_stretch)
+                                           const {
+    return raw_tension +
+           active_stiffness * (fiber_stretch - previous_fiber_stretch);                                         
+  }
 
   /// Current time. Updated whenever calling @ref advance_time_step.
   double time;
@@ -237,6 +259,17 @@ protected:
 
   /// Active tension at every node.
   Vector<double> active_tension;
+
+  /// Raw active tension at every node, before stabilization is applied.
+  Vector<double> raw_active_tension;
+
+  /// Previous fiber stretch at every node, used for stabilization.
+  Vector<double> previous_fiber_stretch;
+
+  /// Whether to apply stabilization to the active tension. 
+  bool use_stabilization = false; 
+
+  Vector<int> has_previous_fiber_stretch;
 
   /// Active tension coefficient along the fiber direction.
   double eta_f;

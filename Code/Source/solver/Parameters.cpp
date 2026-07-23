@@ -1902,7 +1902,12 @@ const std::string ActiveStressParameters::xml_element_name = "Active_stress";
 ActiveStressParameters::ActiveStressParameters() {
   model_name = Parameter<std::string>("Model", "", true);
 
+  use_stabilization = 
+      Parameter<bool>("Use_stabilization", false, false);
+
   set_parameter("Model", "", /* required = */ true, model_name);
+  set_parameter("Use_stabilization", false, /* required = */ false,
+                use_stabilization);
 
   ActiveStressFactory::visit(
       [this](const std::string &name, const ActiveStress &model) {
@@ -1974,6 +1979,10 @@ double ActiveStressParameters::get_eta_s() const {
 
 double ActiveStressParameters::get_eta_n() const {
   return directional_distribution.sheet_normal_direction.value();
+}
+
+bool ActiveStressParameters::get_use_stabilization() const {
+  return use_stabilization.value();
 }
 
 const ActiveStressModelParameters &
