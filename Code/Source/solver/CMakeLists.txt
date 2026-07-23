@@ -235,6 +235,7 @@ set(CSRCS
   active_stress_ode.cpp
   active_stress_nash_panfilov.cpp
   active_stress_regazzoni.cpp
+  active_stress_land_niederer.cpp 
 
   SPLIT.c
 
