@@ -275,6 +275,17 @@ protected:
   /// Active tension at every node.
   Vector<double> active_tension;
 
+  /// Raw active tension at every node, before stabilization is applied.
+  Vector<double> raw_active_tension;
+
+  /// Previous fiber stretch at every node, used for stabilization.
+  Vector<double> previous_fiber_stretch;
+
+  /// Whether to apply stabilization to the active tension. 
+  bool use_stabilization = false; 
+
+  Vector<int> has_previous_fiber_stretch;
+
   /// Active tension coefficient along the fiber direction.
   double eta_f;
 

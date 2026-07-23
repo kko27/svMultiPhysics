@@ -269,6 +269,7 @@ set(CSRCS
   ActiveStressODE.cpp
   ActiveStressNashPanfilov.cpp
   ActiveStressRegazzoni.cpp
+  active_stress_land_niederer.cpp
 
   SPLIT.c
 
