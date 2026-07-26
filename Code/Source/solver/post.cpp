@@ -1911,7 +1911,8 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
             double Ja;
 
             mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn,
-                                      fN, ya_g_f, ya_g_s, ya_g_n, S, Dm, Ja);
+                                      fN, ya_g_f, ya_g_s, ya_g_n, 0.0, 0.0,
+                                      0.0, S, Dm, Ja);
 
             // TODO: Add viscous stress
 
@@ -1931,7 +1932,8 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
             double Ja;
 
             mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn,
-                                      fN, ya_g_f, ya_g_s, ya_g_n, S, Dm, Ja);
+                                      fN, ya_g_f, ya_g_s, ya_g_n, 0.0, 0.0,
+                                      0.0, S, Dm, Ja);
 
             // TODO: Add viscous stress
 

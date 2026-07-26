@@ -695,6 +695,12 @@ void initialize(Simulation* simulation, Vector<double>& timeP)
     cep_mod.cem.Ya_f.resize(tnNo);
     cep_mod.cem.Ya_s.resize(tnNo);
     cep_mod.cem.Ya_n.resize(tnNo);
+    cep_mod.cem.Ka_f.resize(tnNo);
+    cep_mod.cem.Ka_s.resize(tnNo);
+    cep_mod.cem.Ka_n.resize(tnNo);
+    cep_mod.cem.Ka_f = 0.0;
+    cep_mod.cem.Ka_s = 0.0;
+    cep_mod.cem.Ka_n = 0.0;
   }
 
   // Setup the initial conditions for the active stress models.
@@ -997,4 +1003,3 @@ void zero_init(Simulation* simulation, SolutionStates& solutions)
      }
   }
 }
-

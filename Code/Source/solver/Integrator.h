@@ -9,6 +9,8 @@
 #include "Vector.h"
 #include "Simulation.h"
 
+#include <functional>
+
 /**
  * @brief Integrator class encapsulates the Newton iteration loop for time integration
  *
@@ -42,6 +44,9 @@ public:
    */
   bool step();
 
+  bool step_cep_equations();
+  bool step_structural_equations();
+
   /**
    * @brief Perform predictor step for next time step
    *
@@ -50,6 +55,20 @@ public:
    * This should be called once per time step before the Newton iteration loop.
    */
   void predictor();
+
+  void advance_active_stress_state();
+  void recompute_active_stress_tension();
+  void commit_active_stress_fiber_stretch();
+
+  void compute_fiber_stretch(Vector<double>& fiber_stretch) const;
+  void compute_fiber_stretch_rate(const Vector<double>& fiber_stretch,
+                                  Vector<double>& fiber_stretch_rate) const;
+  void assemble_active_tension_fields();
+
+  bool em_coupling_converged(const Vector<double>& prev_Ya_f,
+                             const Vector<double>& prev_Ya_s,
+                             const Vector<double>& prev_Ya_n,
+                             double tol) const;
 
   /**
    * @brief Get reference to solution variable Ag (time derivative of variables)
@@ -160,6 +179,13 @@ private:
    * @param eq Reference to the equation being solved
    */
   void update_residual_arrays(eqType& eq);
+
+  bool step_equation_subset(
+      const std::function<bool(const eqType&)>& should_solve,
+      const std::function<void(eqType&)>& reset_state);
+
+  bool equation_is_cep(const eqType& eq) const;
+  bool equation_is_structural(const eqType& eq) const;
 
   /**
    * @brief Initiator function for generalized-alpha method (initiator)

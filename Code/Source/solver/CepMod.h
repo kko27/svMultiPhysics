@@ -215,6 +215,15 @@ class cemModelType
     /// Only used if using active stress, in which case it represents the active
     /// tension along sheet normals.
     Vector<double> Ya_n;
+
+    /// Active stress tangent along fibers, interpreted as dTa/dlambda.
+    Vector<double> Ka_f;
+
+    /// Active stress tangent along sheets, interpreted as dTa/dlambda.
+    Vector<double> Ka_s;
+
+    /// Active stress tangent along sheet normals, interpreted as dTa/dlambda.
+    Vector<double> Ka_n;
 };
 
 class CepMod 
@@ -241,4 +250,3 @@ class CepMod
 };
 
 #endif
-

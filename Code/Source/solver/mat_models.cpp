@@ -292,6 +292,7 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
                    const dmnType &lDmn, const Matrix<nsd> &F, const int nfd,
                    const Eigen::Matrix<double, nsd, Eigen::Dynamic> fl,
                    const double ya_f, const double ya_s, const double ya_n,
+                   const double ka_f, const double ka_s, const double ka_n,
                    Matrix<nsd> &S, Matrix<3 * (nsd - 1)> &Dm, double &Ja) {
   using namespace consts;
   using namespace mat_fun;
@@ -324,6 +325,9 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
   double Tfa = ya_f;  // Fiber direction
   double Tsa = ya_s;  // Sheet direction
   double Tna = ya_n;  // Sheet-normal direction
+  double Kfa = ka_f;  // Fiber direction
+  double Ksa = ka_s;  // Sheet direction
+  double Kna = ka_n;  // Sheet-normal direction
 
   // Validate directional distribution is supported for this constitutive model
   // Only Guccione, HO, and HO-ma models support sheet and sheet-normal stress contributions
@@ -331,7 +335,8 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
                                             stM.isoType == ConstitutiveModelType::stIso_HO ||
                                             stM.isoType == ConstitutiveModelType::stIso_HO_ma);
 
-  if (!supports_directional_distribution && (ya_s > 0.0 || ya_n > 0.0)) {
+  if (!supports_directional_distribution &&
+      (ya_s > 0.0 || ya_n > 0.0 || ka_s != 0.0 || ka_n != 0.0)) {
     throw std::runtime_error("Directional distribution of active stress (eta_s > 0 or eta_n > 0) "
       "is only supported for Guccione, Holzapfel-Ogden (HO), and Holzapfel-Ogden Modified Anisotropy (HO-ma) models. "
       "Current model does not support sheet or sheet-normal stress contributions. "
@@ -357,6 +362,18 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
   } else {
     Hss = Matrix<nsd>::Zero();
   }
+
+  auto add_active_tangent = [&](Tensor<nsd> &CC_loc, const Matrix<nsd> &Hdir,
+                                const double Kdir, const double invariant) {
+    if (utils::is_zero(Kdir)) {
+      return;
+    }
+
+    const double lambda =
+        std::sqrt(std::max(invariant, std::numeric_limits<double>::epsilon()));
+    const double dT_dI = 0.5 * Kdir / lambda;
+    CC_loc += 2.0 * dT_dI * dyadic_product<nsd>(Hdir, Hdir);
+  };
 
   // Electromechanics coupling - active strain
   Matrix<nsd> Fe  = F;
@@ -433,6 +450,8 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
 
     // NeoHookean model
     case ConstitutiveModelType::stIso_nHook: {
+      double Inv4 = J2d * (fib_dir1.dot(C * fib_dir1));
+
       // Compute fictious stress and elasticity tensor
       Matrix<nsd> S_bar = 2.0 * stM.C10 * Idm;
 
@@ -441,6 +460,7 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
 
       // Add fiber reinforcement/active stress
       S_bar += Tfa * Hff;
+      add_active_tangent(CC_bar, Hff, Kfa, Inv4);
 
       // Compute and add isochoric stress and elasticity tensor
       auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
@@ -451,6 +471,8 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
 
     // Mooney-Rivlin model
     case ConstitutiveModelType::stIso_MR: {
+      double Inv4 = J2d * (fib_dir1.dot(C * fib_dir1));
+
       // Compute fictious stress and elasticity tensor
       Matrix<nsd> S_bar = 2.0 * (stM.C10 + Inv1 * stM.C01) * Idm 
                               -2.0 * stM.C01 * J2d * C;
@@ -459,6 +481,7 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
 
       // Add fiber reinforcement/active stress
       S_bar += Tfa * Hff;
+      add_active_tangent(CC_bar, Hff, Kfa, Inv4);
 
       // Compute and add isochoric stress and elasticity tensor
       auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
@@ -501,6 +524,7 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       
       // Add fiber reinforcement/active stress
       S_bar += Tfa * Hff;
+      add_active_tangent(CC_bar, Hff, Kfa, Inv4);
       
       // Compute and add isochoric stress and elasticity tensor
       auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
@@ -569,9 +593,13 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       // Add fiber reinforcement/active stress in all three orthogonal directions
       S_bar += Tfa * Hff;   // Fiber direction
       S_bar += Tsa * Hss;   // Sheet direction
+      add_active_tangent(CC_bar, Hff, Kfa, J2d * (fib_dir1.dot(C * fib_dir1)));
+      add_active_tangent(CC_bar, Hss, Ksa, J2d * (fib_dir2.dot(C * fib_dir2)));
       if (Tna > 0.0) {
         auto Hnn = fib_dir3 * fib_dir3.transpose();
         S_bar += Tna * Hnn;  // Sheet-normal direction
+        add_active_tangent(CC_bar, Hnn, Kna,
+                           J2d * (fib_dir3.dot(C * fib_dir3)));
       }
 
       // Compute and add isochoric stress and elasticity tensor
@@ -642,6 +670,7 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g1 = g1 + (0.5*ddc4f/stM.bff)*(rexp - 1.0);
       g1 = 4.0 * J4d * stM.aff * g1;
       CC_bar += g1*dyadic_product<nsd>(Hff, Hff);
+      add_active_tangent(CC_bar, Hff, Kfa, Inv4);
 
       // 3.S) Add sheet-sheet interaction stress + additional cross-fiber active stress (Tsa)
       rexp = exp(stM.bss*Ess*Ess);
@@ -656,11 +685,14 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g2 = g2 + (0.5*ddc4s/stM.bss)*(rexp - 1.0);
       g2 = 4.0 * J4d * stM.ass * g2;
       CC_bar += g2*dyadic_product<nsd>(Hss, Hss);
+      add_active_tangent(CC_bar, Hss, Ksa, Inv6);
 
       // 4.S) Add sheet-normal active stress (Tna)
       if (Tna > 0.0) {
         auto Hnn = fib_dir3 * fib_dir3.transpose();
         S_bar += Tna * Hnn;  // Sheet-normal direction (fib_dir3 already normalized)
+        add_active_tangent(CC_bar, Hnn, Kna,
+                           J2d * (fib_dir3.dot(C * fib_dir3)));
       }
 
       // Compute and add isochoric stress and elasticity tensor
@@ -751,6 +783,7 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g1 = g1 + (0.5*ddc4f/stM.bff)*(rexp - 1.0);
       g1 = 4.0*stM.aff*g1;
       CC += g1*dyadic_product<nsd>(Hff, Hff);
+      add_active_tangent(CC, Hff, Kfa, Inv4);
 
       // 3.S) Add sheet-sheet interaction stress + additional cross-fiber active stress (Tsa)
       rexp = exp(stM.bss * Ess * Ess);
@@ -765,11 +798,13 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g2 = g2 + (0.5*ddc4s/stM.bss)*(rexp - 1.0);
       g2   = 4.0*stM.ass*g2;
       CC += g2*dyadic_product<nsd>(Hss, Hss);
+      add_active_tangent(CC, Hss, Ksa, Inv6);
 
       // 4.S) Add sheet-normal active stress (Tna)
       if (Tna > 0.0) {
         auto Hnn = fib_dir3 * fib_dir3.transpose();
         S += Tna * Hnn;  // Sheet-normal direction (fib_dir3 already normalized)
+        add_active_tangent(CC, Hnn, Kna, fib_dir3.dot(C * fib_dir3));
       }
     } break;
 
@@ -823,7 +858,8 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
  * 
  */
 void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const Array<double>& F, const int nfd,
-    const Array<double>& fl, const double ya_f, const double ya_s, const double ya_n, Array<double>& S, Array<double>& Dm, double& Ja)
+    const Array<double>& fl, const double ya_f, const double ya_s, const double ya_n, const double ka_f, const double ka_s,
+    const double ka_n, Array<double>& S, Array<double>& Dm, double& Ja)
 {
     // Number of spatial dimensions
     int nsd = com_mod.nsd;
@@ -844,7 +880,8 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
         Eigen::Matrix3d Dm_2D = Eigen::Matrix3d::Zero();
 
         // Call templated function
-        compute_pk2cc<2>(com_mod, cep_mod, lDmn, F_2D, nfd, fl_2D, ya_f, ya_s, ya_n, S_2D, Dm_2D, Ja);
+        compute_pk2cc<2>(com_mod, cep_mod, lDmn, F_2D, nfd, fl_2D, ya_f, ya_s,
+                         ya_n, ka_f, ka_s, ka_n, S_2D, Dm_2D, Ja);
 
         // Copy results back
         mat_fun::convert_to_array(S_2D, S);
@@ -868,7 +905,8 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
         Dm_3D.setZero();
 
         // Call templated function
-        compute_pk2cc<3>(com_mod, cep_mod, lDmn, F_3D, nfd, fl_3D, ya_f, ya_s, ya_n, S_3D, Dm_3D, Ja);
+        compute_pk2cc<3>(com_mod, cep_mod, lDmn, F_3D, nfd, fl_3D, ya_f, ya_s,
+                         ya_n, ka_f, ka_s, ka_n, S_3D, Dm_3D, Ja);
 
         // Copy results back
         mat_fun::convert_to_array(S_3D, S);

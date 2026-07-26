@@ -224,7 +224,8 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
   // STRUCT: dof = nsd
 
   Vector<int> ptr(eNoN);
-  Vector<double> pSl(nsymd), ya_l_f(eNoN), ya_l_s(eNoN), ya_l_n(eNoN), N(eNoN);
+  Vector<double> pSl(nsymd), ya_l_f(eNoN), ya_l_s(eNoN), ya_l_n(eNoN),
+      ka_l_f(eNoN), ka_l_s(eNoN), ka_l_n(eNoN), N(eNoN);
   Array<double> xl(nsd,eNoN), al(tDof,eNoN), yl(tDof,eNoN), dl(tDof,eNoN), 
                 bfl(nsd,eNoN), fN(nsd,nFn), pS0l(nsymd,eNoN), Nx(nsd,eNoN), lR(dof,eNoN);
   Array3<double> lK(dof*dof,eNoN,eNoN);
@@ -250,6 +251,9 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
     ya_l_f = 0.0;
     ya_l_s = 0.0;
     ya_l_n = 0.0;
+    ka_l_f = 0.0;
+    ka_l_s = 0.0;
+    ka_l_n = 0.0;
 
     for (int a = 0; a < eNoN; a++) {
       int Ac = lM.IEN(a,e);
@@ -282,6 +286,9 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
         ya_l_f(a) = cep_mod.cem.Ya_f[Ac];
         ya_l_s(a) = cep_mod.cem.Ya_s[Ac];
         ya_l_n(a) = cep_mod.cem.Ya_n[Ac];
+        ka_l_f(a) = cep_mod.cem.Ka_f[Ac];
+        ka_l_s(a) = cep_mod.cem.Ka_s[Ac];
+        ka_l_n(a) = cep_mod.cem.Ka_n[Ac];
       }
     }
 
@@ -307,7 +314,8 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
 
       if (nsd == 3) {
         struct_3d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN,
-                  pS0l, pSl, ya_l_f, ya_l_s, ya_l_n, lR, lK);
+                  pS0l, pSl, ya_l_f, ya_l_s, ya_l_n, ka_l_f, ka_l_s, ka_l_n,
+                  lR, lK);
 
 #if 0
         if (e == 0 && g == 0) {
@@ -321,7 +329,8 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
 
       } else if (nsd == 2) {
         struct_2d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN,
-                  pS0l, pSl, ya_l_f, ya_l_s, ya_l_n, lR, lK);
+                  pS0l, pSl, ya_l_f, ya_l_s, ya_l_n, ka_l_f, ka_l_s, ka_l_n,
+                  lR, lK);
       }
 
       // Prestress
@@ -349,6 +358,8 @@ void struct_2d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
                const Array<double> &fN, const Array<double> &pS0l,
                Vector<double> &pSl, const Vector<double> &ya_l_f,
                const Vector<double> &ya_l_s, const Vector<double> &ya_l_n,
+               const Vector<double> &ka_l_f, const Vector<double> &ka_l_s,
+               const Vector<double> &ka_l_n,
                Array<double> &lR, Array3<double> &lK) {
   using namespace consts;
   using namespace mat_fun;
@@ -400,6 +411,9 @@ void struct_2d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
   double ya_g_f = 0.0;
   double ya_g_s = 0.0;
   double ya_g_n = 0.0;
+  double ka_g_f = 0.0;
+  double ka_g_s = 0.0;
+  double ka_g_n = 0.0;
 
   for (int a = 0; a < eNoN; a++) {
     ud(0) = ud(0) + N(a)*(rho*(al(i,a)-bfl(0,a)) + dmp*yl(i,a));
@@ -422,6 +436,9 @@ void struct_2d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
     ya_g_f = ya_g_f + N(a) * ya_l_f(a);
     ya_g_s = ya_g_s + N(a) * ya_l_s(a);
     ya_g_n = ya_g_n + N(a) * ya_l_n(a);
+    ka_g_f = ka_g_f + N(a) * ka_l_f(a);
+    ka_g_s = ka_g_s + N(a) * ka_l_s(a);
+    ka_g_n = ka_g_n + N(a) * ka_l_n(a);
   }
   #ifdef debug_struct_2d 
   dmsg << "ud: " << ud(0) << " " << ud(1);
@@ -437,7 +454,7 @@ void struct_2d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
   Array<double> S(2,2), Dm(3,3);
   double Ja;
   mat_models::compute_pk2cc(com_mod, cep_mod, dmn, F, nFn, fN, ya_g_f, ya_g_s,
-                            ya_g_n, S, Dm, Ja);
+                            ya_g_n, ka_g_f, ka_g_s, ka_g_n, S, Dm, Ja);
 
   // Viscous 2nd Piola-Kirchhoff stress and tangent contributions
   Array<double> Svis(2,2);
@@ -545,6 +562,8 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
                const Array<double> &fN, const Array<double> &pS0l,
                Vector<double> &pSl, const Vector<double> &ya_l_f,
                const Vector<double> &ya_l_s, const Vector<double> &ya_l_n,
+               const Vector<double> &ka_l_f, const Vector<double> &ka_l_s,
+               const Vector<double> &ka_l_n,
                Array<double> &lR, Array3<double> &lK) {
   using namespace consts;
   using namespace mat_fun;
@@ -608,6 +627,9 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
   double ya_g_f = 0.0;
   double ya_g_s = 0.0;
   double ya_g_n = 0.0;
+  double ka_g_f = 0.0;
+  double ka_g_s = 0.0;
+  double ka_g_n = 0.0;
 
   for (int a = 0; a < eNoN; a++) {
     ud(0) = ud(0) + N(a)*(rho*(al(i,a)-bfl(0,a)) + dmp*yl(i,a));
@@ -644,6 +666,9 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
     ya_g_f = ya_g_f + N(a) * ya_l_f(a);
     ya_g_s = ya_g_s + N(a) * ya_l_s(a);
     ya_g_n = ya_g_n + N(a) * ya_l_n(a);
+    ka_g_f = ka_g_f + N(a) * ka_l_f(a);
+    ka_g_s = ka_g_s + N(a) * ka_l_s(a);
+    ka_g_n = ka_g_n + N(a) * ka_l_n(a);
   }
 
   S0(1,0) = S0(0,1);
@@ -656,7 +681,7 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
   Array<double> S(3,3), Dm(6,6); 
   double Ja;
   mat_models::compute_pk2cc(com_mod, cep_mod, dmn, F, nFn, fN, ya_g_f, ya_g_s,
-                            ya_g_n, S, Dm, Ja);
+                            ya_g_n, ka_g_f, ka_g_s, ka_g_n, S, Dm, Ja);
 
   // Viscous 2nd Piola-Kirchhoff stress and tangent contributions
   Array<double> Svis(3,3);
@@ -825,4 +850,3 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
   }
 }
 };
-

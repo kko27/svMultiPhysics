@@ -19,7 +19,9 @@
 #include "utils.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
+#include <limits>
 #include <set>
 
 #define n_debug_integrator_step
@@ -171,6 +173,260 @@ bool Integrator::step() {
     output::output_result(simulation_, com_mod.timeP, 2, iEqOld);
     newton_count_ += 1;
   } // End of Newton iteration loop
+}
+
+bool Integrator::equation_is_cep(const eqType& eq) const {
+  using namespace consts;
+  return eq.phys == Equation_CEP;
+}
+
+bool Integrator::equation_is_structural(const eqType& eq) const {
+  using namespace consts;
+  return eq.phys == Equation_struct || eq.phys == Equation_ustruct ||
+         eq.phys == Equation_FSI || eq.phys == Equation_mesh ||
+         eq.phys == Equation_lElas;
+}
+
+bool Integrator::step_equation_subset(
+    const std::function<bool(const eqType&)>& should_solve,
+    const std::function<void(eqType&)>& reset_state) {
+  auto& com_mod = simulation_->com_mod;
+
+  const int saved_cEq = com_mod.cEq;
+  std::vector<bool> saved_ok(com_mod.eq.size());
+  std::vector<int> saved_itr(com_mod.eq.size());
+  std::vector<double> saved_iNorm(com_mod.eq.size());
+  std::vector<double> saved_pNorm(com_mod.eq.size());
+
+  int first_idx = -1;
+  for (int i = 0; i < com_mod.nEq; ++i) {
+    auto& eq = com_mod.eq[i];
+    saved_ok[i] = eq.ok;
+    saved_itr[i] = eq.itr;
+    saved_iNorm[i] = eq.iNorm;
+    saved_pNorm[i] = eq.pNorm;
+
+    if (should_solve(eq)) {
+      if (first_idx < 0) {
+        first_idx = i;
+      }
+      reset_state(eq);
+    } else {
+      eq.ok = true;
+    }
+  }
+
+  if (first_idx < 0) {
+    com_mod.cEq = saved_cEq;
+    return true;
+  }
+
+  com_mod.cEq = first_idx;
+  const bool converged = step();
+
+  for (int i = 0; i < com_mod.nEq; ++i) {
+    if (!should_solve(com_mod.eq[i])) {
+      com_mod.eq[i].ok = saved_ok[i];
+      com_mod.eq[i].itr = saved_itr[i];
+      com_mod.eq[i].iNorm = saved_iNorm[i];
+      com_mod.eq[i].pNorm = saved_pNorm[i];
+    }
+  }
+
+  com_mod.cEq = saved_cEq;
+  return converged;
+}
+
+bool Integrator::step_cep_equations() {
+  return step_equation_subset(
+      [this](const eqType& eq) { return equation_is_cep(eq); },
+      [](eqType& eq) {
+        eq.ok = false;
+        eq.itr = 0;
+        eq.iNorm = 0.0;
+        eq.pNorm = 0.0;
+      });
+}
+
+bool Integrator::step_structural_equations() {
+  return step_equation_subset(
+      [this](const eqType& eq) { return equation_is_structural(eq); },
+      [](eqType& eq) {
+        eq.ok = false;
+        eq.itr = 0;
+        eq.iNorm = 0.0;
+        eq.pNorm = 0.0;
+      });
+}
+
+void Integrator::compute_fiber_stretch(Vector<double>& fiber_stretch) const {
+  auto& com_mod = simulation_->com_mod;
+  const auto& Dn = solutions_.current.get_displacement();
+
+  int fiber_stretch_eq_index = -1;
+  for (int iEq = 0; iEq < com_mod.nEq; ++iEq) {
+    if (supports_active_stress(com_mod.eq[iEq].phys)) {
+      fiber_stretch_eq_index = iEq;
+      break;
+    }
+  }
+
+  fiber_stretch.resize(com_mod.tnNo);
+  if (fiber_stretch_eq_index >= 0) {
+    for (const auto& mesh : com_mod.msh) {
+      Vector<double> tmp(mesh.nNo);
+      post::fib_stretch(com_mod, fiber_stretch_eq_index, mesh, Dn, tmp);
+      for (int a = 0; a < mesh.nNo; ++a) {
+        fiber_stretch[mesh.gN[a]] = tmp[a];
+      }
+    }
+  } else {
+    fiber_stretch = 1.0;
+  }
+}
+
+void Integrator::compute_fiber_stretch_rate(
+    const Vector<double>& fiber_stretch,
+    Vector<double>& fiber_stretch_rate) const {
+  auto& com_mod = simulation_->com_mod;
+  fiber_stretch_rate.resize(com_mod.tnNo);
+
+  for (int a = 0; a < com_mod.tnNo; ++a) {
+    fiber_stretch_rate[a] = 0.0;
+  }
+}
+
+void Integrator::advance_active_stress_state() {
+  auto& com_mod = simulation_->com_mod;
+  auto& cep_mod = simulation_->get_cep_mod();
+
+  Vector<double> fiber_stretch;
+  compute_fiber_stretch(fiber_stretch);
+
+  for (auto& eq : com_mod.eq) {
+    if (!supports_active_stress(eq.phys)) {
+      continue;
+    }
+
+    for (auto& dmn : eq.dmn) {
+      if (dmn.active_stress != nullptr) {
+        dmn.active_stress->advance_time_step(com_mod.time, com_mod.dt,
+                                             cep_mod.calcium, fiber_stretch);
+      }
+    }
+  }
+}
+
+void Integrator::recompute_active_stress_tension() {
+  auto& com_mod = simulation_->com_mod;
+
+  Vector<double> fiber_stretch;
+  compute_fiber_stretch(fiber_stretch);
+
+  for (auto& eq : com_mod.eq) {
+    if (!supports_active_stress(eq.phys)) {
+      continue;
+    }
+
+    for (auto& dmn : eq.dmn) {
+      if (dmn.active_stress != nullptr) {
+        dmn.active_stress->recompute_tension(com_mod.dt, fiber_stretch);
+      }
+    }
+  }
+
+  assemble_active_tension_fields();
+}
+
+void Integrator::commit_active_stress_fiber_stretch() {
+  auto& com_mod = simulation_->com_mod;
+
+  Vector<double> fiber_stretch;
+  compute_fiber_stretch(fiber_stretch);
+
+  for (auto& eq : com_mod.eq) {
+    if (!supports_active_stress(eq.phys)) {
+      continue;
+    }
+
+    for (auto& dmn : eq.dmn) {
+      if (dmn.active_stress != nullptr) {
+        dmn.active_stress->commit_fiber_stretch(fiber_stretch);
+      }
+    }
+  }
+}
+
+void Integrator::assemble_active_tension_fields() {
+  auto& com_mod = simulation_->com_mod;
+  auto& cep_mod = simulation_->get_cep_mod();
+
+  for (auto& eq : com_mod.eq) {
+    if (!supports_active_stress(eq.phys)) {
+      continue;
+    }
+
+    for (int Ac = 0; Ac < com_mod.tnNo; Ac++) {
+      double Ta_f = 0.0;
+      double Ta_s = 0.0;
+      double Ta_n = 0.0;
+      double Ka_f = 0.0;
+      double Ka_s = 0.0;
+      double Ka_n = 0.0;
+      unsigned int n_domains = 0;
+
+      for (auto& dmn : eq.dmn) {
+        if (!supports_active_stress(dmn.phys)) {
+          continue;
+        }
+
+        if (eq.nDmn > 1 && !utils::btest(com_mod.dmnId(Ac), dmn.Id)) {
+          continue;
+        }
+
+        if (dmn.active_stress != nullptr) {
+          Ta_f += dmn.active_stress->get_tension_fibers(Ac);
+          Ta_s += dmn.active_stress->get_tension_sheets(Ac);
+          Ta_n += dmn.active_stress->get_tension_sheet_normals(Ac);
+          Ka_f += dmn.active_stress->get_stiffness_fibers(Ac);
+          Ka_s += dmn.active_stress->get_stiffness_sheets(Ac);
+          Ka_n += dmn.active_stress->get_stiffness_sheet_normals(Ac);
+        }
+
+        n_domains++;
+      }
+
+      if (n_domains > 0) {
+        cep_mod.cem.Ya_f[Ac] = Ta_f / n_domains;
+        cep_mod.cem.Ya_s[Ac] = Ta_s / n_domains;
+        cep_mod.cem.Ya_n[Ac] = Ta_n / n_domains;
+        cep_mod.cem.Ka_f[Ac] = Ka_f / n_domains;
+        cep_mod.cem.Ka_s[Ac] = Ka_s / n_domains;
+        cep_mod.cem.Ka_n[Ac] = Ka_n / n_domains;
+      }
+    }
+  }
+}
+
+bool Integrator::em_coupling_converged(const Vector<double>& prev_Ya_f,
+                                       const Vector<double>& prev_Ya_s,
+                                       const Vector<double>& prev_Ya_n,
+                                       double tol) const {
+  const auto& cep_mod = simulation_->get_cep_mod();
+
+  double max_diff = 0.0;
+  double max_ref = 1.0e-12;
+
+  for (int i = 0; i < prev_Ya_f.size(); ++i) {
+    max_diff = std::max(max_diff, std::abs(cep_mod.cem.Ya_f[i] - prev_Ya_f[i]));
+    max_diff = std::max(max_diff, std::abs(cep_mod.cem.Ya_s[i] - prev_Ya_s[i]));
+    max_diff = std::max(max_diff, std::abs(cep_mod.cem.Ya_n[i] - prev_Ya_n[i]));
+    max_ref = std::max(max_ref, std::abs(cep_mod.cem.Ya_f[i]));
+    max_ref = std::max(max_ref, std::abs(cep_mod.cem.Ya_s[i]));
+    max_ref = std::max(max_ref, std::abs(cep_mod.cem.Ya_n[i]));
+  }
+
+  return max_diff / max_ref < tol;
 }
 
 //------------------------
@@ -461,13 +717,11 @@ void Integrator::predictor()
   #endif
 
   Vector<double> fiber_stretch;
-  Vector<double> fiber_stretch_rate;
 
   // Determine if we need to compute fiber stretch and stretch rate, by going
   // through all domains of all equations until we find one for which active
   // stress is enabled.
   bool need_fiber_stretch = false;
-  bool need_fiber_stretch_rate = false;
   int fiber_stretch_eq_index = -1;
   for (int iEq = 0; iEq < com_mod.nEq; ++iEq) {
     const auto &eq = com_mod.eq[iEq];
@@ -478,7 +732,6 @@ void Integrator::predictor()
       for (const auto &dmn : eq.dmn) {
         if (dmn.active_stress != nullptr) {
           need_fiber_stretch = true;
-          need_fiber_stretch_rate = true;
         }
       }
     }
@@ -506,26 +759,6 @@ void Integrator::predictor()
       // If we didn't find any domain solving for the displacement, then we set
       // the fiber stretch to 1, corresponding to no stretch.
       fiber_stretch = 1.0;
-    }
-  }
-
-  // Same for fiber stretch rate.
-  if (need_fiber_stretch_rate) {
-    fiber_stretch_rate.resize(com_mod.tnNo);
-
-    if (fiber_stretch_eq_index >= 0) {
-      for (const auto &mesh : com_mod.msh) {
-        Vector<double> tmp(mesh.nNo);
-
-        post::fib_stretch_rate(com_mod, fiber_stretch_eq_index, mesh,
-                               solutions_, tmp);
-        for (int a = 0; a < mesh.nNo; ++a)
-          fiber_stretch_rate[mesh.gN[a]] = tmp[a];
-      }
-    } else {
-      // If we didn't find any domain solving for the displacement, then we set
-      // the fiber stretch rate to 0, corresponding to no movement.
-      fiber_stretch_rate = 0.0;
     }
   }
 
@@ -558,58 +791,6 @@ void Integrator::predictor()
             "Fiber stretch vector is not initialized correctly.");
 
       cep_ion::cep_integ(simulation_, iEq, e, solutions_, fiber_stretch);
-    }
-
-    // active stress
-    if (supports_active_stress(eq.phys)) {
-      for (auto &dmn : eq.dmn) {
-        if (dmn.active_stress != nullptr) {
-          dmn.active_stress->advance_time_step(com_mod.time, com_mod.dt,
-                                               cep_mod.calcium, fiber_stretch,
-                                               fiber_stretch_rate);
-        }
-      }
-
-      // Fill in the active tension vector.
-      // We go through all mesh nodes, find the domain they are associated with,
-      // and get the active stress from that domain. If a point is associated to
-      // multiple domains (which happens for points on domain interfaces), we
-      // average the active stresses from the domains.
-      for (int Ac = 0; Ac < com_mod.tnNo; Ac++) {
-        double Ta_f = 0.0;
-        double Ta_s = 0.0;
-        double Ta_n = 0.0;
-        unsigned int n_domains = 0;
-
-        for (auto &dmn : eq.dmn) {
-          // Domains whose equations do not allow for active stress (e.g. fluid
-          // domains) do not contribute to the average, but domains that do
-          // allow for active stress (e.g. struct) for which active stress is
-          // not enabled contribute a zero value to the average.
-          if (!supports_active_stress(dmn.phys))
-            continue;
-
-          // Only domains that node Ac actually belongs to contribute to its
-          // average. Note that if there is only one domain dmnId may not be
-          // populated, so we only check domain membership if eq.nDmn > 1.
-          if (eq.nDmn > 1 && !utils::btest(com_mod.dmnId(Ac), dmn.Id))
-            continue;
-
-          if (dmn.active_stress != nullptr) {
-            Ta_f += dmn.active_stress->get_tension_fibers(Ac);
-            Ta_s += dmn.active_stress->get_tension_sheets(Ac);
-            Ta_n += dmn.active_stress->get_tension_sheet_normals(Ac);
-          }
-
-          n_domains++;
-        }
-
-        if (n_domains > 0) {
-          cep_mod.cem.Ya_f[Ac] = Ta_f / n_domains;
-          cep_mod.cem.Ya_s[Ac] = Ta_s / n_domains;
-          cep_mod.cem.Ya_n[Ac] = Ta_n / n_domains;
-        }
-      }
     }
 
     // eqn 86 of Bazilevs 2007

@@ -359,7 +359,7 @@ public:
 
         // Call compute_pk2cc to compute S and Dm
         mat_models::compute_pk2cc(com_mod, cep_mod, dmn, F, nFn, fN, ya_g_f,
-                                  ya_g_s, ya_g_n, S, Dm, J);
+                                  ya_g_s, ya_g_n, 0.0, 0.0, 0.0, S, Dm, J);
     }
 
        /**

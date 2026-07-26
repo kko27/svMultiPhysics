@@ -90,6 +90,10 @@ protected:
   virtual double
   compute_active_tension_local(const Vector<double> &state) const override;
 
+  virtual void refresh_state_for_current_stretch_local(
+      const double fiber_stretch, const double fiber_stretch_rate,
+      Vector<double> &state) const override;
+
   /**
    * @brief Compute the active stiffness for a single node.
    */
@@ -101,40 +105,56 @@ protected:
   /// @name Model parameters.
   /// @{
 
+  /// Calcium Sensitivity [uM]
   double CaRef;
 
+  /// Cooperativity coefficient [-]
   double eta_Tm;
 
+  /// Rate constant for transition from unbound (U) to pre-power stroke (W) state [1/ms]  
   double k_uw;
 
+  /// Rate constant for transition from pre-power stroke (W) to post-power stroke (S) state [1/ms]
   double k_ws;
 
+  /// Maximum observable tension @f$\Tref@f$ at resting length [kPa]
   double Tref;
 
+  /// Unbinding rate constant for calcium-troponin C complex [1/ms]
   double k_TRPN;
 
+  /// Cooperativity of the calcium-troponin C binding rate [-]
   double eta_TRPN; 
 
+  /// Unbinding rate constant [1/ms]
   double k_u; 
 
+  /// The value of CaTRPN where bounded state B = 0.5 in steady-state [-] 
   double TRPN50; 
 
+  /// Steady-state ratio between pre-powerstroke and non-strongly bound [-]
   double rw; 
 
+  /// Steady-state duty ratio [-]
   double rs; 
 
+  /// [-]
   double gamma_s; 
 
+  /// [-]
   double gamma_w; 
 
+  /// [-]
   double phi; 
 
+  /// Rescaled 
   double Aeff; 
 
+  /// Change in maximal tension based on changes in filament overlap
   double beta0; 
 
+  /// Change in calcium sensitivity 
   double beta1; 
-
   /// @}
 };
 

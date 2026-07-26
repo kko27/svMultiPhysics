@@ -78,8 +78,8 @@ void LandNiederer::advance_time_step_local(const double t, const double dt,
     state[i] = ode_state[i];
   }
 
-  const double lambda = std::min(1.2, fiber_stretch); 
-  state[6] = std::max(0.0, 1.0 + beta0 * (lambda + std::min(0.87, lambda) - 1.87));
+  refresh_state_for_current_stretch_local(fiber_stretch, fiber_stretch_rate,
+                                          state);
 }
 
 Vector<double> LandNiederer::getf(const double t, const Vector<double> &state,
@@ -107,7 +107,8 @@ Vector<double> LandNiederer::getf(const double t, const Vector<double> &state,
   const double gamma_wu = gamma_w * std::abs(ZETAW); 
   f[1] = k_uw*XU - k_wu*XW - k_ws*XW - gamma_wu*XW;
 
-  // Calcium-Troponin Binding Kinetics  
+  // Calcium-Troponin Binding Kinetics: fraction of troponin C units with calcium 
+  // bound to its regulatory binding site  
   const double CaT50 = CaRef + beta1*std::min(0.2, lambda - 1.0); 
   f[2] = k_TRPN * (std::pow((calcium/CaT50), eta_TRPN) * (1.0 - CaTRPN) - CaTRPN); 
 
@@ -138,6 +139,14 @@ double LandNiederer::compute_active_tension_local(const Vector<double> &state) c
   const double LFac = state[6];  
   
   return LFac * (Tref/rs) * ((ZETAS+1.0) * XS + (ZETAW) * XW);
+}
+
+void LandNiederer::refresh_state_for_current_stretch_local(
+    const double fiber_stretch, const double fiber_stretch_rate,
+    Vector<double> &state) const {
+  const double lambda = std::min(1.2, fiber_stretch);
+  state[6] =
+      std::max(0.0, 1.0 + beta0 * (lambda + std::min(0.87, lambda) - 1.87));
 }
 
 

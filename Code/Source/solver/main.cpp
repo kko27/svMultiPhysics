@@ -349,8 +349,82 @@ void iterate_solution(Simulation* simulation)
     dmsg << "Starting Newton iteration via Integrator ..." << std::endl;
     #endif
 
+    bool has_cep_equation = false;
+    bool has_structural_active_stress = false;
+    for (const auto& eq : com_mod.eq) {
+      if (eq.phys == Equation_CEP) {
+        has_cep_equation = true;
+      }
+
+      if (!supports_active_stress(eq.phys)) {
+        continue;
+      }
+
+      for (const auto& dmn : eq.dmn) {
+        if (dmn.active_stress != nullptr) {
+          has_structural_active_stress = true;
+          break;
+        }
+      }
+
+      if (has_structural_active_stress) {
+        break;
+      }
+    }
+
     int iEqOld = cEq;
-    integrator.step();
+    if (has_cep_equation && has_structural_active_stress) {
+      const int max_em_iterations = 1;
+      const double em_coupling_tol = 1.0e-3;
+
+      if (!integrator.step_cep_equations()) {
+        break;
+      }
+
+      integrator.advance_active_stress_state();
+
+      for (int i_em = 0; i_em < max_em_iterations; ++i_em) {
+        Vector<double> prev_Ya_f = cep_mod.cem.Ya_f;
+        Vector<double> prev_Ya_s = cep_mod.cem.Ya_s;
+        Vector<double> prev_Ya_n = cep_mod.cem.Ya_n;
+
+        integrator.recompute_active_stress_tension();
+
+        if (!integrator.step_structural_equations()) {
+          break;
+        }
+
+        double max_diff = 0.0;
+        double max_ref = 1.0e-12;
+        for (int i = 0; i < prev_Ya_f.size(); ++i) {
+          max_diff = std::max(max_diff,
+                              std::abs(cep_mod.cem.Ya_f[i] - prev_Ya_f[i]));
+          max_diff = std::max(max_diff,
+                              std::abs(cep_mod.cem.Ya_s[i] - prev_Ya_s[i]));
+          max_diff = std::max(max_diff,
+                              std::abs(cep_mod.cem.Ya_n[i] - prev_Ya_n[i]));
+          max_ref = std::max(max_ref, std::abs(cep_mod.cem.Ya_f[i]));
+          max_ref = std::max(max_ref, std::abs(cep_mod.cem.Ya_s[i]));
+          max_ref = std::max(max_ref, std::abs(cep_mod.cem.Ya_n[i]));
+        }
+
+        const double rel_change = max_diff / max_ref;
+        if (cm.mas(cm_mod)) {
+          std::cout << "[EM outer] time step = " << cTS
+                    << ", iter = " << (i_em + 1) << "/" << max_em_iterations
+                    << ", rel_change_Ya = " << rel_change
+                    << ", tol = " << em_coupling_tol << std::endl;
+        }
+
+        if (rel_change < em_coupling_tol) {
+          break;
+        }
+      }
+
+      integrator.commit_active_stress_fiber_stretch();
+    } else {
+      integrator.step();
+    }
 
     #ifdef debug_iterate_solution
     dmsg << ">>> End of Newton iteration" << std::endl;
