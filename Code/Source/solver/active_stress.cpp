@@ -75,6 +75,8 @@ void ActiveStress::advance_time_step(const double t, const double dt,
       has_previous_fiber_stretch[i] = 1;
     }
 
+    /// TODO: This is in the wrong place as the stabilization should include the fiber stretch at the 
+    /// Newton iteration level.
     if (use_stabilization) {
       const double Ka = 
         compute_active_stiffness_local(state_loc, fiber_stretch[i], 
