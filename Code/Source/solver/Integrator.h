@@ -42,6 +42,10 @@ public:
    */
   bool step();
 
+  void compute_fiber_stretch(Vector<double>& fiber_stretch) const;
+  void advance_active_stress_state();
+  void commit_active_stress_fiber_stretch();
+
   /**
    * @brief Perform predictor step for next time step
    *

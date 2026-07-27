@@ -357,9 +357,11 @@ public:
             dmn.phys = consts::EquationType::phys_struct;
         }
 
-        // Call compute_pk2cc to compute S and Dm
+        // Call compute_pk2cc to compute S and Dm. ka=0.0 disables the
+        // Regazzoni stabilization correction, so lambda_prev=1.0 has no
+        // effect here.
         mat_models::compute_pk2cc(com_mod, cep_mod, dmn, F, nFn, fN, ya_g_f,
-                                  ya_g_s, ya_g_n, S, Dm, J);
+                                  ya_g_s, ya_g_n, 0.0, 0.0, 0.0, 1.0, S, Dm, J);
     }
 
        /**

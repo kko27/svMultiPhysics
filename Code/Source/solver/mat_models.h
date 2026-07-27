@@ -37,9 +37,19 @@ void voigt_to_cc(const int nsd, const Array<double>& Dm, Tensor4<double>& CC);
  * @param[in] F Deformation gradient tensor.
  * @param[in] nfd Number of fiber directions.
  * @param[in] fl Fiber directions.
- * @param[in] ya_f Active tension along the fiber direction.
- * @param[in] ya_s Active tension along the sheet direction.
- * @param[in] ya_n Active tension along the sheet-normal direction.
+ * @param[in] ya_f Active tension along the fiber direction (raw, not yet
+ *   corrected by the Regazzoni stabilization).
+ * @param[in] ya_s Active tension along the sheet direction (raw).
+ * @param[in] ya_n Active tension along the sheet-normal direction (raw).
+ * @param[in] ka_f Active stiffness dTa/dlambda along the fiber direction.
+ * @param[in] ka_s Active stiffness dTa/dlambda along the sheet direction.
+ * @param[in] ka_n Active stiffness dTa/dlambda along the sheet-normal direction.
+ * @param[in] lambda_prev Fiber stretch at the last converged time step, used
+ *   by the Regazzoni stabilization correction
+ *   Ta* = Ta + Ka * (lambda_current - lambda_prev), where lambda_current is
+ *   computed internally from the current deformation gradient F so that it
+ *   is always consistent with the tangent contribution built from the same
+ *   invariant.
  * @param[out] S 2nd Piola-Kirchhoff stress tensor (modified in place).
  * @param[out] Dm Material stiffness tensor (modified in place).
  * @param[out] Ja Jacobian for active strain
@@ -49,7 +59,9 @@ void voigt_to_cc(const int nsd, const Array<double>& Dm, Tensor4<double>& CC);
 void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
                    const dmnType &lDmn, const Array<double> &F, const int nfd,
                    const Array<double> &fl, const double ya_f,
-                   const double ya_s, const double ya_n, Array<double> &S,
+                   const double ya_s, const double ya_n, const double ka_f,
+                   const double ka_s, const double ka_n,
+                   const double lambda_prev, Array<double> &S,
                    Array<double> &Dm, double &Ja);
 
 void compute_pk2cc_shlc(const ComMod& com_mod, const dmnType& lDmn, const int nfd, const Array<double>& fNa0,
@@ -77,4 +89,3 @@ void compute_visc_stress_and_tangent(const dmnType& lDmn, const int eNoN, const 
 };
 
 #endif
-

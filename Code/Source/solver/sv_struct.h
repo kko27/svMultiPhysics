@@ -26,6 +26,8 @@ void struct_2d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
                const Array<double> &fN, const Array<double> &pS0l,
                Vector<double> &pSl, const Vector<double> &ya_l_f,
                const Vector<double> &ya_l_s, const Vector<double> &ya_l_n,
+               const Vector<double> &ka_l_f, const Vector<double> &ka_l_s,
+               const Vector<double> &ka_l_n, const Vector<double> &lambda_prev_l,
                Array<double> &lR, Array3<double> &lK);
 
 void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
@@ -35,8 +37,9 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
                const Array<double> &fN, const Array<double> &pS0l,
                Vector<double> &pSl, const Vector<double> &ya_l_f,
                const Vector<double> &ya_l_s, const Vector<double> &ya_l_n,
+               const Vector<double> &ka_l_f, const Vector<double> &ka_l_s,
+               const Vector<double> &ka_l_n, const Vector<double> &lambda_prev_l,
                Array<double> &lR, Array3<double> &lK);
 };
 
 #endif
-

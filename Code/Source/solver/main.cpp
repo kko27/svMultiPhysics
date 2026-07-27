@@ -338,6 +338,7 @@ void iterate_solution(Simulation* simulation)
     #endif
 
     set_bc::set_bc_dir(com_mod, solutions);
+    integrator.advance_active_stress_state();
 
     if (com_mod.urisFlag) {uris::uris_calc_sdf(com_mod);}
 
@@ -351,6 +352,7 @@ void iterate_solution(Simulation* simulation)
 
     int iEqOld = cEq;
     integrator.step();
+    integrator.commit_active_stress_fiber_stretch();
 
     #ifdef debug_iterate_solution
     dmsg << ">>> End of Newton iteration" << std::endl;

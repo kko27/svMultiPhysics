@@ -44,12 +44,14 @@ void ActiveStress::init(const unsigned int tnNo) {
 
   active_tension.resize(tnNo);
   raw_active_tension.resize(tnNo); 
+  active_stiffness.resize(tnNo);
   previous_fiber_stretch.resize(tnNo); 
   has_previous_fiber_stretch.resize(tnNo); 
 
   for (unsigned int i = 0; i < tnNo; ++i) {
     active_tension[i] = 0.0;  
     raw_active_tension[i] = 0.0;
+    active_stiffness[i] = 0.0;
     previous_fiber_stretch[i] = 1.0;
     has_previous_fiber_stretch[i] = 0;
   }
@@ -62,30 +64,50 @@ void ActiveStress::advance_time_step(const double t, const double dt,
   time = t;
 
   for (unsigned int i = 0; i < states.ncols(); ++i) {
-    Vector<double> state_loc = states.col(i);
-    advance_time_step_local(t, dt, calcium[i], fiber_stretch[i],
-                            fiber_stretch_rate[i], state_loc);
-    states.set_col(i, state_loc);
-
-    const double Ta = compute_active_tension_local(state_loc); 
-    raw_active_tension[i] = Ta; 
-
     if (!has_previous_fiber_stretch[i]) {
       previous_fiber_stretch[i] = fiber_stretch[i];
       has_previous_fiber_stretch[i] = 1;
     }
 
-    if (use_stabilization) {
-      const double Ka = 
-        compute_active_stiffness_local(state_loc, fiber_stretch[i], 
-                                       fiber_stretch_rate[i]);
+    const double fiber_stretch_rate_local =
+        (fiber_stretch[i] - previous_fiber_stretch[i]) / dt;
 
-      active_tension[i] = apply_stabilization_local(Ta, Ka, fiber_stretch[i], 
-                                                previous_fiber_stretch[i]);
+    Vector<double> state_loc = states.col(i);
+    advance_time_step_local(t, dt, calcium[i], fiber_stretch[i],
+                            fiber_stretch_rate_local, state_loc);
+    states.set_col(i, state_loc);
+
+    const double Ta = compute_active_tension_local(state_loc); 
+    raw_active_tension[i] = Ta; 
+    active_tension[i] = Ta;
+
+    if (use_stabilization) {
+      active_stiffness[i] = compute_active_stiffness_local(
+          state_loc, fiber_stretch[i], fiber_stretch_rate_local);
     } else { 
-      active_tension[i] = Ta; 
+      active_stiffness[i] = 0.0;
     }
 
+    // if (i == 0) {
+    //   std::cout << "[ActiveStress] t=" << t
+    //             << " node=" << i
+    //             << " lambda_prev=" << previous_fiber_stretch[i]
+    //             << " lambda=" << fiber_stretch[i]
+    //             << " dlambda_dt_local=" << fiber_stretch_rate_local
+    //             << " dlambda_dt_passed=" << fiber_stretch_rate[i]
+    //             << " Ta=" << raw_active_tension[i]
+    //             << " Ka=" << active_stiffness[i]
+    //             << " dTa_reg=" << active_stiffness[i] *
+    //                    (fiber_stretch[i] - previous_fiber_stretch[i])
+    //             << std::endl;
+    // }
+  }
+
+}
+
+void ActiveStress::commit_fiber_stretch(const Vector<double> &fiber_stretch) {
+  for (unsigned int i = 0; i < previous_fiber_stretch.size(); ++i) {
     previous_fiber_stretch[i] = fiber_stretch[i];
+    has_previous_fiber_stretch[i] = 1;
   }
 }

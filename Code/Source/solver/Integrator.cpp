@@ -58,6 +58,147 @@ void Integrator::initialize_arrays() {
   solutions_.current.get_velocity() = solutions_.old.get_velocity();
 }
 
+void Integrator::compute_fiber_stretch(Vector<double>& fiber_stretch) const {
+  auto& com_mod = simulation_->com_mod;
+  const auto& Dn = solutions_.current.get_displacement();
+
+  int fiber_stretch_eq_index = -1;
+  for (int iEq = 0; iEq < com_mod.nEq; ++iEq) {
+    if (supports_active_stress(com_mod.eq[iEq].phys)) {
+      fiber_stretch_eq_index = iEq;
+      break;
+    }
+  }
+
+  fiber_stretch.resize(com_mod.tnNo);
+  if (fiber_stretch_eq_index >= 0) {
+    for (const auto& mesh : com_mod.msh) {
+      Vector<double> tmp(mesh.nNo);
+      post::fib_stretch(com_mod, fiber_stretch_eq_index, mesh, Dn, tmp);
+      for (int a = 0; a < mesh.nNo; ++a) {
+        fiber_stretch[mesh.gN[a]] = tmp[a];
+      }
+    }
+  } else {
+    fiber_stretch = 1.0;
+  }
+}
+
+void Integrator::commit_active_stress_fiber_stretch() {
+  auto& com_mod = simulation_->com_mod;
+
+  Vector<double> fiber_stretch;
+  compute_fiber_stretch(fiber_stretch);
+
+  for (auto& eq : com_mod.eq) {
+    if (!supports_active_stress(eq.phys)) {
+      continue;
+    }
+
+    for (auto& dmn : eq.dmn) {
+      if (dmn.active_stress != nullptr) {
+        dmn.active_stress->commit_fiber_stretch(fiber_stretch);
+      }
+    }
+  }
+}
+
+void Integrator::advance_active_stress_state() {
+  auto& com_mod = simulation_->com_mod;
+  auto& cep_mod = simulation_->cep_mod;
+  const auto& Dn = solutions_.current.get_displacement();
+
+  Vector<double> fiber_stretch;
+  Vector<double> fiber_stretch_rate;
+
+  int fiber_stretch_eq_index = -1;
+  for (int iEq = 0; iEq < com_mod.nEq; ++iEq) {
+    if (supports_active_stress(com_mod.eq[iEq].phys)) {
+      fiber_stretch_eq_index = iEq;
+      break;
+    }
+  }
+
+  fiber_stretch.resize(com_mod.tnNo);
+  fiber_stretch_rate.resize(com_mod.tnNo);
+
+  if (fiber_stretch_eq_index >= 0) {
+    for (const auto& mesh : com_mod.msh) {
+      Vector<double> tmp_stretch(mesh.nNo);
+      Vector<double> tmp_rate(mesh.nNo);
+
+      post::fib_stretch(com_mod, fiber_stretch_eq_index, mesh, Dn, tmp_stretch);
+      post::fib_stretch_rate(com_mod, fiber_stretch_eq_index, mesh, solutions_,
+                             tmp_rate);
+
+      for (int a = 0; a < mesh.nNo; ++a) {
+        fiber_stretch[mesh.gN[a]] = tmp_stretch[a];
+        fiber_stretch_rate[mesh.gN[a]] = tmp_rate[a];
+      }
+    }
+  } else {
+    fiber_stretch = 1.0;
+    fiber_stretch_rate = 0.0;
+  }
+
+  for (auto& eq : com_mod.eq) {
+    if (!supports_active_stress(eq.phys)) {
+      continue;
+    }
+
+    for (auto& dmn : eq.dmn) {
+      if (dmn.active_stress != nullptr) {
+        dmn.active_stress->advance_time_step(com_mod.time, com_mod.dt,
+                                             cep_mod.calcium, fiber_stretch,
+                                             fiber_stretch_rate);
+      }
+    }
+
+    for (int Ac = 0; Ac < com_mod.tnNo; Ac++) {
+      double Ta_f = 0.0;
+      double Ta_s = 0.0;
+      double Ta_n = 0.0;
+      double Ka_f = 0.0;
+      double Ka_s = 0.0;
+      double Ka_n = 0.0;
+      double lambda_prev = 0.0;
+      unsigned int n_domains = 0;
+
+      for (auto& dmn : eq.dmn) {
+        if (!supports_active_stress(dmn.phys)) {
+          continue;
+        }
+
+        if (eq.nDmn > 1 && !utils::btest(com_mod.dmnId(Ac), dmn.Id)) {
+          continue;
+        }
+
+        if (dmn.active_stress != nullptr) {
+          Ta_f += dmn.active_stress->get_tension_fibers(Ac);
+          Ta_s += dmn.active_stress->get_tension_sheets(Ac);
+          Ta_n += dmn.active_stress->get_tension_sheet_normals(Ac);
+          Ka_f += dmn.active_stress->get_stiffness_fibers(Ac);
+          Ka_s += dmn.active_stress->get_stiffness_sheets(Ac);
+          Ka_n += dmn.active_stress->get_stiffness_sheet_normals(Ac);
+          lambda_prev += dmn.active_stress->get_previous_fiber_stretch(Ac);
+        }
+
+        n_domains++;
+      }
+
+      if (n_domains > 0) {
+        cep_mod.cem.Ya_f[Ac] = Ta_f / n_domains;
+        cep_mod.cem.Ya_s[Ac] = Ta_s / n_domains;
+        cep_mod.cem.Ya_n[Ac] = Ta_n / n_domains;
+        cep_mod.cem.Ka_f[Ac] = Ka_f / n_domains;
+        cep_mod.cem.Ka_s[Ac] = Ka_s / n_domains;
+        cep_mod.cem.Ka_n[Ac] = Ka_n / n_domains;
+        cep_mod.cem.lambda_prev[Ac] = lambda_prev / n_domains;
+      }
+    }
+  }
+}
+
 //------------------------
 // step
 //------------------------
@@ -461,13 +602,10 @@ void Integrator::predictor()
   #endif
 
   Vector<double> fiber_stretch;
-  Vector<double> fiber_stretch_rate;
-
-  // Determine if we need to compute fiber stretch and stretch rate, by going
+  // Determine if we need to compute fiber stretch by going
   // through all domains of all equations until we find one for which active
   // stress is enabled.
   bool need_fiber_stretch = false;
-  bool need_fiber_stretch_rate = false;
   int fiber_stretch_eq_index = -1;
   for (int iEq = 0; iEq < com_mod.nEq; ++iEq) {
     const auto &eq = com_mod.eq[iEq];
@@ -478,7 +616,6 @@ void Integrator::predictor()
       for (const auto &dmn : eq.dmn) {
         if (dmn.active_stress != nullptr) {
           need_fiber_stretch = true;
-          need_fiber_stretch_rate = true;
         }
       }
     }
@@ -506,26 +643,6 @@ void Integrator::predictor()
       // If we didn't find any domain solving for the displacement, then we set
       // the fiber stretch to 1, corresponding to no stretch.
       fiber_stretch = 1.0;
-    }
-  }
-
-  // Same for fiber stretch rate.
-  if (need_fiber_stretch_rate) {
-    fiber_stretch_rate.resize(com_mod.tnNo);
-
-    if (fiber_stretch_eq_index >= 0) {
-      for (const auto &mesh : com_mod.msh) {
-        Vector<double> tmp(mesh.nNo);
-
-        post::fib_stretch_rate(com_mod, fiber_stretch_eq_index, mesh,
-                               solutions_, tmp);
-        for (int a = 0; a < mesh.nNo; ++a)
-          fiber_stretch_rate[mesh.gN[a]] = tmp[a];
-      }
-    } else {
-      // If we didn't find any domain solving for the displacement, then we set
-      // the fiber stretch rate to 0, corresponding to no movement.
-      fiber_stretch_rate = 0.0;
     }
   }
 
@@ -558,58 +675,6 @@ void Integrator::predictor()
             "Fiber stretch vector is not initialized correctly.");
 
       cep_ion::cep_integ(simulation_, iEq, e, solutions_, fiber_stretch);
-    }
-
-    // active stress
-    if (supports_active_stress(eq.phys)) {
-      for (auto &dmn : eq.dmn) {
-        if (dmn.active_stress != nullptr) {
-          dmn.active_stress->advance_time_step(com_mod.time, com_mod.dt,
-                                               cep_mod.calcium, fiber_stretch,
-                                               fiber_stretch_rate);
-        }
-      }
-
-      // Fill in the active tension vector.
-      // We go through all mesh nodes, find the domain they are associated with,
-      // and get the active stress from that domain. If a point is associated to
-      // multiple domains (which happens for points on domain interfaces), we
-      // average the active stresses from the domains.
-      for (int Ac = 0; Ac < com_mod.tnNo; Ac++) {
-        double Ta_f = 0.0;
-        double Ta_s = 0.0;
-        double Ta_n = 0.0;
-        unsigned int n_domains = 0;
-
-        for (auto &dmn : eq.dmn) {
-          // Domains whose equations do not allow for active stress (e.g. fluid
-          // domains) do not contribute to the average, but domains that do
-          // allow for active stress (e.g. struct) for which active stress is
-          // not enabled contribute a zero value to the average.
-          if (!supports_active_stress(dmn.phys))
-            continue;
-
-          // Only domains that node Ac actually belongs to contribute to its
-          // average. Note that if there is only one domain dmnId may not be
-          // populated, so we only check domain membership if eq.nDmn > 1.
-          if (eq.nDmn > 1 && !utils::btest(com_mod.dmnId(Ac), dmn.Id))
-            continue;
-
-          if (dmn.active_stress != nullptr) {
-            Ta_f += dmn.active_stress->get_tension_fibers(Ac);
-            Ta_s += dmn.active_stress->get_tension_sheets(Ac);
-            Ta_n += dmn.active_stress->get_tension_sheet_normals(Ac);
-          }
-
-          n_domains++;
-        }
-
-        if (n_domains > 0) {
-          cep_mod.cem.Ya_f[Ac] = Ta_f / n_domains;
-          cep_mod.cem.Ya_s[Ac] = Ta_s / n_domains;
-          cep_mod.cem.Ya_n[Ac] = Ta_n / n_domains;
-        }
-      }
     }
 
     // eqn 86 of Bazilevs 2007

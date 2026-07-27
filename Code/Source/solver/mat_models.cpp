@@ -10,6 +10,7 @@
 #include "ArtificialNeuralNetMaterial.h"
 
 #include <math.h>
+#include <limits>
 #include <utility> // std::pair
 
 namespace mat_models {
@@ -292,6 +293,8 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
                    const dmnType &lDmn, const Matrix<nsd> &F, const int nfd,
                    const Eigen::Matrix<double, nsd, Eigen::Dynamic> fl,
                    const double ya_f, const double ya_s, const double ya_n,
+                   const double ka_f, const double ka_s, const double ka_n,
+                   const double lambda_prev,
                    Matrix<nsd> &S, Matrix<3 * (nsd - 1)> &Dm, double &Ja) {
   using namespace consts;
   using namespace mat_fun;
@@ -321,9 +324,13 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
 
   // Active stress from active stress models, already distributed among the
   // fiber, sheet and sheet-normal directions by the active stress model.
+  // Tfa is used directly (uncorrected) only by the CANN branch, which does
+  // not support the Regazzoni stabilization. All other branches apply the
+  // stabilization via add_regazzoni_active_stress using ya_f/ya_s/ya_n.
   double Tfa = ya_f;  // Fiber direction
-  double Tsa = ya_s;  // Sheet direction
-  double Tna = ya_n;  // Sheet-normal direction
+  double Kfa = ka_f;  // Fiber direction
+  double Ksa = ka_s;  // Sheet direction
+  double Kna = ka_n;  // Sheet-normal direction
 
   // Validate directional distribution is supported for this constitutive model
   // Only Guccione, HO, and HO-ma models support sheet and sheet-normal stress contributions
@@ -357,6 +364,30 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
   } else {
     Hss = Matrix<nsd>::Zero();
   }
+
+  // Applies the Regazzoni stabilization to the active tension and its
+  // tangent contribution. The correction Ta* = Ta_dir + Ka_dir * (lambda_dir
+  // - lambda_prev) uses lambda_dir = sqrt(I4_dir), computed here from the
+  // same invariant that drives the tangent term, so the value added to S_loc
+  // and the slope added to CC_loc are always consistent with each other and
+  // with the current (Newton-iterate) deformation.
+  auto add_regazzoni_active_stress = [&](Matrix<nsd>& S_loc, Tensor<nsd>& CC_loc,
+                                         const Matrix<nsd>& Hdir,
+                                         const double Ta_dir,
+                                         const double Ka_dir,
+                                         const double I4_dir) {
+    double Ta_corrected = Ta_dir;
+
+    if (!utils::is_zero(Ka_dir)) {
+      const double lambda_dir =
+          std::sqrt(std::max(I4_dir, std::numeric_limits<double>::epsilon()));
+      Ta_corrected += Ka_dir * (lambda_dir - lambda_prev);
+      const double dTa_dI4 = 0.5 * Ka_dir / lambda_dir;
+      CC_loc += 2.0 * dTa_dI4 * dyadic_product<nsd>(Hdir, Hdir);
+    }
+
+    S_loc += Ta_corrected * Hdir;
+  };
 
   // Electromechanics coupling - active strain
   Matrix<nsd> Fe  = F;
@@ -433,6 +464,8 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
 
     // NeoHookean model
     case ConstitutiveModelType::stIso_nHook: {
+      double Inv4 = J2d * (fib_dir1.dot(C * fib_dir1));
+
       // Compute fictious stress and elasticity tensor
       Matrix<nsd> S_bar = 2.0 * stM.C10 * Idm;
 
@@ -440,7 +473,7 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       CC_bar.setZero();
 
       // Add fiber reinforcement/active stress
-      S_bar += Tfa * Hff;
+      add_regazzoni_active_stress(S_bar, CC_bar, Hff, ya_f, Kfa, Inv4);
 
       // Compute and add isochoric stress and elasticity tensor
       auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
@@ -451,6 +484,8 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
 
     // Mooney-Rivlin model
     case ConstitutiveModelType::stIso_MR: {
+      double Inv4 = J2d * (fib_dir1.dot(C * fib_dir1));
+
       // Compute fictious stress and elasticity tensor
       Matrix<nsd> S_bar = 2.0 * (stM.C10 + Inv1 * stM.C01) * Idm 
                               -2.0 * stM.C01 * J2d * C;
@@ -458,7 +493,7 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       Tensor<nsd> CC_bar = 4.0 * J4d * stM.C01 * (dyadic_product<nsd>(Idm, Idm) - fourth_order_identity<nsd>());
 
       // Add fiber reinforcement/active stress
-      S_bar += Tfa * Hff;
+      add_regazzoni_active_stress(S_bar, CC_bar, Hff, ya_f, Kfa, Inv4);
 
       // Compute and add isochoric stress and elasticity tensor
       auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
@@ -500,8 +535,8 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       Tensor<nsd> CC_bar = g1 * dyadic_product<nsd>(Hff_disp, Hff_disp) + g2 * dyadic_product<nsd>(Hss_disp, Hss_disp);
       
       // Add fiber reinforcement/active stress
-      S_bar += Tfa * Hff;
-      
+      add_regazzoni_active_stress(S_bar, CC_bar, Hff, ya_f, Kfa, Inv4);
+
       // Compute and add isochoric stress and elasticity tensor
       auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
       S += S_iso;
@@ -567,11 +602,14 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       CC_bar = r2 * CC_bar;
 
       // Add fiber reinforcement/active stress in all three orthogonal directions
-      S_bar += Tfa * Hff;   // Fiber direction
-      S_bar += Tsa * Hss;   // Sheet direction
-      if (Tna > 0.0) {
+      add_regazzoni_active_stress(S_bar, CC_bar, Hff, ya_f, Kfa,
+                                  J2d * (fib_dir1.dot(C * fib_dir1)));
+      add_regazzoni_active_stress(S_bar, CC_bar, Hss, ya_s, Ksa,
+                                  J2d * (fib_dir2.dot(C * fib_dir2)));
+      if (ya_n > 0.0) {
         auto Hnn = fib_dir3 * fib_dir3.transpose();
-        S_bar += Tna * Hnn;  // Sheet-normal direction
+        add_regazzoni_active_stress(S_bar, CC_bar, Hnn, ya_n, Kna,
+                                    J2d * (fib_dir3.dot(C * fib_dir3)));
       }
 
       // Compute and add isochoric stress and elasticity tensor
@@ -629,11 +667,11 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g2 = 4.0*J4d*stM.afs*(1.0 + 2.0*stM.bfs*Efs*Efs)* exp(stM.bfs*Efs*Efs);
       Tensor<nsd> CC_bar  = g1 * dyadic_product<nsd>(Idm, Idm) + g2 * dyadic_product<nsd>(Hfs, Hfs);
 
-      // 2.S) Add fiber-fiber interaction stress + additional fiber reinforcement/active stress (Tfa)
+      // 2.S) Add fiber-fiber interaction stress
       double rexp = exp(stM.bff*Eff*Eff);
       g1 = c4f * Eff * rexp;
       g1 = g1 + (0.5*dc4f/stM.bff) * (rexp - 1.0);
-      g1 = 2.0 * stM.aff * g1 + Tfa;
+      g1 = 2.0 * stM.aff * g1;
       S_bar += g1*Hff;
 
       // 2.CC) Add fiber-fiber interaction stiffness
@@ -643,11 +681,14 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g1 = 4.0 * J4d * stM.aff * g1;
       CC_bar += g1*dyadic_product<nsd>(Hff, Hff);
 
-      // 3.S) Add sheet-sheet interaction stress + additional cross-fiber active stress (Tsa)
+      // Additional fiber reinforcement/active stress (Tfa)
+      add_regazzoni_active_stress(S_bar, CC_bar, Hff, ya_f, Kfa, Inv4);
+
+      // 3.S) Add sheet-sheet interaction stress
       rexp = exp(stM.bss*Ess*Ess);
       g2 = c4s * Ess * rexp;
       g2 = g2 + (0.5*dc4s/stM.bss) * (rexp - 1.0);
-      g2 = 2.0 * stM.ass * g2 + Tsa;
+      g2 = 2.0 * stM.ass * g2;
       S_bar += g2 * Hss;
 
       // 3.CC) Add sheet-sheet interaction stiffness
@@ -657,10 +698,14 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g2 = 4.0 * J4d * stM.ass * g2;
       CC_bar += g2*dyadic_product<nsd>(Hss, Hss);
 
+      // Additional cross-fiber active stress (Tsa)
+      add_regazzoni_active_stress(S_bar, CC_bar, Hss, ya_s, Ksa, Inv6);
+
       // 4.S) Add sheet-normal active stress (Tna)
-      if (Tna > 0.0) {
+      if (ya_n > 0.0) {
         auto Hnn = fib_dir3 * fib_dir3.transpose();
-        S_bar += Tna * Hnn;  // Sheet-normal direction (fib_dir3 already normalized)
+        add_regazzoni_active_stress(S_bar, CC_bar, Hnn, ya_n, Kna,
+                                    J2d * (fib_dir3.dot(C * fib_dir3)));
       }
 
       // Compute and add isochoric stress and elasticity tensor
@@ -738,11 +783,11 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g1 = g1 * 2.0*(1.0 + 2.0*stM.bfs*Efs*Efs);
       CC += g1*dyadic_product<nsd>(Hfs, Hfs);
 
-      // 2.S) Add fiber-fiber interaction stress + additional reinforcement/active stress (Tfa)
+      // 2.S) Add fiber-fiber interaction stress
       double rexp = exp(stM.bff * Eff * Eff);
       g1 = c4f*Eff*rexp;
       g1 = g1 + (0.5*dc4f/stM.bff)*(rexp - 1.0);
-      g1 = (2.0*stM.aff*g1) + Tfa;
+      g1 = 2.0*stM.aff*g1;
       S += g1*Hff;
 
       // 2.CC) Add fiber-fiber interaction stiffness
@@ -752,11 +797,14 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g1 = 4.0*stM.aff*g1;
       CC += g1*dyadic_product<nsd>(Hff, Hff);
 
-      // 3.S) Add sheet-sheet interaction stress + additional cross-fiber active stress (Tsa)
+      // Additional reinforcement/active stress (Tfa)
+      add_regazzoni_active_stress(S, CC, Hff, ya_f, Kfa, Inv4);
+
+      // 3.S) Add sheet-sheet interaction stress
       rexp = exp(stM.bss * Ess * Ess);
       double g2 = c4s*Ess*rexp;
       g2 = g2 + (0.5*dc4s/stM.bss)*(rexp - 1.0);
-      g2 = 2.0*stM.ass*g2 + Tsa;
+      g2 = 2.0*stM.ass*g2;
       S  += g2*Hss;
 
       // 3.CC) Add sheet-sheet interaction stiffness
@@ -766,10 +814,14 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       g2   = 4.0*stM.ass*g2;
       CC += g2*dyadic_product<nsd>(Hss, Hss);
 
+      // Additional cross-fiber active stress (Tsa)
+      add_regazzoni_active_stress(S, CC, Hss, ya_s, Ksa, Inv6);
+
       // 4.S) Add sheet-normal active stress (Tna)
-      if (Tna > 0.0) {
+      if (ya_n > 0.0) {
         auto Hnn = fib_dir3 * fib_dir3.transpose();
-        S += Tna * Hnn;  // Sheet-normal direction (fib_dir3 already normalized)
+        add_regazzoni_active_stress(S, CC, Hnn, ya_n, Kna,
+                                    fib_dir3.dot(C * fib_dir3));
       }
     } break;
 
@@ -823,7 +875,8 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
  * 
  */
 void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const Array<double>& F, const int nfd,
-    const Array<double>& fl, const double ya_f, const double ya_s, const double ya_n, Array<double>& S, Array<double>& Dm, double& Ja)
+    const Array<double>& fl, const double ya_f, const double ya_s, const double ya_n, const double ka_f,
+    const double ka_s, const double ka_n, const double lambda_prev, Array<double>& S, Array<double>& Dm, double& Ja)
 {
     // Number of spatial dimensions
     int nsd = com_mod.nsd;
@@ -844,7 +897,8 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
         Eigen::Matrix3d Dm_2D = Eigen::Matrix3d::Zero();
 
         // Call templated function
-        compute_pk2cc<2>(com_mod, cep_mod, lDmn, F_2D, nfd, fl_2D, ya_f, ya_s, ya_n, S_2D, Dm_2D, Ja);
+        compute_pk2cc<2>(com_mod, cep_mod, lDmn, F_2D, nfd, fl_2D, ya_f, ya_s,
+                         ya_n, ka_f, ka_s, ka_n, lambda_prev, S_2D, Dm_2D, Ja);
 
         // Copy results back
         mat_fun::convert_to_array(S_2D, S);
@@ -868,7 +922,8 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
         Dm_3D.setZero();
 
         // Call templated function
-        compute_pk2cc<3>(com_mod, cep_mod, lDmn, F_3D, nfd, fl_3D, ya_f, ya_s, ya_n, S_3D, Dm_3D, Ja);
+        compute_pk2cc<3>(com_mod, cep_mod, lDmn, F_3D, nfd, fl_3D, ya_f, ya_s,
+                         ya_n, ka_f, ka_s, ka_n, lambda_prev, S_3D, Dm_3D, Ja);
 
         // Copy results back
         mat_fun::convert_to_array(S_3D, S);

@@ -215,6 +215,21 @@ class cemModelType
     /// Only used if using active stress, in which case it represents the active
     /// tension along sheet normals.
     Vector<double> Ya_n;
+
+    /// Frozen active stiffness along fibers for the current time step.
+    Vector<double> Ka_f;
+
+    /// Frozen active stiffness along sheets for the current time step.
+    Vector<double> Ka_s;
+
+    /// Frozen active stiffness along sheet normals for the current time step.
+    Vector<double> Ka_n;
+
+    /// Fiber stretch stored from the previously converged time step. Used by
+    /// the Regazzoni active-stress stabilization; the current fiber stretch
+    /// is computed directly from the deformation gradient in
+    /// mat_models::compute_pk2cc rather than stored here.
+    Vector<double> lambda_prev;
 };
 
 class CepMod 
@@ -241,4 +256,3 @@ class CepMod
 };
 
 #endif
-

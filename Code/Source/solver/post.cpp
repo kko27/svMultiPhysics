@@ -1910,8 +1910,12 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
             Array<double> Dm(nsymd,nsymd);
             double Ja;
 
+            // ka=0.0 disables the Regazzoni stabilization correction here, so
+            // the lambda_prev value passed below has no effect on the
+            // reported stress.
             mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn,
-                                      fN, ya_g_f, ya_g_s, ya_g_n, S, Dm, Ja);
+                                      fN, ya_g_f, ya_g_s, ya_g_n, 0.0, 0.0,
+                                      0.0, 1.0, S, Dm, Ja);
 
             // TODO: Add viscous stress
 
@@ -1930,8 +1934,12 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
             Array<double> Dm(nsymd,nsymd);
             double Ja;
 
+            // ka=0.0 disables the Regazzoni stabilization correction here, so
+            // the lambda_prev value passed below has no effect on the
+            // reported stress.
             mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn,
-                                      fN, ya_g_f, ya_g_s, ya_g_n, S, Dm, Ja);
+                                      fN, ya_g_f, ya_g_s, ya_g_n, 0.0, 0.0,
+                                      0.0, 1.0, S, Dm, Ja);
 
             // TODO: Add viscous stress
 

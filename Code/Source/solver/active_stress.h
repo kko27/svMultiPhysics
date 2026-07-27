@@ -150,6 +150,34 @@ public:
   }
 
   /**
+   * @brief Get the frozen active stiffness along fibers.
+   */
+  double get_stiffness_fibers(const int idx) const {
+    return eta_f * active_stiffness[idx];
+  }
+
+  /**
+   * @brief Get the frozen active stiffness along sheets.
+   */
+  double get_stiffness_sheets(const int idx) const {
+    return eta_s * active_stiffness[idx];
+  }
+
+  /**
+   * @brief Get the frozen active stiffness along sheet normals.
+   */
+  double get_stiffness_sheet_normals(const int idx) const {
+    return eta_n * active_stiffness[idx];
+  }
+
+  /**
+   * @brief Get the previous-step fiber stretch stored for stabilization.
+   */
+  double get_previous_fiber_stretch(const int idx) const {
+    return previous_fiber_stretch[idx];
+  }
+
+  /**
    * @brief Initialize the model.
    *
    * Allocates the internal state vector and initializes it with the model's
@@ -174,6 +202,11 @@ public:
                                  const Vector<double> &calcium,
                                  const Vector<double> &fiber_stretch,
                                  const Vector<double> &fiber_stretch_rate);
+
+  /**
+   * @brief Commit the converged fiber stretch at the end of the time step.
+   */
+  virtual void commit_fiber_stretch(const Vector<double> &fiber_stretch);
 
   /// Number of state variables for this model.
   const unsigned int n_states;
@@ -262,6 +295,9 @@ protected:
 
   /// Raw active tension at every node, before stabilization is applied.
   Vector<double> raw_active_tension;
+
+  /// Frozen active stiffness at every node, interpreted as dTa/dlambda.
+  Vector<double> active_stiffness;
 
   /// Previous fiber stretch at every node, used for stabilization.
   Vector<double> previous_fiber_stretch;
