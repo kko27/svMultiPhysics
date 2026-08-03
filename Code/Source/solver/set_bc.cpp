@@ -1981,9 +1981,7 @@ void set_bc_rigid_plane_l(ComMod& com_mod, const bcType& lBc, const faceType& lF
   const auto& plane_point = rigid_plane_bc.get_plane_point();
   const auto& plane_normal = rigid_plane_bc.get_plane_normal();
 
-  Vector<double> prescribed_plane_displacement(1);
-  Vector<double> prescribed_plane_velocity(1);
-  ifft(com_mod, lBc.gt, prescribed_plane_displacement, prescribed_plane_velocity);
+  const auto [prescribed_plane_displacement, prescribed_plane_velocity] = lBc.gt.value_and_derivative(com_mod.time);
   const double plane_displacement = prescribed_plane_displacement(0);
 
   Vector<double> N(eNoN);
