@@ -71,11 +71,8 @@ void LandNiederer::advance_time_step_local(const double t, const double dt,
     ode_state[i] = state[i]; 
   }
 
-  /// TODO: Remove the forced fiber_stretch_rate = 0.0 below and use the actual fiber_stretch_rate. 
-  /// This is a temporary fix to avoid the active stress model from blowing up when the fiber_stretch_rate is large.
-
   ActiveStressODE::advance_time_step_local(t, dt, calcium, fiber_stretch,
-                                           0.0, ode_state);
+                                           fiber_stretch_rate, ode_state);
 
   for (unsigned int i = 0; i < 6; ++i) {
     state[i] = ode_state[i];
