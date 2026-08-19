@@ -130,7 +130,8 @@ Vector<double> LandNiederer::getf(const double t, const Vector<double> &state,
   return f;
 }
 
-double LandNiederer::compute_active_tension_local(const Vector<double> &state) const {
+double LandNiederer::compute_active_tension_local(const Vector<double> &state,
+                                                  const double fiber_stretch) const {
   const double XW = std::max(0.0, state[1]);
   const double XS = std::max(0.0, state[3]); 
   const double ZETAW = state[4];  

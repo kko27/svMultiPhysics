@@ -67,6 +67,27 @@ void ActiveStress::advance_time_step(const double t, const double dt,
                             fiber_stretch_rate[i], state_loc);
     states.set_col(i, state_loc);
 
-    active_tension[i] = compute_active_tension_local(state_loc, fiber_stretch[i]);
+    const double Ta = compute_active_tension_local(state_loc, fiber_stretch[i]);
+    raw_active_tension[i] = Ta;
+
+    if (!has_previous_fiber_stretch[i]) {
+      previous_fiber_stretch[i] = fiber_stretch[i];
+      has_previous_fiber_stretch[i] = 1;
+    }
+
+    /// TODO: This is in the wrong place as the stabilization should include the fiber stretch at the
+    /// Newton iteration level.
+    if (use_stabilization) {
+      const double Ka =
+        compute_active_stiffness_local(state_loc, fiber_stretch[i],
+                                       fiber_stretch_rate[i]);
+
+      active_tension[i] = apply_stabilization_local(Ta, Ka, fiber_stretch[i],
+                                                previous_fiber_stretch[i]);
+    } else {
+      active_tension[i] = Ta;
+    }
+
+    previous_fiber_stretch[i] = fiber_stretch[i];
   }
 }
