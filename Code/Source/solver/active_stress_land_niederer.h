@@ -8,15 +8,20 @@
 
 class LandNiederer : public ActiveStressODE {
 public:
-  /// Model label.
+  /// Model label, used for factory registration and XML selection. 
   static inline const std::string label = "LandNiederer";
 
-  /// Model parameters class.
+  /*
+   * @brief Model parameters class.
+   * Declares the parameters required by the model. All parameters are 
+   * marked as required, and omitting a parameter will cause a parse error.
+  */ 
   class Parameters : public ActiveStressODE::Parameters {
   public:
     Parameters() : ActiveStressODE::Parameters(label) {
       constexpr bool required = true;
 
+      // Reference values: Land et al. 2017 
       add_parameter("CaRef", 0.805, required);
       add_parameter("eta_Tm", 5.0, required);
       add_parameter("k_uw", 0.182, required);
@@ -100,13 +105,17 @@ protected:
 
   /// @name Model parameters.
   /// @{
-  /// Calcium Sensitivity [uM]
+  /// Reference intracellular calcium concentration giving half-maximal
+  /// troponin C saturation, @f$[Ca^{2+}]_{T50,ref}@f$, used (with length
+  /// dependence via beta1) in the CaTRPN binding ODE [uM]
   double CaRef;
 
-  /// Cooperativity coefficient [-]
+  /// Cooperativity (Hill) exponent @f$n_{Tm}@f$ for the tropomyosin
+  /// blocked/unblocked (B/U) transition; sets the steepness of thin-filament
+  /// activation by CaTRPN [-]
   double eta_Tm;
 
-  /// Rate constant for transition from unbound (U) to pre-power stroke (W) state [1/ms]  
+  /// Rate constant for transition from unbound (U) to pre-power stroke (W) state [1/ms]
   double k_uw;
 
   /// Rate constant for transition from pre-power stroke (W) to post-power stroke (S) state [1/ms]
@@ -115,41 +124,59 @@ protected:
   /// Maximum observable tension @f$\Tref@f$ at resting length [kPa]
   double Tref;
 
-  /// Unbinding rate constant for calcium-troponin C complex [1/ms]
+  /// Rate constant @f$k_{TRPN}@f$ governing calcium binding/unbinding
+  /// kinetics of troponin C (the "pace" of CaTRPN relaxation to its
+  /// steady-state value) [1/ms]
   double k_TRPN;
 
-  /// Cooperativity of the calcium-troponin C binding rate [-]
-  double eta_TRPN; 
+  /// Cooperativity (Hill) exponent @f$n_{TRPN}@f$ of the calcium-troponin C
+  /// binding rate [-]
+  double eta_TRPN;
 
-  /// Unbinding rate constant [1/ms]
-  double k_u; 
+  /// Tropomyosin unblocking rate constant @f$k_u@f$ (rate at which blocked
+  /// binding sites become unblocked); together with rw, rs, and TRPN50 it
+  /// fixes the blocking rate kb [1/ms]
+  double k_u;
 
-  /// The value of CaTRPN where bounded state B = 0.5 in steady-state [-] 
-  double TRPN50; 
+  /// The value of CaTRPN where bounded state B = 0.5 in steady-state [-]
+  double TRPN50;
 
-  /// Steady-state ratio between pre-powerstroke and non-strongly bound [-]
-  double rw; 
+  /// Steady-state ratio @f$r_w@f$ between the pre-powerstroke (W) population
+  /// and the non-strongly-bound (U+W) population at equilibrium; sets the
+  /// reverse rate constant kwu [-]
+  double rw;
 
-  /// Steady-state duty ratio [-]
-  double rs; 
+  /// Steady-state duty ratio @f$r_s@f$: the fraction of cross-bridges in the
+  /// strongly-bound (post-powerstroke, S) state at equilibrium; sets the
+  /// reverse rate constant ksu [-]
+  double rs;
 
-  /// [-]
-  double gamma_s; 
+  /// Strain-dependent detachment-rate coefficient @f$\gamma_s@f$ for the
+  /// strongly-bound (post-powerstroke) S state; scales how fast cross-bridges
+  /// are pulled off by distortion in that state [-]
+  double gamma_s;
 
-  /// [-]
-  double gamma_w; 
+  /// Strain-dependent detachment-rate coefficient @f$\gamma_w@f$ for the
+  /// weakly-bound (pre-powerstroke) W state; scales how fast cross-bridges
+  /// are pulled off by distortion in that state [-]
+  double gamma_w;
 
-  /// [-]
-  double phi; 
+  /// Proportionality factor @f$\phi@f$ relating the cross-bridge distortion
+  /// decay rates (cw, cs) to the forward cycling rates k_uw, k_ws [-]
+  double phi;
 
-  /// Rescaled 
-  double Aeff; 
+  /// Rescaled magnitude @f$A_{eff}@f$ of the immediate cross-bridge
+  /// distortion response to fiber stretch rate; sets the distortion
+  /// sensitivities As, Aw [-]
+  double Aeff;
 
-  /// Change in maximal tension based on changes in filament overlap
-  double beta0; 
+  /// Coefficient @f$\beta_0@f$ controlling the length-dependence of maximal
+  /// tension through changes in filament overlap (Frank-Starling effect) [-]
+  double beta0;
 
-  /// Change in calcium sensitivity 
-  double beta1; 
+  /// Coefficient @f$\beta_1@f$ controlling the length-dependence of calcium
+  /// sensitivity (shifts CaRef/[Ca2+]T50 with sarcomere stretch) [-]
+  double beta1;
 };
 
 
