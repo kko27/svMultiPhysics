@@ -6,6 +6,31 @@
 
 #include "ActiveStressODE.h"
 
+/**
+ * @brief Land-Niederer active stress model.
+ *
+ * This class implements the phenomenological Land-Niederer active stress model 
+ * [1], which represents the cross-bridge cycling and calcium-troponin binding 
+ * kinetics in a single set of ODEs. The cross-bridges are modeled as a three-state 
+ * system, with transitions between unbound (U), pre-power stroke (W), and post-power
+ * stroke (S) states. The blocked state (B) represents the tropomyosin blocking 
+ * the actin binding sites, and the unblocked state (U) repesents the availability
+ * of these sites for cross-bridge binding. The unblocking of the tropomyosin is 
+ * regulated by the calcium-troponin binding state (CaTRPN) and the fiber stretch. 
+ * The distortion of the cross-bridges are also represented for the pre-power stroke
+ * and post-power stroke states. The active tension is computed as a function of the 
+ * cross-bridge states and their distortions, scaled by a reference tension Tref. 
+ * This is given as
+ * @f[
+ *  \Tact = \frac{Tref}{r_s} \left[ (1 + \zeta_S) X_S + \zeta_W X_W \right]\;,
+ * @f]
+ * where @f$X_S@f$ and @f$X_W@f$ are the fractions of cross-bridges in the post-power 
+ * stroke and pre-power stroke states, respectively. @f$\zeta_S@f$ and @f$\zeta_W@f$ 
+ * are the distortions, and @f$r_s@f$ is the steady-state duty ratio of the 
+ * cross-bridges. 
+ * **References**:
+ * 1. [Land, Niederer (2017)](https://doi.org/10.1016/j.yjmcc.2017.03.008)
+ */
 class LandNiederer : public ActiveStressODE {
 public:
   /// Model label, used for factory registration and XML selection. 
@@ -21,7 +46,7 @@ public:
     Parameters() : ActiveStressODE::Parameters(label) {
       constexpr bool required = true;
 
-      // Reference values: Land et al. 2017 
+      // Reference values calibrated in Land 2017 
       add_parameter("CaRef", 0.805, required);
       add_parameter("eta_Tm", 5.0, required);
       add_parameter("k_uw", 0.182, required);
@@ -76,6 +101,10 @@ protected:
    */
   virtual void init_local(Vector<double> &state) const override;
 
+  /**
+   * @brief Advance in time for a single node.
+   *
+   */
   virtual void advance_time_step_local(const double t, const double dt,
                                        const double calcium,
                                        const double fiber_stretch,
@@ -95,19 +124,11 @@ protected:
   virtual double
   compute_active_tension_local(const Vector<double> &state) const override;
 
-  /**
-   * @brief Compute the active stiffness for a single node.
-   */
-  virtual double 
-  compute_active_stiffness_local(const Vector<double> &state, 
-                                 const double fiber_stretch, 
-                                 const double fiber_stretch_rate) const override;
-
   /// @name Model parameters.
   /// @{
   /// Reference intracellular calcium concentration giving half-maximal
-  /// troponin C saturation, @f$[Ca^{2+}]_{T50,ref}@f$, used (with length
-  /// dependence via beta1) in the CaTRPN binding ODE [uM]
+  /// troponin C saturation, @f$[Ca^{2+}]_{T50,ref}@f$, used in the CaTRPN 
+  /// binding ODE [uM]
   double CaRef;
 
   /// Cooperativity (Hill) exponent @f$n_{Tm}@f$ for the tropomyosin
@@ -115,18 +136,19 @@ protected:
   /// activation by CaTRPN [-]
   double eta_Tm;
 
-  /// Rate constant for transition from unbound (U) to pre-power stroke (W) state [1/ms]
+  /// Rate constant for transition from unbound (U) to pre-power stroke (W) 
+  /// state [1/ms]
   double k_uw;
 
-  /// Rate constant for transition from pre-power stroke (W) to post-power stroke (S) state [1/ms]
+  /// Rate constant for transition from pre-power stroke (W) to post-power 
+  /// stroke (S) state [1/ms]
   double k_ws;
 
   /// Maximum observable tension @f$\Tref@f$ at resting length [kPa]
   double Tref;
 
   /// Rate constant @f$k_{TRPN}@f$ governing calcium binding/unbinding
-  /// kinetics of troponin C (the "pace" of CaTRPN relaxation to its
-  /// steady-state value) [1/ms]
+  /// kinetics of troponin C [1/ms]
   double k_TRPN;
 
   /// Cooperativity (Hill) exponent @f$n_{TRPN}@f$ of the calcium-troponin C
@@ -177,8 +199,8 @@ protected:
   /// Coefficient @f$\beta_1@f$ controlling the length-dependence of calcium
   /// sensitivity (shifts CaRef/[Ca2+]T50 with sarcomere stretch) [-]
   double beta1;
+
+  /// @}
 };
-
-
 
 #endif

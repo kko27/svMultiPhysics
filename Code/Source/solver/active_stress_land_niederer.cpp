@@ -140,18 +140,4 @@ double LandNiederer::compute_active_tension_local(const Vector<double> &state) c
   return LFac * (Tref/rs) * ((ZETAS+1.0) * XS + (ZETAW) * XW);
 }
 
-
-double LandNiederer::compute_active_stiffness_local(const Vector<double> &state, 
-                                 const double fiber_stretch, 
-                                 const double fiber_stretch_rate) const {
-  const double XW = std::max(0.0, state[1]);
-  const double XS = std::max(0.0, state[3]); 
-  const double LFac = state[6]; 
-  const double Aw = Aeff * rs/((1.0 - rs) * rw + rs); 
-  const double As = Aw;
-
-  return LFac * (Tref/rs) * (As*XS + Aw*XW); 
-}
-
-
 REGISTER_ACTIVE_STRESS_MODEL("LandNiederer", LandNiederer);
