@@ -134,7 +134,6 @@
 
     <Active_stress>
       <Model>LandNiederer</Model>
-      <Use_stabilization>false</Use_stabilization>    <!-- kept false for now as incorrect stabilization implementation -->
 
       <Directional_distribution>
         <Fiber_direction> 0.7 </Fiber_direction>
