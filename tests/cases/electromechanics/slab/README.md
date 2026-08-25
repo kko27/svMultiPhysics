@@ -2,15 +2,16 @@
 # **Problem Description**
 
 Simulate cardiac electromechanics on a slab of myocardial tissue. This
-directory contains two solver configurations that share the same geometry and
+directory contains three solver configurations that share the same geometry and
 electrophysiology setup but differ in the active-stress model:
 
 | Configuration file           | Active-stress model |
 |------------------------------|---------------------|
 | `solver_NashPanfilov.xml`    | Nash-Panfilov       |
 | `solver_Regazzoni.xml`       | RDQ20-MF (Regazzoni)|
+| `solver_LandNiederer.xml`    | Land-Niederer       | 
 
-Both configurations couple cardiac electrophysiology (`CEP`) to solid mechanics
+The configurations couple cardiac electrophysiology (`CEP`) to solid mechanics
 (`struct`), reproducing the geometry and stimulation setting of the Niederer
 electrophysiology benchmark [1] with the addition of active contraction and
 finite-strain mechanics.
@@ -108,6 +109,18 @@ using the calcium and sarcomere-length inputs from this one-step test. The remai
 fields in the VTU serve as integrated svMultiPhysics regression references and were
 not independently validated by the RDQ20-MF reference code.
 
+## Land-Niederer variant (`solver_LandNiederer.xml`) 
+
+Active contraction is driven by the calcium concentration computed by the
+electrophysiology model, through the Land-Niederer active-stress model [7]. The 
+model parameters are those calibrated to human ventricular cardiomyocyte data. 
+
+### Validation 
+
+The active tension fields in  `result_LandNiederer_001.vtu` were validated
+node-by-node against the MATLAB reference implementation provided 
+[here](https://www.cemrg.co.uk/models).
+
 ## References
 
 [1] S. A. Niederer, E. Kerfoot, A. P. Benson, et al. Verification of cardiac tissue
@@ -133,3 +146,7 @@ study reentrant cardiac arrhythmias. Progress in Biophysics and Molecular Biolog
 [6] F. Regazzoni, L. Dede', and A. Quarteroni. Biophysically detailed mathematical
 models of multiscale cardiac active mechanics. PLOS Computational Biology,
 16(10):e1008294, 2020.
+
+[7] S. Land, S. Park-Holohan, N. P. Smith, et al. A model of cardiac contraction
+based on novel measurements of tension development in human cardiomyocytes. 
+Journal of Molecular and Cellular Cardiology, 106:68-83, apr 2017. 
