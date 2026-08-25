@@ -63,14 +63,18 @@ public:
       add_parameter("phi", 2.23, required);
       add_parameter("Aeff", 25.0, required);
       add_parameter("beta0", 2.3, required);
-      add_parameter("beta1", -2.4, required);      
+      add_parameter("beta1", -2.4, required);
+
+      add_parameter("Disable_force_strain_rate_feedback", false, !required);
     }
   };
 
   /**
    * @brief Constructor.
    */
-  LandNiederer() : ActiveStressODE(7) {}
+  LandNiederer() : ActiveStressODE(/* n_state_variables = */ 7,
+                                   /* needs_fiber_stretch = */ true,
+                                   /* needs_fiber_stretch_rate = */ true) {}
 
   /**
    * @brief Construct an instance of model parameters.
@@ -122,7 +126,8 @@ protected:
    * @brief Compute the active tension for a single node.
    */
   virtual double
-  compute_active_tension_local(const Vector<double> &state) const override;
+  compute_active_tension_local(const Vector<double> &state,
+                               const double fiber_stretch) const override;
 
   /// @name Model parameters.
   /// @{
@@ -199,6 +204,13 @@ protected:
   /// Coefficient @f$\beta_1@f$ controlling the length-dependence of calcium
   /// sensitivity (shifts CaRef/[Ca2+]T50 with sarcomere stretch) [-]
   double beta1;
+
+  /// Controls force-strain-rate feedback in the cross-bridge distortion ODEs.
+  /// - @c false (default): the ZETAW/ZETAS distortion states respond to the
+  ///   fiber stretch rate as in Land, Niederer (2017).
+  /// - @c true: the fiber stretch rate contribution is zeroed out, disabling
+  ///   the feedback.
+  bool disable_force_strain_rate_feedback_ = false;
 
   /// @}
 };

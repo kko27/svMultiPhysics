@@ -24,6 +24,12 @@ void LandNiederer::read_model_specific_parameters(
   Aeff = params.get_scalar("Aeff");
   beta0 = params.get_scalar("beta0");
   beta1 = params.get_scalar("beta1");
+
+  disable_force_strain_rate_feedback_ =
+      params.get_bool("Disable_force_strain_rate_feedback");
+
+  // With the feedback disabled the stretch rate computation can be skipped.
+  needs_fiber_stretch_rate_ = !disable_force_strain_rate_feedback_;
 }
 
 void LandNiederer::distribute_model_specific_parameters(const CmMod &cm_mod,
@@ -47,6 +53,8 @@ void LandNiederer::distribute_model_specific_parameters(const CmMod &cm_mod,
   cm.bcast(cm_mod, &Aeff);
   cm.bcast(cm_mod, &beta0);
   cm.bcast(cm_mod, &beta1);
+  cm.bcast(cm_mod, &disable_force_strain_rate_feedback_);
+  cm.bcast(cm_mod, &needs_fiber_stretch_rate_);
 }
 
 void LandNiederer::init_local(Vector<double> &state) const { 
@@ -118,19 +126,22 @@ Vector<double> LandNiederer::getf(const double t, const Vector<double> &state,
   const double gamma_su = gamma_s * std::max(term1, term2);
   f[3] = k_ws*XW - k_su*XS - gamma_su*XS; 
 
-  // Distortion-Decay Kinetics 
-  const double Aw = Aeff * rs/((1.0 - rs) * rw + rs); 
+  // Distortion-Decay Kinetics
+  const double stretch_rate =
+      disable_force_strain_rate_feedback_ ? 0.0 : fiber_stretch_rate;
+  const double Aw = Aeff * rs/((1.0 - rs) * rw + rs);
   const double cw = phi * k_uw * (1.0 - rs)*(1.0 - rw) / ((1.0 - rs)*rw);
-  f[4] = Aw * fiber_stretch_rate - cw*ZETAW;
+  f[4] = Aw * stretch_rate - cw*ZETAW;
 
-  const double As = Aw; 
-  const double cs = phi * k_ws * (1.0 - rs)*rw/rs; 
-  f[5] =  As * fiber_stretch_rate - cs*ZETAS; 
+  const double As = Aw;
+  const double cs = phi * k_ws * (1.0 - rs)*rw/rs;
+  f[5] =  As * stretch_rate - cs*ZETAS;
 
   return f;
 }
 
-double LandNiederer::compute_active_tension_local(const Vector<double> &state) const {
+double LandNiederer::compute_active_tension_local(const Vector<double> &state,
+                                                   const double fiber_stretch) const {
   const double XW = std::max(0.0, state[1]);
   const double XS = std::max(0.0, state[3]); 
   const double ZETAW = state[4];  
