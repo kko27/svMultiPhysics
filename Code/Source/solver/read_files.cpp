@@ -570,7 +570,7 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
       throw std::runtime_error("[read_bc] RigidPlanePenalty cannot be mixed with Robin-specific parameters.");
     }
 
-    if (lBc.gt.d != 1) {
+    if (lBc.gt.get_n_components() != 1) {
       throw std::runtime_error("[read_bc] RigidPlanePenalty requires a scalar temporal history.");
     }
 
