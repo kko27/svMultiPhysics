@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (c) Stanford University, The Regents of the
 // University of California, and others. SPDX-License-Identifier: BSD-3-Clause
 
-#include "active_stress_land_niederer.h"
+#include "ActiveStressLandNiederer.h"
 
-void LandNiederer::read_model_specific_parameters(
+void ActiveStressLandNiederer::read_model_specific_parameters(
     const ActiveStressModelParameters &params) {
   ActiveStressODE::read_model_specific_parameters(params);
 
@@ -32,7 +32,7 @@ void LandNiederer::read_model_specific_parameters(
   needs_fiber_stretch_rate_ = !disable_force_strain_rate_feedback_;
 }
 
-void LandNiederer::distribute_model_specific_parameters(const CmMod &cm_mod,
+void ActiveStressLandNiederer::distribute_model_specific_parameters(const CmMod &cm_mod,
                                                         const cmType &cm) {
   ActiveStressODE::distribute_model_specific_parameters(cm_mod, cm);
 
@@ -57,7 +57,7 @@ void LandNiederer::distribute_model_specific_parameters(const CmMod &cm_mod,
   cm.bcast(cm_mod, &needs_fiber_stretch_rate_);
 }
 
-void LandNiederer::init_local(Vector<double> &state) const { 
+void ActiveStressLandNiederer::init_local(Vector<double> &state) const { 
     state[0] = 1.0; 
     state[1] = 0.0; 
     state[2] = 0.0; 
@@ -68,7 +68,7 @@ void LandNiederer::init_local(Vector<double> &state) const {
     state[6] = std::max(0.0, 1.0 + beta0 * (lambda + std::min(0.87, lambda) - 1.87)); 
 }
 
-void LandNiederer::advance_time_step_local(const double t, const double dt,
+void ActiveStressLandNiederer::advance_time_step_local(const double t, const double dt,
                                            const double calcium,
                                            const double fiber_stretch,
                                            const double fiber_stretch_rate,
@@ -90,7 +90,7 @@ void LandNiederer::advance_time_step_local(const double t, const double dt,
   state[6] = std::max(0.0, 1.0 + beta0 * (lambda + std::min(0.87, lambda) - 1.87));
 }
 
-Vector<double> LandNiederer::getf(const double t, const Vector<double> &state,
+Vector<double> ActiveStressLandNiederer::getf(const double t, const Vector<double> &state,
                                   const double calcium,
                                   const double fiber_stretch,
                                   const double fiber_stretch_rate) const {
@@ -140,7 +140,7 @@ Vector<double> LandNiederer::getf(const double t, const Vector<double> &state,
   return f;
 }
 
-double LandNiederer::compute_active_tension_local(const Vector<double> &state,
+double ActiveStressLandNiederer::compute_active_tension_local(const Vector<double> &state,
                                                    const double fiber_stretch) const {
   const double XW = std::max(0.0, state[1]);
   const double XS = std::max(0.0, state[3]); 
@@ -151,4 +151,4 @@ double LandNiederer::compute_active_tension_local(const Vector<double> &state,
   return LFac * (Tref/rs) * ((ZETAS+1.0) * XS + (ZETAW) * XW);
 }
 
-REGISTER_ACTIVE_STRESS_MODEL("LandNiederer", LandNiederer);
+REGISTER_ACTIVE_STRESS_MODEL("LandNiederer", ActiveStressLandNiederer);

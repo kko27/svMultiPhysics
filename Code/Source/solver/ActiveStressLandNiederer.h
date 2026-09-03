@@ -31,7 +31,7 @@
  * **References**:
  * 1. [Land, Niederer (2017)](https://doi.org/10.1016/j.yjmcc.2017.03.008)
  */
-class LandNiederer : public ActiveStressODE {
+class ActiveStressLandNiederer : public ActiveStressODE {
 public:
   /// Model label, used for factory registration and XML selection. 
   static inline const std::string label = "LandNiederer";
@@ -72,7 +72,7 @@ public:
   /**
    * @brief Constructor.
    */
-  LandNiederer() : ActiveStressODE(/* n_state_variables = */ 7,
+  ActiveStressLandNiederer() : ActiveStressODE(/* n_state_variables = */ 7,
                                    /* needs_fiber_stretch = */ true,
                                    /* needs_fiber_stretch_rate = */ true) {}
 

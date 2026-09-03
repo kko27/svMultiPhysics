@@ -30,9 +30,9 @@
  */
 
 #include "../test_common.h"
-#include "active_stress_land_niederer.h"
+#include "ActiveStressLandNiederer.h"
 
-class TestableLandNiederer : public LandNiederer {
+class TestableLandNiederer : public ActiveStressLandNiederer {
 public:
   Vector<double> evaluate_getf(const double t, const Vector<double> &state,
                                const double calcium,
