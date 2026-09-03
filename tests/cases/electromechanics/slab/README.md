@@ -88,6 +88,28 @@ are not prescribed by the RDQ20-MF model itself.
 
 **Regression reference:** `result_Regazzoni_001.vtu`
 
+## Land-Niederer variant (`solver_LandNiederer.xml`) 
+
+Active contraction is driven by the calcium concentration computed by the
+electrophysiology model, through the Land-Niederer active-stress model [7]. The 
+model parameters are those calibrated to human ventricular cardiomyocyte data. The
+scalar active tension is distributed along the fiber, sheet, and sheet-normal 
+directions using the same directional weights as the Nash-Panfilov variant.
+
+```
+<Active_stress>
+  <Model>LandNiederer</Model>
+  <Directional_distribution>
+    <Fiber_direction> 0.7 </Fiber_direction>
+    <Sheet_direction> 0.2 </Sheet_direction>
+    <Sheet_normal_direction> 0.1 </Sheet_normal_direction>
+  </Directional_distribution>
+  ...
+</Active_stress>
+```
+
+**Regression reference:** `result_LandNiederer_001.vtu`
+
 ### Validation
 
 svMultiPhysics stores `T_act = a_XB * (μ_P^1 + μ_N^1) * φ(SL)` — the scalar
@@ -109,17 +131,10 @@ using the calcium and sarcomere-length inputs from this one-step test. The remai
 fields in the VTU serve as integrated svMultiPhysics regression references and were
 not independently validated by the RDQ20-MF reference code.
 
-## Land-Niederer variant (`solver_LandNiederer.xml`) 
-
-Active contraction is driven by the calcium concentration computed by the
-electrophysiology model, through the Land-Niederer active-stress model [7]. The 
-model parameters are those calibrated to human ventricular cardiomyocyte data. 
-
-### Validation 
-
 The active tension fields in  `result_LandNiederer_001.vtu` were validated
 node-by-node against the MATLAB reference implementation provided 
-[here](https://www.cemrg.co.uk/models).
+[here](https://www.cemrg.co.uk/models). A custom script with a python wrapper 
+for the MATLAB function is available in this [repository](https://github.com/kko27/generate_ref_solution.git).  
 
 ## References
 
