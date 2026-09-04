@@ -2042,8 +2042,9 @@ void set_bc_rigid_plane_l(ComMod& com_mod, const bcType& lBc, const faceType& lF
     for (int g = 0; g < lFa.nG; g++) {
       Vector<double> nV(nsd);
       auto Nx = lFa.Nx.slice(g);
-      nn::gnnb(com_mod, lFa, e, g, nsd, nsd-1, eNoN, Nx, nV, solutions,
-          consts::MechanicalConfigurationType::reference);
+      constexpr unsigned int unused_displacement_index = 0;
+      nV = nn::gnnb(com_mod, lFa, e, g, Nx, solutions,
+          consts::MechanicalConfigurationType::reference, unused_displacement_index);
       double Jac = utils::norm(nV);
       double w = lFa.w(g) * Jac;
       N = lFa.N.col(g);
