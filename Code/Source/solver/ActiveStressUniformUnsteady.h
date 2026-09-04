@@ -4,9 +4,9 @@
 #ifndef ACTIVE_STRESS_UNIFORM_UNSTEADY_H
 #define ACTIVE_STRESS_UNIFORM_UNSTEADY_H
 
-#include "FourierInterpolation.h"
+#include "ActiveStress.h"
 
-#include "active_stress.h"
+#include "FourierInterpolation.h"
 
 /**
  * @brief Uniform and time dependent active stress model.
@@ -18,7 +18,7 @@
  * @f]
  * where @f$g(t)@f$ is a user-defined function of time.
  */
-class UniformUnsteadyActiveStress : public ActiveStress {
+class ActiveStressUniformUnsteady : public ActiveStress {
 public:
   /// Model label.
   static inline const std::string label = "UniformUnsteady";
@@ -37,7 +37,10 @@ public:
   /**
    * @brief Constructor.
    */
-  UniformUnsteadyActiveStress() : ActiveStress(/* n_states = */ 0) {}
+  ActiveStressUniformUnsteady()
+      : ActiveStress(/* n_states = */ 0,
+                     /* needs_fiber_stretch = */ false,
+                     /* needs_fiber_stretch_rate = */ false) {}
 
   /**
    * @brief Construct an instance of model parameters.
@@ -90,7 +93,8 @@ protected:
    * @brief Compute the active tension for a single node.
    */
   virtual double
-  compute_active_tension_local(const Vector<double> &state) const override;
+  compute_active_tension_local(const Vector<double> &state,
+                               const double fiber_stretch) const override;
 
   /// Toggle between ramp or Fourier transform.
   bool ramp;

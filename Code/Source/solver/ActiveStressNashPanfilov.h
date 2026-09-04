@@ -4,7 +4,7 @@
 #ifndef ACTIVE_STRESS_NASH_PANFILOV_H
 #define ACTIVE_STRESS_NASH_PANFILOV_H
 
-#include "active_stress_ode.h"
+#include "ActiveStressODE.h"
 
 /**
  * @brief Nash-Panfilov active stress model.
@@ -36,7 +36,7 @@
  * 1. [Nash, Panfilov (2004)](https://doi.org/10.1016/j.pbiomolbio.2004.01.016)
  * 2. [Goktepe, Kuhl (2009)](https://doi.org/10.1007/s00466-009-0434-z)
  */
-class NashPanfilov : public ActiveStressODE {
+class ActiveStressNashPanfilov : public ActiveStressODE {
 public:
   /// Model label.
   static inline const std::string label = "NashPanfilov";
@@ -59,7 +59,10 @@ public:
   /**
    * @brief Constructor.
    */
-  NashPanfilov() : ActiveStressODE(1) {}
+  ActiveStressNashPanfilov()
+      : ActiveStressODE(/* n_state_variables = */ 1,
+                        /* needs_fiber_stretch = */ false,
+                        /* needs_fiber_stretch_rate = */ false) {}
 
   /**
    * @brief Construct an instance of model parameters.
@@ -101,7 +104,8 @@ protected:
    * @brief Compute the active tension for a single node.
    */
   virtual double
-  compute_active_tension_local(const Vector<double> &state) const override;
+  compute_active_tension_local(const Vector<double> &state,
+                               const double fiber_stretch) const override;
 
   /// @name Model parameters.
   /// @{
