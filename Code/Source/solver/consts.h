@@ -383,7 +383,7 @@ enum class OutputNameType {
   out_CGInv1 = 572,
   out_fibStretch = 571,
   out_fibStretchRate = 570,
-  out_activeTensionFibers = 569,
+  out_activeTensionFibers = 566,
   out_activeTensionSheets = 568,
   out_activeTensionNormal = 567,
   out_rigidPlaneTraction = 569

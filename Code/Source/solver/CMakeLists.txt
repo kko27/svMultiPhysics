@@ -269,6 +269,7 @@ set(CSRCS
   ActiveStressODE.cpp
   ActiveStressNashPanfilov.cpp
   ActiveStressRegazzoni.cpp
+  ActiveStressTanhFiberStretch.cpp
 
   SPLIT.c
 
