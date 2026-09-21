@@ -92,6 +92,7 @@
       <Active_tension_fibers> true </Active_tension_fibers>
       <Active_tension_sheets> true </Active_tension_sheets>
       <Active_tension_normal> true </Active_tension_normal>
+      <Fiber_direction> true </Fiber_direction>
     </Output>
 
     <LS type="GMRES" >
