@@ -47,6 +47,7 @@ public:
       constexpr bool required = true;
 
       // Reference values calibrated in Land 2017 
+      add_parameter("calcium_scaling_factor", 1000.0, required);
       add_parameter("CaRef", 0.805, required);
       add_parameter("eta_Tm", 5.0, required);
       add_parameter("k_uw", 0.182, required);
@@ -131,6 +132,10 @@ protected:
 
   /// @name Model parameters.
   /// @{
+  /// Scaling factor required if converting calcium concentration from 
+  /// ionic model to contraction model 
+  double calcium_scaling_factor; 
+
   /// Reference intracellular calcium concentration giving half-maximal
   /// troponin C saturation, @f$[Ca^{2+}]_{T50,ref}@f$, used in the CaTRPN 
   /// binding ODE [uM]

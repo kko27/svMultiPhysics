@@ -144,7 +144,9 @@
       <LandNiederer>
         <ODE_solver> RK4 </ODE_solver>
 
-        <CaRef> 0.000805 </CaRef> <!-- mM -->
+        <!-- 1000 as conversion factor from mM (TTP-EP model) to μM -->
+        <calcium_scaling_factor> 1000.0 </calcium_scaling_factor>   
+        <CaRef> 0.805 </CaRef>    <!-- μM -->
         <eta_Tm> 5.0 </eta_Tm>    <!-- [-] -->
         <k_uw> 0.182 </k_uw>      <!-- 1/ms -->
         <k_ws> 0.012 </k_ws>      <!-- 1/ms -->
@@ -157,10 +159,10 @@
         <rs> 0.25 </rs>           <!-- [-] -->
         <gamma_s> 0.0085 </gamma_s> <!-- [-] -->
         <gamma_w> 0.615 </gamma_w> <!-- [-] -->
-        <phi> 2.23 </phi>         <!-- [-] -->
+        <phi> 2.23 </phi>          <!-- [-] -->
         <Aeff> 25.0 </Aeff>        <!-- [-] -->
         <beta0> 2.3 </beta0>       <!-- [-] -->
-        <beta1> -2.4 </beta1>      <!-- [-] -->
+        <beta1> -2.4 </beta1>      <!-- μM -->
 
         <Disable_force_strain_rate_feedback> true </Disable_force_strain_rate_feedback>
       </LandNiederer>

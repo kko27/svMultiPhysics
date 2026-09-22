@@ -7,6 +7,7 @@ void ActiveStressLandNiederer::read_model_specific_parameters(
     const ActiveStressModelParameters &params) {
   ActiveStressODE::read_model_specific_parameters(params);
 
+  calcium_scaling_factor = params.get_scalar("calcium_scaling_factor");
   CaRef = params.get_scalar("CaRef");
   eta_Tm = params.get_scalar("eta_Tm");
   k_uw = params.get_scalar("k_uw");
@@ -36,6 +37,7 @@ void ActiveStressLandNiederer::distribute_model_specific_parameters(const CmMod 
                                                         const cmType &cm) {
   ActiveStressODE::distribute_model_specific_parameters(cm_mod, cm);
 
+  cm.bcast(cm_mod, &calcium_scaling_factor);
   cm.bcast(cm_mod, &CaRef);
   cm.bcast(cm_mod, &eta_Tm);
   cm.bcast(cm_mod, &k_uw);
@@ -117,7 +119,7 @@ Vector<double> ActiveStressLandNiederer::getf(const double t, const Vector<doubl
 
   // Calcium-Troponin Binding Kinetics  
   const double CaT50 = CaRef + beta1*std::min(0.2, lambda - 1.0); 
-  f[2] = k_TRPN * (std::pow((calcium/CaT50), eta_TRPN) * (1.0 - CaTRPN) - CaTRPN); 
+  f[2] = k_TRPN * (std::pow(((calcium*calcium_scaling_factor)/CaT50), eta_TRPN) * (1.0 - CaTRPN) - CaTRPN); 
 
   // Post-power Stroke Kinetics                                 
   const double k_su = k_ws * rw * (1.0/rs - 1.0); 
