@@ -40,10 +40,6 @@ void ActiveStress::init(const unsigned int tnNo) {
   }
 
   active_tension.resize(tnNo);
-
-  for (unsigned int i = 0; i < tnNo; ++i) {
-    active_tension[i] = 0.0;
-  }
 }
 
 void ActiveStress::advance_time_step(const double t, const double dt,
