@@ -8,14 +8,14 @@
 #include "cmm.h"
 #include "consts.h"
 #include "eq_assem.h"
-#include "fluid.h"
+#include "fluid/fluid.h"
 #include "fs.h"
 #include "lhsa.h"
 #include "mat_fun.h"
 #include "nn.h"
 #include "svOneD_interface.h"
 #include "svZeroD_interface.h"
-#include "ustruct.h"
+#include "solid/ustruct.h"
 #include "utils.h"
 #include <cstdio>
 #include <math.h>
@@ -1597,9 +1597,9 @@ void set_bc_neu_l(ComMod& com_mod, const CmMod& cm_mod, const bcType& lBc, const
          int cDmn_local =
              all_fun::domain(com_mod, com_mod.msh[iM], cEq, lFa.gE(0));
          double rho = eq.dmn[cDmn_local].prop.at(
-             consts::PhysicalProperyType::fluid_density);
+             consts::PhysicalPropertyType::fluid_density);
          double beta = eq.dmn[cDmn_local].prop.at(
-             consts::PhysicalProperyType::backflow_stab);
+             consts::PhysicalPropertyType::backflow_stab);
          double A = lFa.area;
          if (A > 0.0) {
            double u_n = Q_3D / A; // face-averaged normal velocity (< 0)
@@ -2410,3 +2410,4 @@ void set_bc_undef_neu_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa)
 }
 
 };
+

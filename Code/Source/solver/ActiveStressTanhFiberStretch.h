@@ -101,6 +101,20 @@ protected:
   compute_active_tension_local(const Vector<double> &state,
                                const double fiber_stretch) const override;
 
+  /**
+   * @brief Compute the partial derivative of the active tension with respect
+   * to the fiber stretch, at fixed state, for a single node.
+   *
+   * @f[
+   *   \pdv{\Tact}{\fiberstretch} =
+   *     2 a_1 \eta(t) \tanh\left(a_1 (\fiberstretch - a_2)\right)
+   *     \left(1 - \tanh^2\left(a_1 (\fiberstretch - a_2)\right)\right)\;.
+   * @f]
+   */
+  virtual double compute_active_tension_derivative_local(
+      const Vector<double> &state,
+      const double fiber_stretch) const override;
+
   /// Coefficient controlling the steepness of the tanh^2 switch.
   double a1;
 

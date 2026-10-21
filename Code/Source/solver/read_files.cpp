@@ -10,7 +10,8 @@
 #include "ActiveStress.h"
 #include "all_fun.h"
 #include "consts.h"
-#include "IonicModel.h"
+#include "porous/darcy.h"
+#include "electrophysiology/IonicModel.h"
 #include "read_msh.h"
 #include "vtk_xml.h"
 
@@ -32,7 +33,6 @@ namespace read_files_ns {
 #include "set_equation_props.h"
 #include "set_material_props.h"
 //#include "set_output_props.h"
-#include "set_viscosity_props.h"
 
 /// @brief Match two faces?
 ///
@@ -210,8 +210,8 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
 
   if (effective_direction.size() != 0) {
     if (effective_direction.size() != com_mod.nsd) {
-      auto effective_size = (std::stringstream() << "(" << effective_direction.size() << ")").str();
-      auto space_dim = (std::stringstream() << "(" << com_mod.nsd << ")").str();
+      auto effective_size = "(" + std::to_string(effective_direction.size()) + ")";
+      auto space_dim = "(" + std::to_string(com_mod.nsd) + ")";
       svmp::raise<svmp::ParseException>("The size of the effective direction " + effective_size + 
           " does not equal the number of space dimensions " + space_dim); 
     }
@@ -1388,7 +1388,7 @@ void read_cep_domain(Simulation* simulation, EquationParameters* eq_params, Doma
     lDmn.cep.odes.relTol = domain_params->relative_tolerance.value();
   }
 
-  if (domain_params->feedback_parameter_for_stretch_activated_currents.defined() && cep_mod.cem.cpld) { 
+  if (domain_params->feedback_parameter_for_stretch_activated_currents.defined()) {
     lDmn.cep.Ksac = domain_params->feedback_parameter_for_stretch_activated_currents.value();
   } else {
     lDmn.cep.Ksac = 0.0;
@@ -1562,59 +1562,59 @@ void read_domain(Simulation* simulation, EquationParameters* eq_params, eqType& 
         auto prop = propList[iProp][iPhys];
 
         switch (prop) {
-          case PhysicalProperyType::backflow_stab:
+          case PhysicalPropertyType::backflow_stab:
             rtmp = domain_params->backflow_stabilization_coefficient.value();
           break;
 
-          case PhysicalProperyType::conductivity:
+          case PhysicalPropertyType::conductivity:
             rtmp = domain_params->conductivity.value();
           break;
 
-          case PhysicalProperyType::ctau_C:
+          case PhysicalPropertyType::ctau_C:
             rtmp = domain_params->continuity_stabilization_coefficient.value(); 
           break;
 
-          case PhysicalProperyType::ctau_M:
+          case PhysicalPropertyType::ctau_M:
             rtmp = domain_params->momentum_stabilization_coefficient.value();
           break;
 
-          case PhysicalProperyType::damping:
+          case PhysicalPropertyType::damping:
             rtmp = domain_params->mass_damping.value();
           break;
 
-          case PhysicalProperyType::elasticity_modulus:
+          case PhysicalPropertyType::elasticity_modulus:
             rtmp = domain_params->elasticity_modulus.value();
           break;
 
-          case PhysicalProperyType::f_x:
+          case PhysicalPropertyType::f_x:
             rtmp = domain_params->force_x.value();
           break;
 
-          case PhysicalProperyType::f_y:
+          case PhysicalPropertyType::f_y:
             rtmp = domain_params->force_y.value();
           break;
 
-          case PhysicalProperyType::f_z:
+          case PhysicalPropertyType::f_z:
             rtmp = domain_params->force_z.value();
           break;
 
-          case PhysicalProperyType::fluid_density:
-            if (lEq.phys == EquationType::phys_CMM) {
+          case PhysicalPropertyType::fluid_density:
+            if (lEq.phys == EquationType::phys_CMM || lEq.phys == EquationType::phys_darcy) {
               rtmp = domain_params->fluid_density.value();
             } else {
               rtmp = domain_params->density.value();
             }
           break;
 
-          case PhysicalProperyType::poisson_ratio:
+          case PhysicalPropertyType::poisson_ratio:
             rtmp = domain_params->poisson_ratio.value();
           break;
 
-          case PhysicalProperyType::shell_thickness:
+          case PhysicalPropertyType::shell_thickness:
             rtmp = domain_params->shell_thickness.value();
           break;
 
-          case PhysicalProperyType::solid_density:
+          case PhysicalPropertyType::solid_density:
             if (lEq.phys == EquationType::phys_CMM) {
               rtmp = domain_params->solid_density.value();
             } else {
@@ -1622,12 +1622,24 @@ void read_domain(Simulation* simulation, EquationParameters* eq_params, eqType& 
             }
           break;
 
-          case PhysicalProperyType::source_term:
+          case PhysicalPropertyType::source_term:
             rtmp = domain_params->source_term.value();
           break;
 
-          case PhysicalProperyType::inverse_darcy_permeability:
-            rtmp = domain_params->inverse_darcy_permeability.value();
+          case PhysicalPropertyType::brinkman_inverse_permeability:
+            rtmp = domain_params->brinkman_inverse_permeability.value();
+          break;
+
+          case PhysicalPropertyType::darcy_permeability:
+            rtmp = domain_params->darcy_permeability.value();
+          break;
+
+          case PhysicalPropertyType::darcy_compressibility:
+            rtmp = domain_params->darcy_compressibility.value();
+          break;
+
+          case PhysicalPropertyType::darcy_fluid_viscosity:
+            rtmp = domain_params->darcy_fluid_viscosity.value();
           break;
         }
 
@@ -1777,7 +1789,7 @@ void read_eq(Simulation* simulation, EquationParameters* eq_params, eqType& lEq)
   if (eq_params->use_taylor_hood_type_basis.defined()) { 
     THflag = eq_params->use_taylor_hood_type_basis.value(); 
   }
-  EquationProps propL{consts::PhysicalProperyType::NA};
+  EquationProps propL{consts::PhysicalPropertyType::NA};
   EquationOutputs outPuts;
   EquationNdop nDOP;
 
@@ -2096,51 +2108,30 @@ void read_files(Simulation* simulation, const std::string& file_name)
         read_cep_equation(&cep_mod, simulation, eq_params);
       }
     }
-  }
 
-  if (cep_mod.cem.cpld) {
-    if (nEq == 1) {
-      throw std::runtime_error("Min equations (2) not solved for electro-mechanics coupling");
-    }
+    // Stretch-activated currents require the fiber stretch, which is computed
+    // only when an equation solving for the displacement is present.
+    bool has_sac = false;
+    bool has_displacement_eq = false;
 
-    int i = 0;
     for (int iEq = 0; iEq < nEq; iEq++) {
       auto& eq = com_mod.eq[iEq];
-      if ((eq.phys == EquationType::phys_CEP) || (eq.phys == EquationType::phys_struct) || 
-          (eq.phys == EquationType::phys_ustruct)) {
-        i = i + 1;
-      }
-    }
 
-    if (i != 2) {
-      throw std::runtime_error("Both electrophysiology and struct have to be solved for electro-mechanics");
-    }
-
-    if (cep_mod.cem.aStrain) {
-      if (com_mod.nsd != 3) {
-        throw std::runtime_error("Active strain coupling is allowed only for 3D bodies");
+      if (supports_active_stress(eq.phys)) {
+        has_displacement_eq = true;
       }
 
-      for (int iEq = 0; iEq < nEq; iEq++) {
-        auto& eq = com_mod.eq[iEq];
-        for (int i = 0; i < eq.nDmn; i++) {
-          auto& dmn = eq.dmn[i];
-
-          if ((dmn.phys != EquationType::phys_ustruct) && (dmn.phys != EquationType::phys_struct)) { 
-            continue; 
-          }
-
-          if (dmn.active_stress != nullptr) {
-            svmp::raise<svmp::FE::InvalidArgumentException>(
-                "Active strain and active stress cannot be used together.");
-          }
-
-          if ((dmn.stM.isoType != ConstitutiveModelType::stIso_HO)) {
-            throw std::runtime_error("Active strain is allowed with Holzapfel-Ogden passive constitutive model only");
-          }
+      for (int iDmn = 0; iDmn < eq.nDmn; iDmn++) {
+        auto& dmn = eq.dmn[iDmn];
+        if ((dmn.phys == EquationType::phys_CEP) && (dmn.cep.Ksac != 0.0)) {
+          has_sac = true;
         }
       }
     }
+
+    svmp::throw_if<svmp::ParseException>(has_sac && !has_displacement_eq,
+        "Feedback_parameter_for_stretch_activated_currents requires an "
+        "equation solving for the displacement (struct, ustruct or FSI).");
   }
 
   // [NOTE] what's going on here?
@@ -2289,8 +2280,8 @@ void read_mat_model(Simulation* simulation, EquationParameters* eq_params, Domai
   using namespace consts;
 
   // Domain properties: elasticity modulus, poisson ratio
-  double E = lDmn.prop[PhysicalProperyType::elasticity_modulus];
-  double nu = lDmn.prop[PhysicalProperyType::poisson_ratio];
+  double E = lDmn.prop[PhysicalPropertyType::elasticity_modulus];
+  double nu = lDmn.prop[PhysicalPropertyType::poisson_ratio];
 
   // Shear modulus
   double mu  = 0.5 * E / (1.0 + nu);
@@ -2913,86 +2904,6 @@ void read_rmsh(Simulation* simulation, EquationParameters* eq_param)
   dmsg << "rmsh.freq: " << rmsh.freq;
   dmsg << "rmsh.cpVar: " << rmsh.cpVar;
   #endif
-}
-
-//-----------------
-// read_fluid_visc_model
-//-----------------
-// Set the fluid viscosity material model parameters for the given domain.
-//
-void read_fluid_visc_model(Simulation* simulation, EquationParameters* eq_params, DomainParameters* domain_params, dmnType& lDmn)
-{ 
-  using namespace consts;
-
-  // Get viscosity model.
-  //
-  FluidViscosityModelType vmodel_type;
-  std::string vmodel_str; 
-
-  if (domain_params->fluid_viscosity.model.defined()) {
-    vmodel_str = domain_params->fluid_viscosity.model.value();
-    std::transform(vmodel_str.begin(), vmodel_str.end(), vmodel_str.begin(), ::tolower);
-
-    try {
-      vmodel_type = fluid_viscosity_model_name_to_type.at(vmodel_str);
-    } catch (const std::out_of_range& exception) {
-      throw std::runtime_error("Unknown fluid viscosity model '" + vmodel_str + "'.");
-    }
-  } else {
-    vmodel_type = FluidViscosityModelType::viscType_Const;
-  }
-
-  // Set the parameters for the given viscosity model.
-  //
-  auto& viscosity_params = domain_params->fluid_viscosity;
-
-  try {
-    set_fluid_viscosity_props[vmodel_type](simulation, viscosity_params, lDmn);
-   } catch (const std::bad_function_call& exception) {
-    throw std::runtime_error("[read_fluid_visc_model] Viscosity model '" + vmodel_str + "' is not supported.");
-  }
-
-  if ((lDmn.phys == EquationType::phys_stokes) && (lDmn.fluid_visc.viscType != FluidViscosityModelType::viscType_Const)) {
-    throw std::runtime_error("Only constant viscosity is allowed for Stokes flow.");
-  }
-}
-
-//-----------------
-// read_solid_visc_model
-//-----------------
-// Set the solid viscosity material model parameters for the given domain.
-//
-void read_solid_visc_model(Simulation* simulation, EquationParameters* eq_params, DomainParameters* domain_params, dmnType& lDmn)
-{ 
-  using namespace consts;
-
-  // Get viscosity model.
-  //
-  SolidViscosityModelType vmodel_type;
-  std::string vmodel_str; 
-
-  if (domain_params->solid_viscosity.model.defined()) {
-    vmodel_str = domain_params->solid_viscosity.model.value();
-    std::transform(vmodel_str.begin(), vmodel_str.end(), vmodel_str.begin(), ::tolower);
-
-    try {
-      vmodel_type = solid_viscosity_model_name_to_type.at(vmodel_str);
-    } catch (const std::out_of_range& exception) {
-      throw std::runtime_error("Unknown solid viscosity model '" + vmodel_str + "'.");
-    }
-  } else {
-    vmodel_type = SolidViscosityModelType::viscType_Newtonian;
-  }
-
-  // Set the parameters for the given viscosity model.
-  //
-  auto& viscosity_params = domain_params->solid_viscosity;
-
-  try {
-    set_solid_viscosity_props[vmodel_type](simulation, viscosity_params, lDmn);
-   } catch (const std::bad_function_call& exception) {
-    throw std::runtime_error("[read_solid_visc_model] Viscosity model '" + vmodel_str + "' is not supported.");
-  }
 }
 
 //--------------------

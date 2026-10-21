@@ -35,4 +35,11 @@ double ActiveStressTanhFiberStretch::compute_active_tension_local(
   return eta * phi * phi;
 }
 
+double ActiveStressTanhFiberStretch::compute_active_tension_derivative_local(
+    const Vector<double> &state, const double fiber_stretch) const {
+  const double eta = fourier_interpolation.value(time)[0];
+  const double phi = std::tanh(a1 * (fiber_stretch - a2));
+  return 2.0 * a1 * eta * phi * (1.0 - phi * phi);
+}
+
 REGISTER_ACTIVE_STRESS_MODEL("TanhFiberStretch", ActiveStressTanhFiberStretch);
