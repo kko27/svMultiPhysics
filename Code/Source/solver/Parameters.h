@@ -1561,6 +1561,16 @@ public:
   /// Get the active tension coefficient along sheet normals.
   double get_eta_n() const;
 
+  /// Get whether the state of the active stress model is updated within the
+  /// nonlinear iterations of the mechanics problem.
+  bool get_implicit_state_coupling() const;
+
+  /// Get the factor applied to calcium before it is passed to the model.
+  double get_calcium_scaling_factor() const;
+
+  /// Get whether the fiber stretch rate passed to the model is set to zero.
+  bool get_disable_force_strain_rate_feedback() const;
+
   /// Get the parameters for a given active stress model.
   const ActiveStressModelParameters &
   get_parameters(const std::string &model_name) const;
@@ -1571,6 +1581,18 @@ public:
 protected:
   /// Parameter for the model name.
   Parameter<std::string> model_name;
+
+  /// Parameter selecting whether the state of the active stress model is
+  /// updated within the nonlinear iterations of the mechanics problem.
+  Parameter<bool> implicit_state_coupling;
+
+  /// Parameter for the factor applied to calcium before it is passed to the
+  /// model.
+  Parameter<double> calcium_scaling_factor;
+
+  /// Parameter selecting whether the fiber stretch rate passed to the model is
+  /// set to zero, disabling the force-strain-rate feedback.
+  Parameter<bool> disable_force_strain_rate_feedback;
 
   /// Parameters for the directional distribution of active tension.
   DirectionalDistributionParameters directional_distribution;
@@ -1664,8 +1686,13 @@ class DomainParameters : public ParameterLists
     Parameter<double> source_term;
     Parameter<double> time_step_for_integration;
     
-    // Inverse of Darcy permeability. Default value of 0.0 for Navier-Stokes and non-zero for Navier-Stokes-Brinkman
-    Parameter<double> inverse_darcy_permeability;
+    Parameter<double> darcy_permeability;
+    Parameter<double> darcy_compressibility;
+    Parameter<double> darcy_fluid_viscosity;
+
+    // Inverse permeability K^{-1} used in the Brinkman drag term
+    // mu K^{-1} u. A value of zero disables Brinkman drag.
+    Parameter<double> brinkman_inverse_permeability;
 };
 
 /// @brief The RemesherParameters class stores parameters for the 
@@ -1786,9 +1813,6 @@ class EquationParameters : public ParameterLists
     // and only then is the mesh equation solved.
     Parameter<bool> explicit_geometric_coupling;
 
-    // Inverse of Darcy permeability. Default value of 0.0 for Navier-Stokes and non-zero for Navier-Stokes-Brinkman
-    Parameter<double> inverse_darcy_permeability;
-
     // Sub-element parameters.
     //
     std::vector<BodyForceParameters*> body_forces;
@@ -1869,6 +1893,7 @@ class GeneralSimulationParameters : public ParameterLists
 
     Parameter<double> spectral_radius_of_infinite_time_step;
     Parameter<double> time_step_size;
+    Parameter<double> initial_homogeneous_pressure;
 
     Parameter<std::string> include_xml;
     Parameter<int> increment_in_saving_restart_files;

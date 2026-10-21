@@ -49,7 +49,7 @@
 #include "Parameters.h"
 #include "LinearAlgebra.h"
 #include "consts.h"
-#include "ustruct.h"
+#include "solid/ustruct.h"
 
 #include <algorithm>
 #include <cctype>
@@ -1911,9 +1911,17 @@ void ActiveStressModelParameters::set_values(
 const std::string ActiveStressParameters::xml_element_name = "Active_stress";
 
 ActiveStressParameters::ActiveStressParameters() {
+  constexpr bool required = true;
+
   model_name = Parameter<std::string>("Model", "", true);
 
-  set_parameter("Model", "", /* required = */ true, model_name);
+  set_parameter("Model", "", required, model_name);
+  set_parameter("Implicit_state_coupling", false, !required,
+                implicit_state_coupling);
+  set_parameter("Calcium_scaling_factor", 1.0, !required,
+                calcium_scaling_factor);
+  set_parameter("Disable_force_strain_rate_feedback", false, !required,
+                disable_force_strain_rate_feedback);
 
   ActiveStressFactory::visit(
       [this](const std::string &name, const ActiveStress &model) {
@@ -1987,6 +1995,18 @@ double ActiveStressParameters::get_eta_n() const {
   return directional_distribution.sheet_normal_direction.value();
 }
 
+bool ActiveStressParameters::get_implicit_state_coupling() const {
+  return implicit_state_coupling.value();
+}
+
+double ActiveStressParameters::get_calcium_scaling_factor() const {
+  return calcium_scaling_factor.value();
+}
+
+bool ActiveStressParameters::get_disable_force_strain_rate_feedback() const {
+  return disable_force_strain_rate_feedback.value();
+}
+
 const ActiveStressModelParameters &
 ActiveStressParameters::get_parameters(const std::string &model_name) const {
   if (active_stress_models.count(model_name) == 0) {
@@ -2055,6 +2075,11 @@ DomainParameters::DomainParameters() {
 
   set_parameter("Penalty_parameter", 0.0, !required, penalty_parameter);
   set_parameter("Poisson_ratio", 0.3, !required, poisson_ratio);
+  
+  set_parameter("Darcy_permeability", 1e-15, !required, darcy_permeability);
+  set_parameter("Darcy_compressibility", 0.0, !required,
+                darcy_compressibility);
+  set_parameter("Darcy_fluid_viscosity", 1.0, !required, darcy_fluid_viscosity);
 
   set_parameter("Relative_tolerance", 1e-4, !required, relative_tolerance);
   set_parameter("Shell_thickness", 0.0, !required, shell_thickness);
@@ -2063,8 +2088,8 @@ DomainParameters::DomainParameters() {
   set_parameter("Time_step_for_integration", 0.0, !required,
                 time_step_for_integration);
 
-  set_parameter("Inverse_darcy_permeability", 0.0, !required,
-                inverse_darcy_permeability);
+  set_parameter("Brinkman_inverse_permeability", 0.0, !required,
+                brinkman_inverse_permeability);
 
   // Ionic model parameters.
   IonicModelFactory::visit(
@@ -2859,6 +2884,8 @@ GeneralSimulationParameters::GeneralSimulationParameters() {
                 start_saving_after_time_step);
   set_parameter("Starting time step", 0, !required, starting_time_step);
 
+  set_parameter("Initial_homogeneous_pressure", 0.0, !required,
+                initial_homogeneous_pressure);
   set_parameter("Time_step_size", 0.0, required, time_step_size);
   set_parameter("Verbose", false, !required, verbose);
   set_parameter("Warning", false, !required, warning);
