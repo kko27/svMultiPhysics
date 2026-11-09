@@ -27,6 +27,10 @@ public:
 
     const Vector<double>& get_plane_normal() const noexcept { return plane_normal_; }
 
+    /// @brief Signed gap g = n·(y − p) − d of a point y against the plane
+    /// translated by d along its unit normal n. g > 0 means penetration.
+    double gap(const Vector<double>& y, double plane_displacement) const;
+
     void distribute(const CmMod& cm_mod, const cmType& cm, int nsd);
 
 private:

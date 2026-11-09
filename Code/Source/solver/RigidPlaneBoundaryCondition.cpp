@@ -43,6 +43,15 @@ RigidPlaneBoundaryCondition::RigidPlaneBoundaryCondition(double penalty_factor,
     logger_->log_message("\t Penalty factor:", penalty_factor_);
 }
 
+double RigidPlaneBoundaryCondition::gap(const Vector<double>& y, double plane_displacement) const
+{
+    double g = -plane_displacement;
+    for (int i = 0; i < plane_normal_.size(); i++) {
+        g += plane_normal_(i) * (y(i) - plane_point_(i));
+    }
+    return g;
+}
+
 void RigidPlaneBoundaryCondition::distribute(const CmMod& cm_mod, const cmType& cm, int nsd)
 {
     cm.bcast(cm_mod, &initialized_);
