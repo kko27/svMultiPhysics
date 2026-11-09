@@ -309,6 +309,12 @@ void bc_ini(const ComMod& com_mod, const CmMod& cm_mod, bcType& lBc, faceType& l
     }
   }
 
+  if (btest(lBc.bType, enum_int(BoundaryConditionType::bType_RigidPlanePenalty))) {
+    if (!com_mod.dFlag) {
+      throw std::runtime_error("RigidPlanePenalty BC can be set for a displacement-based eqn only");
+    }
+  }
+
   int iM = lFa.iM;
   int iFa = lBc.iFa;
 

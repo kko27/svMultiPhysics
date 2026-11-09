@@ -8,6 +8,7 @@
 #include "SolutionStates.h"
 #include "consts.h"
 #include "RobinBoundaryCondition.h"
+#include "RigidPlaneBoundaryCondition.h"
 
 #include <string>
 
@@ -38,6 +39,9 @@ void set_bc_neu_l(ComMod& com_mod, const CmMod& cm_mod, const bcType& lBc, const
 
 void set_bc_rbnl(ComMod& com_mod, const faceType& lFa, const RobinBoundaryCondition& robin_bc,
   const SolutionStates& solutions);
+
+void set_bc_rigid_plane_l(ComMod& com_mod, const bcType& lBc, const faceType& lFa,
+  const RigidPlaneBoundaryCondition& rigid_plane_bc, const SolutionStates& solutions);
 
 void set_bc_trac_l(ComMod& com_mod, const CmMod& cm_mod, const bcType& lBc, const faceType& lFa, const SolutionStates& solutions);
 

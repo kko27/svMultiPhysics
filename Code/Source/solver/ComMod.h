@@ -20,6 +20,7 @@
 #include "Fibers.h"
 #include "Parameters.h"
 #include "RobinBoundaryCondition.h"
+#include "RigidPlaneBoundaryCondition.h"
 #include "SolutionStates.h"
 #include "Timer.h"
 #include "Vector.h"
@@ -168,6 +169,9 @@ class bcType
 
     // Robin BC class
     RobinBoundaryCondition robin_bc;
+
+    // Rigid-plane penalty BC class
+    RigidPlaneBoundaryCondition rigid_plane_bc;
 
     // Coupled BC class
     CoupledBoundaryCondition coupled_bc;

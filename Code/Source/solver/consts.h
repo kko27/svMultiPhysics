@@ -104,6 +104,7 @@ enum class BoundaryConditionType
   bType_RCR = 22,      // RCR-Neu
   bType_Ris0D = 23,    // RIS 0D
   bType_Coupled = 24,    // Coupled to 0D
+  bType_RigidPlanePenalty = 25, // unilateral rigid-plane penalty contact
 };
 
 // Define constants using smaller name and integer value (needed for bitwise operations).
@@ -170,6 +171,9 @@ constexpr auto iBC_ustd = static_cast<int>(BoundaryConditionType::bType_ustd);
 
 constexpr auto BC_Ris0D = BoundaryConditionType::bType_Ris0D;
 constexpr auto iBC_Ris0D = static_cast<int>(BoundaryConditionType::bType_Ris0D);
+
+constexpr auto BC_RigidPlanePenalty = BoundaryConditionType::bType_RigidPlanePenalty;
+constexpr auto iBC_RigidPlanePenalty = static_cast<int>(BoundaryConditionType::bType_RigidPlanePenalty);
 
 //-----------------------
 // ConstitutiveModelType

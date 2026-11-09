@@ -564,6 +564,9 @@ BoundaryConditionParameters::BoundaryConditionParameters() {
                 penalty_parameter_normal);
   set_parameter("Penalty_parameter_tangential", 0.0, !required,
                 penalty_parameter_tangential);
+  set_parameter("Penalty_factor", 0.0, !required, penalty_factor);
+  set_parameter("Plane_normal", {}, !required, plane_normal);
+  set_parameter("Plane_point", {}, !required, plane_point);
   set_parameter("Prestress_file_path", "", !required, prestress_file_path);
   set_parameter("Profile", "Flat", !required, profile);
 
