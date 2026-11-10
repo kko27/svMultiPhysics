@@ -1955,7 +1955,8 @@ void set_bc_rigid_plane_l(ComMod& com_mod, const faceType& lFa,
   const double penalty = rigid_plane_bc.get_penalty_factor();
   const auto& plane_normal = rigid_plane_bc.get_plane_normal();
 
-  // n⊗n is constant over the face.
+  // n⊗n uses the fixed rigid-plane normal (not the face normal), so it is
+  // constant over all face elements and Gauss points; compute it once.
   Array<double> nDn(nsd, nsd);
   for (int i = 0; i < nsd; i++) {
     for (int j = 0; j < nsd; j++) {
@@ -1982,6 +1983,7 @@ void set_bc_rigid_plane_l(ComMod& com_mod, const faceType& lFa,
       }
     }
 
+    // Initialize residual (lR) and tangents (lK and lKd)
     lK = 0.0;
     lR = 0.0;
     lKd = 0.0;
@@ -1989,9 +1991,10 @@ void set_bc_rigid_plane_l(ComMod& com_mod, const faceType& lFa,
     for (int g = 0; g < lFa.nG; g++) {
       auto Nx = lFa.Nx.slice(g);
       constexpr unsigned int unused_displacement_index = 0;
-      // Face Jacobian in the reference configuration.
+      // Obtain Face Jacobian in the reference configuration
       auto nV = nn::gnnb(com_mod, lFa, e, g, Nx, solutions,
           consts::MechanicalConfigurationType::reference, unused_displacement_index);
+      // w = quadrature weight x Jacobian
       double w = lFa.w(g) * utils::norm(nV);
       N = lFa.N.col(g);
 
@@ -2003,11 +2006,12 @@ void set_bc_rigid_plane_l(ComMod& com_mod, const faceType& lFa,
         }
       }
 
+      // Compute gap function
       double gap = rigid_plane_bc.gap(y, plane_displacement);
       if (gap <= 0.0) {
-        continue;  // no penetration, no contact force
+        continue;  // no penetration -> no contact force
       }
-
+      // Compute traction
       for (int i = 0; i < nsd; i++) {
         h(i) = penalty * gap * plane_normal(i);
       }
@@ -2018,13 +2022,21 @@ void set_bc_rigid_plane_l(ComMod& com_mod, const faceType& lFa,
           lR(i,a) += w * N(a) * h(i);
         }
 
-        // Consistent tangent: penalty (n⊗n) w N_a N_b, scaled per equation.
-        // lK is indexed (i*dof + j), lKd (i*nsd + j).
+        // Consistent tangent: d(h)/d(d) = penalty (n⊗n), integrated as
+        // penalty (n⊗n) w N_a N_b and scaled to the equation's unknown.
         for (int b = 0; b < eNoN; b++) {
+          // ustruct (velocity unknown): both arrays are momentum-equation tangents.
+          //  - lKd -> Kd : displacement stiffness dM/dU (times af*gam*dt), used
+          //                by ustruct_r for the kinematic (d-v) correction.
+          //                nsd x nsd per node pair, indexed i*nsd + j.
+          //  - lK  -> Val: same stiffness times af*gam*dt/am, the tangent for the
+          //                velocity unknown. lK is laid out dof x dof (dof = nsd+1),
+          //                so i*dof + j with i,j < nsd fills only the velocity-velocity
+          //                block and leaves the pressure row/column untouched.
           if (is_ustruct) {
             double T1 = w * afv * N(a) * N(b);
-            double T2 = afm * penalty * T1;
-            T1 *= penalty;
+            double T2 = afm * penalty * T1;   // T2 = (afv^2/am) * penalty * w N_a N_b
+            T1 *= penalty;                    // T1 = afv * penalty * w N_a N_b
             for (int i = 0; i < nsd; i++) {
               for (int j = 0; j < nsd; j++) {
                 lKd(i*nsd + j, a, b) += T1 * nDn(i,j);
@@ -2032,6 +2044,7 @@ void set_bc_rigid_plane_l(ComMod& com_mod, const faceType& lFa,
               }
             }
           } else {
+            // struct (acceleration unknown): single tangent, dM/dU * af*beta*dt^2.
             double wl = w * penalty * afu;
             double T1 = N(a) * N(b);
             for (int i = 0; i < nsd; i++) {
