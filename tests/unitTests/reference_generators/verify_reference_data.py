@@ -80,6 +80,24 @@ PURE_PYTHON_REFERENCES = (
         "ionic_ttp_m_trajectory.csv",
         ("--profile", "m"),
     ),
+    ReferenceSpecification(
+        "TP06 slow-Na EPI",
+        ROOT / "ionic_model/ten_tusscher_panfilov/generate_ttp_slow_na.py",
+        "ionic_ttp_slow_na_epi_trajectory.csv",
+        ("--profile", "epi"),
+    ),
+    ReferenceSpecification(
+        "TP06 slow-Na ENDO",
+        ROOT / "ionic_model/ten_tusscher_panfilov/generate_ttp_slow_na.py",
+        "ionic_ttp_slow_na_endo_trajectory.csv",
+        ("--profile", "endo"),
+    ),
+    ReferenceSpecification(
+        "TP06 slow-Na M",
+        ROOT / "ionic_model/ten_tusscher_panfilov/generate_ttp_slow_na.py",
+        "ionic_ttp_slow_na_m_trajectory.csv",
+        ("--profile", "m"),
+    ),
 )
 
 

@@ -322,7 +322,10 @@ Vector<double> TTP::getf(const unsigned int zone_id, const Vector<double> &X,
       max_sr - ((max_sr - min_sr) / (1.0 + pow(EC / Ca_sr, 2.0)));
 
   // I_Na: Fast sodium current
-  const double I_Na = G_Na * pow(m, 3.0) * h * j * (V - E_Na);
+  // The extra gate factor is exactly 1 for the base model, so the base TTP
+  // result is unchanged bit-for-bit.
+  const double I_Na =
+      G_Na * pow(m, 3.0) * h * j * sodium_current_gate_factor(Xg) * (V - E_Na);
 
   // I_to: transient outward current
   const double I_to = G_to * r * s * (V - E_K);

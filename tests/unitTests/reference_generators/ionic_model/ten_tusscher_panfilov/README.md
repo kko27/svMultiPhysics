@@ -49,6 +49,29 @@ python3 generate_ttp.py --profile epi --output ionic_ttp_epi_trajectory.csv
 
 Valid profiles are `epi`, `endo`, and `m`.
 
+## TTP_slowNa: ultra-slow I_Na inactivation gate
+
+`generate_ttp_slow_na.py` produces the references for the `TTP_slowNa` model
+(`ionic_ttp_slow_na_<profile>_trajectory.csv`). It reuses the same model
+cores, protocol, checkpoints and initial states as `generate_ttp.py`, and adds
+a 13th gate `k` (initial value 1), taken from the openCARP model
+`tenTusscherPanfilov_slow_Na`:
+
+```
+k_inf = 1 / (1 + exp((V - 10) / 5))
+tau_k = 5 + 1050 / (1 + exp((V + 15) / 4))      [ms]
+I_Na  = G_Na m^3 h j k^3 (V - E_Na)
+```
+
+The generated `computeRates` is not modified. The driver takes the generated
+`I_Na` term (`algebraic[50]`), replaces it with `k^3 I_Na` in `dV/dt` and
+`dNai/dt`, and advances `k` with Rush--Larsen from the old state, like the
+other gates. The CSV has the TTP columns followed by `k`.
+
+```bash
+python3 generate_ttp_slow_na.py --profile epi --output ionic_ttp_slow_na_epi_trajectory.csv
+```
+
 [revision]: https://models.physiomeproject.org/workspace/tentusscher_panfilov_2006/@@file/5dc42395eef6044fe766786f7bff197dea355eb3/
 [epi-cellml]: https://models.physiomeproject.org/workspace/tentusscher_panfilov_2006/rawfile/5dc42395eef6044fe766786f7bff197dea355eb3/ten_tusscher_model_2006_IK1Ko_epi_units.cellml
 [endo-cellml]: https://models.physiomeproject.org/workspace/tentusscher_panfilov_2006/rawfile/5dc42395eef6044fe766786f7bff197dea355eb3/ten_tusscher_model_2006_IK1Ko_endo_units.cellml

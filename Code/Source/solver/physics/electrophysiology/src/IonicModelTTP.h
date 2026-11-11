@@ -54,7 +54,14 @@ public:
   /// Model parameters class.
   class Parameters : public IonicModelParameters {
   public:
-    Parameters() : IonicModelParameters(label, initial_X, initial_Xg) {
+    Parameters() : Parameters(label, initial_X, initial_Xg) {}
+
+  protected:
+    /// Constructor for derived models that reuse the TTP parameters under a
+    /// different XML element name and with extra state or gating variables.
+    Parameters(const std::string &label_, const InitialStates &initial_X_,
+               const InitialStates &initial_Xg_)
+        : IonicModelParameters(label_, initial_X_, initial_Xg_) {
       constexpr bool required = true;
 
       add_parameter("Rc", 8314.472, required);
@@ -136,6 +143,28 @@ public:
   }
 
 protected:
+  /// Constructor for derived models that extend the TTP state or gating
+  /// variables (e.g. @ref TTPSlowNa).
+  TTP(const InitialStates &initial_X_, const InitialStates &initial_Xg_)
+      : IonicModel(initial_X_, initial_Xg_,
+                   /* Vrest_ = */ -85.23, /* Vscale_ = */ 1.0,
+                   /* Tscale_ = */ 1.0, /* Voffset_ = */ 0.0) {}
+
+  /**
+   * @brief Extra multiplicative gating factor for the fast sodium current.
+   *
+   * The fast sodium current is computed as
+   * @f$I_\text{Na} = G_\text{Na} m^3 h j \, \phi(\mathbf{x}_g)
+   * (V - E_\text{Na})@f$, where @f$\phi@f$ is the value returned by this
+   * function. The base TTP model returns 1. Derived models can override this
+   * to add further @f$I_\text{Na}@f$ gates.
+   *
+   * @param[in] Xg Vector of gating variables.
+   */
+  virtual double sodium_current_gate_factor(const Vector<double> &Xg) const {
+    return 1.0;
+  }
+
   /// @name Model parameters
   /// @{
 

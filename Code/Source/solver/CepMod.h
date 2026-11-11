@@ -25,7 +25,8 @@ enum class ElectrophysiologyModelType {
   AP = 101,
   BO = 102, 
   FN = 103, 
-  TTP = 104
+  TTP = 104,
+  TTP_SLOW_NA = 105
 };
 
 extern const std::map<ElectrophysiologyModelType, std::string> cep_model_type_to_name;
@@ -39,7 +40,8 @@ static std::ostream &operator << ( std::ostream& strm, ElectrophysiologyModelTyp
     {ElectrophysiologyModelType::AP,"AP"}, 
     {ElectrophysiologyModelType::BO, "BO"}, 
     {ElectrophysiologyModelType::FN, "FN"}, 
-    {ElectrophysiologyModelType::TTP, "TTP"}, 
+    {ElectrophysiologyModelType::TTP, "TTP"},
+    {ElectrophysiologyModelType::TTP_SLOW_NA, "TTP_slowNa"},
   };
   return strm << names.at(type);
 }

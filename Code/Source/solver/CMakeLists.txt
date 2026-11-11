@@ -276,6 +276,7 @@ set(CSRCS
   physics/electrophysiology/src/IonicModelBuenoOrovio.h physics/electrophysiology/src/IonicModelBuenoOrovio.cpp
   physics/electrophysiology/src/IonicModelFitzHughNagumo.h physics/electrophysiology/src/IonicModelFitzHughNagumo.cpp
   physics/electrophysiology/src/IonicModelTTP.h physics/electrophysiology/src/IonicModelTTP.cpp
+  physics/electrophysiology/src/IonicModelTTPSlowNa.h physics/electrophysiology/src/IonicModelTTPSlowNa.cpp
 
   ActiveStress.cpp
   ActiveStressUniformSteady.cpp

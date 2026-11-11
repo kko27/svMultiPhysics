@@ -16,7 +16,8 @@ const std::map<ElectrophysiologyModelType, std::string> cep_model_type_to_name{
     {ElectrophysiologyModelType::AP, "AP"},
     {ElectrophysiologyModelType::BO, "BO"},
     {ElectrophysiologyModelType::FN, "FN"},
-    {ElectrophysiologyModelType::TTP, "TTP"}
+    {ElectrophysiologyModelType::TTP, "TTP"},
+    {ElectrophysiologyModelType::TTP_SLOW_NA, "TTP_slowNa"}
 };
 
 const std::map<std::string,ElectrophysiologyModelType> cep_model_name_to_type
@@ -28,7 +29,11 @@ const std::map<std::string,ElectrophysiologyModelType> cep_model_name_to_type
   {"fitzhugh-nagumo", ElectrophysiologyModelType::FN},
   {"fn", ElectrophysiologyModelType::FN},
   {"tentusscher-panfilov", ElectrophysiologyModelType::TTP},
-  {"ttp", ElectrophysiologyModelType::TTP}
+  {"ttp", ElectrophysiologyModelType::TTP},
+  // Keys are lowercase: read_cep_domain lowercases the XML value before lookup.
+  {"tentusscher-panfilov-slow-na", ElectrophysiologyModelType::TTP_SLOW_NA},
+  {"ttp-slow-na", ElectrophysiologyModelType::TTP_SLOW_NA},
+  {"ttp_slowna", ElectrophysiologyModelType::TTP_SLOW_NA}
 };
 
 bool stimType::is_active(const double time) const
