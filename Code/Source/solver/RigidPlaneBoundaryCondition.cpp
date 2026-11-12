@@ -3,24 +3,30 @@
 
 #include "RigidPlaneBoundaryCondition.h"
 
+#include "Core/Exception.h"
+
 #include <cmath>
-#include <stdexcept>
+
+namespace {
+using svmp::CoreException;
+constexpr auto kInvalidArg = svmp::StatusCode::InvalidArgument;
+}
 
 RigidPlaneBoundaryCondition::RigidPlaneBoundaryCondition(double penalty_factor,
     const std::vector<double>& plane_point, const std::vector<double>& plane_normal,
-    SimulationLogger& logger)
+    int nsd, SimulationLogger& logger)
     : penalty_factor_(penalty_factor)
     , plane_point_(plane_point.size())
     , plane_normal_(plane_normal.size())
     , logger_(&logger)
 {
-    if (penalty_factor_ <= 0.0) {
-        throw std::runtime_error("[RigidPlaneBoundaryCondition] Penalty_factor must be positive.");
-    }
+    svmp::check<CoreException>(penalty_factor_ > 0.0,
+        "Penalty_factor must be positive.", kInvalidArg);
 
-    if (plane_point.size() == 0 || plane_point.size() != plane_normal.size()) {
-        throw std::runtime_error("[RigidPlaneBoundaryCondition] Plane_point and Plane_normal must have the same non-zero size.");
-    }
+    svmp::check<CoreException>(plane_point.size() == static_cast<size_t>(nsd) &&
+        plane_normal.size() == static_cast<size_t>(nsd),
+        "Plane_point and Plane_normal must match the number of spatial dimensions (" +
+        std::to_string(nsd) + ").", kInvalidArg);
 
     double normal_norm_sq = 0.0;
     for (int i = 0; i < plane_point_.size(); i++) {
@@ -30,9 +36,8 @@ RigidPlaneBoundaryCondition::RigidPlaneBoundaryCondition(double penalty_factor,
     }
 
     double normal_norm = std::sqrt(normal_norm_sq);
-    if (normal_norm <= 0.0) {
-        throw std::runtime_error("[RigidPlaneBoundaryCondition] Plane_normal must have non-zero length.");
-    }
+    svmp::throw_if<CoreException>(normal_norm <= 0.0,
+        "Plane_normal must have non-zero length.", kInvalidArg);
 
     for (int i = 0; i < plane_normal_.size(); i++) {
         plane_normal_(i) /= normal_norm;

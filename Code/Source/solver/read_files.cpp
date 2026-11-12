@@ -545,48 +545,37 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
   }
 
   if (utils::btest(lBc.bType, enum_int(BoundaryConditionType::bType_RigidPlanePenalty))) {
-    if (lEq.phys != Equation_struct && lEq.phys != Equation_ustruct) {
-      throw std::runtime_error("[read_bc] RigidPlanePenalty is only supported for struct and ustruct equations.");
-    }
+    using svmp::CoreException;
+    constexpr auto kInvalidArg = svmp::StatusCode::InvalidArgument;
 
-    if (bc_params->time_dependence.value() != "Unsteady") {
-      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Time_dependence> Unsteady </Time_dependence>.");
-    }
+    svmp::check<CoreException>(lEq.phys == Equation_struct || lEq.phys == Equation_ustruct,
+        "RigidPlanePenalty is only supported for struct and ustruct equations.", kInvalidArg);
 
-    if (!bc_params->temporal_values_file_path.defined()) {
-      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Temporal_values_file_path>.");
-    }
+    svmp::check<CoreException>(bc_params->time_dependence.value() == "Unsteady",
+        "RigidPlanePenalty requires <Time_dependence> Unsteady </Time_dependence>.", kInvalidArg);
 
-    if (!bc_params->penalty_factor.defined()) {
-      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Penalty_factor>.");
-    }
+    svmp::check<CoreException>(bc_params->temporal_values_file_path.defined(),
+        "RigidPlanePenalty requires <Temporal_values_file_path>.", kInvalidArg);
 
-    if (!bc_params->plane_point.defined()) {
-      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Plane_point>.");
-    }
+    svmp::check<CoreException>(bc_params->penalty_factor.defined(),
+        "RigidPlanePenalty requires <Penalty_factor>.", kInvalidArg);
 
-    if (!bc_params->plane_normal.defined()) {
-      throw std::runtime_error("[read_bc] RigidPlanePenalty requires <Plane_normal>.");
-    }
+    svmp::check<CoreException>(bc_params->plane_point.defined(),
+        "RigidPlanePenalty requires <Plane_point>.", kInvalidArg);
 
-    if (bc_params->spatial_values_file_path.defined() || bc_params->stiffness.defined() ||
-        bc_params->damping.defined() || bc_params->apply_along_normal_direction.defined()) {
-      throw std::runtime_error("[read_bc] RigidPlanePenalty cannot be mixed with Robin-specific parameters.");
-    }
+    svmp::check<CoreException>(bc_params->plane_normal.defined(),
+        "RigidPlanePenalty requires <Plane_normal>.", kInvalidArg);
 
-    if (lBc.gt.get_n_components() != 1) {
-      throw std::runtime_error("[read_bc] RigidPlanePenalty requires a scalar temporal history.");
-    }
+    svmp::throw_if<CoreException>(bc_params->spatial_values_file_path.defined() || bc_params->stiffness.defined() ||
+        bc_params->damping.defined() || bc_params->apply_along_normal_direction.defined(),
+        "RigidPlanePenalty cannot be mixed with Robin-specific parameters.", kInvalidArg);
 
-    auto plane_point = bc_params->plane_point.value();
-    auto plane_normal = bc_params->plane_normal.value();
-    if (plane_point.size() != static_cast<size_t>(com_mod.nsd) ||
-        plane_normal.size() != static_cast<size_t>(com_mod.nsd)) {
-      throw std::runtime_error("[read_bc] Plane_point and Plane_normal must match the number of spatial dimensions.");
-    }
+    svmp::check<CoreException>(lBc.gt.get_n_components() == 1,
+        "RigidPlanePenalty requires a scalar temporal history.", kInvalidArg);
 
     lBc.rigid_plane_bc = RigidPlaneBoundaryCondition(bc_params->penalty_factor.value(),
-      plane_point, plane_normal, simulation->logger);
+      bc_params->plane_point.value(), bc_params->plane_normal.value(), com_mod.nsd,
+      simulation->logger);
   }
 
   

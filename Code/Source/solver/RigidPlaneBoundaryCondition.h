@@ -17,7 +17,7 @@ public:
     RigidPlaneBoundaryCondition() = default;
 
     RigidPlaneBoundaryCondition(double penalty_factor, const std::vector<double>& plane_point,
-        const std::vector<double>& plane_normal, SimulationLogger& logger);
+        const std::vector<double>& plane_normal, int nsd, SimulationLogger& logger);
 
     bool is_initialized() const noexcept { return initialized_; }
 
@@ -31,6 +31,7 @@ public:
     /// translated by d along its unit normal n. g > 0 means penetration.
     double gap(const Vector<double>& y, double plane_displacement) const;
 
+    /// @brief Distribute model parameters to all parallel processes.
     void distribute(const CmMod& cm_mod, const cmType& cm, int nsd);
 
 private:
